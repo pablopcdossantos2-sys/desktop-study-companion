@@ -16,6 +16,7 @@ class CompanionWidget(QWidget):
     manage_routines_requested = Signal()
     intervention_settings_requested = Signal()
     emergency_disable_requested = Signal()
+    end_lockdown_requested = Signal()
     pause_monitoring_requested = Signal(bool)
     quit_requested = Signal()
 
@@ -95,6 +96,10 @@ class CompanionWidget(QWidget):
         settings = QAction("Configurar permissões", self)
         settings.triggered.connect(self.intervention_settings_requested.emit)
         intervention_menu.addAction(settings)
+        end_lockdown = QAction("Encerrar lockdown atual", self)
+        end_lockdown.triggered.connect(self.end_lockdown_requested.emit)
+        intervention_menu.addAction(end_lockdown)
+
         emergency = QAction("DESATIVAR INTERVENÇÕES AGORA", self)
         emergency.triggered.connect(self.emergency_disable_requested.emit)
         intervention_menu.addAction(emergency)
