@@ -21,6 +21,7 @@ from desktop_study_companion.personality.renderer import PersonalityRenderer
 from desktop_study_companion.study.manager import StudySessionManager
 from desktop_study_companion.ui.companion_widget import CompanionWidget
 from desktop_study_companion.ui.session_dialog import SessionDialog
+from desktop_study_companion.voice.windows_sapi import WindowsSapiTTS
 
 
 class ApplicationController(QObject):
@@ -56,6 +57,11 @@ class ApplicationController(QObject):
             ),
             name=config.personality.name,
         )
+        self.voice = (
+            WindowsSapiTTS(rate=config.voice.rate, volume=config.voice.volume)
+            if config.voice.enabled
+            else None
+        )
         self.memory = SQLiteMemoryStore(Path("data") / "companion.db")
         self.widget = CompanionWidget(config.personality.name)
 
@@ -79,9 +85,14 @@ class ApplicationController(QObject):
         self.widget.show()
         self.timer.start()
 
+    def _say(self, text: str, *, voice: bool = True) -> None:
+        self.widget.say(text)
+        if voice and self.voice is not None:
+            self.voice.speak(text)
+
     def start_session(self) -> None:
         if self.sessions.active:
-            self.widget.say("Já existe uma sessão em andamento.")
+            self._say("Já existe uma sessão em andamento.")
             return
 
         dialog = SessionDialog(self.widget)
@@ -93,23 +104,23 @@ class ApplicationController(QObject):
         self._last_session_save_at = time.monotonic()
         self._last_activity_key = None
         self._last_intervention_kind = InterventionKind.NONE
-        self.widget.say(
-            f"Combinado: {session.planned_minutes} min para “{session.goal}”. "
+        self._say(
+            f"Combinado: {session.planned_minutes} minutos para {session.goal}. "
             "Eu vou acompanhar."
         )
 
     def finish_session(self) -> None:
         if self.sessions.session is None:
-            self.widget.say("Não há sessão ativa.")
+            self._say("Não há sessão ativa.")
             return
 
         session = self.sessions.finish()
         self.memory.save_session(session)
         focused = round(session.focused_seconds / 60, 1)
         distracted = round(session.distracted_seconds / 60, 1)
-        self.widget.say(
-            f"Sessão encerrada. Foco classificado: {focused} min; "
-            f"distração: {distracted} min."
+        self._say(
+            f"Sessão encerrada. Foco classificado: {focused} minutos; "
+            f"distração: {distracted} minutos."
         )
 
     def set_paused(self, paused: bool) -> None:
@@ -158,15 +169,15 @@ class ApplicationController(QObject):
             session = self.sessions.session
             if session:
                 self.memory.save_session(session)
-                self.widget.say(
-                    f"Tempo cumprido para “{session.goal}”. "
+                self._say(
+                    f"Tempo cumprido para {session.goal}. "
                     "Sessão registrada. Bom trabalho."
                 )
             return
 
         if classified.kind != ActivityKind.DISTRACTION:
             if self._last_intervention_kind != InterventionKind.NONE:
-                self.widget.say("Você voltou. Ótimo — continue.")
+                self._say("Você voltou. Ótimo. Continue.")
             self._last_intervention_kind = InterventionKind.NONE
             return
 
@@ -182,7 +193,7 @@ class ApplicationController(QObject):
             return
 
         message = self.personality.intervention_message(intervention.kind)
-        self.widget.say(message)
+        self._say(message)
         self.memory.save_intervention(
             session_id,
             intervention,
@@ -199,5 +210,7 @@ class ApplicationController(QObject):
         if self.sessions.session is not None:
             self.memory.save_session(self.sessions.session)
         self.timer.stop()
+        if self.voice is not None:
+            self.voice.close()
         self.memory.close()
         self.app.quit()
