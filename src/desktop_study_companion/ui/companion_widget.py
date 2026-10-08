@@ -14,6 +14,8 @@ class CompanionWidget(QWidget):
     manage_rules_requested = Signal()
     add_routine_requested = Signal()
     manage_routines_requested = Signal()
+    intervention_settings_requested = Signal()
+    emergency_disable_requested = Signal()
     pause_monitoring_requested = Signal(bool)
     quit_requested = Signal()
 
@@ -88,6 +90,14 @@ class CompanionWidget(QWidget):
         manage_routines = QAction("Gerenciar rotinas", self)
         manage_routines.triggered.connect(self.manage_routines_requested.emit)
         routine_menu.addAction(manage_routines)
+
+        intervention_menu = menu.addMenu("Intervenções no desktop")
+        settings = QAction("Configurar permissões", self)
+        settings.triggered.connect(self.intervention_settings_requested.emit)
+        intervention_menu.addAction(settings)
+        emergency = QAction("DESATIVAR INTERVENÇÕES AGORA", self)
+        emergency.triggered.connect(self.emergency_disable_requested.emit)
+        intervention_menu.addAction(emergency)
 
         menu.addSeparator()
 
