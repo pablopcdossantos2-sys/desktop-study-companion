@@ -102,7 +102,7 @@ class InterventionPermissionStore:
         try:
             data = json.loads(self.path.read_text(encoding="utf-8"))
             self.permissions = InterventionPermissions.from_dict(data)
-        except (OSError, json.JSONDecodeError, TypeError):
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
             self.permissions = InterventionPermissions()
 
     def save(self) -> None:
