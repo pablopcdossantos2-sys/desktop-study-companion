@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from PySide6.QtWidgets import (
+    QComboBox,
     QDialog,
     QDialogButtonBox,
     QFormLayout,
+    QLabel,
     QLineEdit,
     QSpinBox,
     QVBoxLayout,
@@ -23,6 +25,17 @@ class StandingRuleDialog(QDialog):
         self.patterns = QLineEdit()
         self.patterns.setPlaceholderText("youtube, netflix, reddit")
 
+        self.response = QComboBox()
+        self.response.addItem("Somente cobrar", "nag")
+        self.response.addItem("Minimizar e cobrar", "minimize_and_nag")
+        self.response.addItem("Fechar e cobrar", "close_and_nag")
+
+        note = QLabel(
+            "Minimizar/fechar só funciona se a permissão correspondente "
+            "também for habilitada em Intervenções no desktop."
+        )
+        note.setWordWrap(True)
+
         self.cooldown = QSpinBox()
         self.cooldown.setRange(5, 3600)
         self.cooldown.setValue(60)
@@ -31,6 +44,7 @@ class StandingRuleDialog(QDialog):
         form = QFormLayout()
         form.addRow("Regra:", self.description)
         form.addRow("Padrões (separados por vírgula):", self.patterns)
+        form.addRow("Resposta:", self.response)
         form.addRow("Intervalo mínimo entre cobranças:", self.cooldown)
 
         buttons = QDialogButtonBox(
@@ -42,4 +56,8 @@ class StandingRuleDialog(QDialog):
 
         layout = QVBoxLayout(self)
         layout.addLayout(form)
+        layout.addWidget(note)
         layout.addWidget(buttons)
+
+    def response_code(self) -> str:
+        return str(self.response.currentData())
