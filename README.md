@@ -44,7 +44,7 @@ src/desktop_study_companion/
 
 A intenção é evitar um núcleo monolítico e permitir que voz, LLM, memória, avatar e políticas de cobrança possam evoluir ou ser substituídos independentemente.
 
-Veja [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). O funcionamento de sessões, rotinas, compromissos, regras permanentes e escalada está detalhado em [docs/ACCOUNTABILITY.md](docs/ACCOUNTABILITY.md).
+Veja [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). O funcionamento de sessões, rotinas, compromissos, regras permanentes e escalada está detalhado em [docs/ACCOUNTABILITY.md](docs/ACCOUNTABILITY.md). As intervenções opcionais no Windows estão documentadas em [docs/DESKTOP-INTERVENTIONS.md](docs/DESKTOP-INTERVENTIONS.md).
 
 ## Escopo da v0.1
 
@@ -92,7 +92,7 @@ desktop-study-companion
 
 ## Estado
 
-**v0.1.0-dev3 — MVP de accountability persistente em validação no Windows.**
+**v0.1.0-dev4 — MVP de accountability persistente com intervenções opt-in em validação no Windows.**
 
 Já estão implementados monitor de janela ativa, classificação configurável, sessões de estudo, escalada de cobrança, compromissos persistentes (Directives), regras permanentes (Standing Rules), rotinas proativas, widget flutuante, persistência local, TTS do Windows e testes automatizados. O avatar final, STT e LLM ainda não fazem parte desta versão.
 
