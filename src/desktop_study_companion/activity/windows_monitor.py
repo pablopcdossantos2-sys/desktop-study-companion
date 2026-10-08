@@ -24,7 +24,7 @@ class WindowsActiveWindowMonitor:
     def sample(self) -> ActiveWindow:
         hwnd = self._user32.GetForegroundWindow()
         if not hwnd:
-            return ActiveWindow("", "", 0.0)
+            return ActiveWindow("", "", 0.0, 0)
 
         length = self._user32.GetWindowTextLengthW(hwnd)
         buffer = ctypes.create_unicode_buffer(length + 1)
@@ -50,4 +50,5 @@ class WindowsActiveWindowMonitor:
             process_name=process_name,
             title=title,
             duration_seconds=max(0.0, now - self._active_since),
+            hwnd=int(hwnd),
         )
