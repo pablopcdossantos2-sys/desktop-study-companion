@@ -6,21 +6,36 @@
 - [x] Definir arquitetura modular.
 - [x] Registrar a pendência de licença do projeto de referência.
 - [x] Criar scaffold Python inicial.
-- [ ] Definir identidade/nome da personagem.
-- [ ] Definir stack visual definitiva.
+- [ ] Definir identidade/nome definitivo da personagem.
+- [x] Definir stack visual provisória da v0.1: PySide6.
+- [ ] Definir stack visual definitiva para avatar/personagem animada.
 
 ## v0.1 — Ciclo mínimo de accountability
 
 Objetivo: completar o fluxo “planejar → estudar → distrair → cobrar → retornar → registrar”.
 
-- [ ] Monitorar janela ativa no Windows.
-- [ ] Configurar lista de aplicativos produtivos/neutros/distrativos.
-- [ ] Criar sessão de estudo com duração e objetivo.
-- [ ] Detectar permanência em distração.
-- [ ] Implementar níveis 1–4 de cobrança.
-- [ ] Exibir personagem/janela sempre no topo.
-- [ ] Persistir histórico da sessão.
-- [ ] Exibir resumo ao terminar.
+Implementado no código:
+
+- [x] Monitorar janela ativa no Windows.
+- [x] Configurar lista de aplicativos produtivos/neutros/distrativos.
+- [x] Criar sessão de estudo com duração e objetivo.
+- [x] Detectar permanência em distração.
+- [x] Implementar níveis 1–4 de cobrança.
+- [x] Exibir personagem/widget sempre no topo.
+- [x] Persistir histórico da sessão em SQLite.
+- [x] Exibir resumo ao terminar.
+- [x] Reduzir gravações repetitivas no banco durante monitoramento.
+- [x] Adicionar inicializador simples para Windows.
+- [x] Criar tutorial de instalação e teste.
+- [x] Criar testes automatizados e CI para Windows.
+
+Validação ainda necessária em máquina Windows real:
+
+- [ ] confirmar leitura correta da janela ativa;
+- [ ] confirmar comportamento com Edge/Chrome e títulos de abas;
+- [ ] confirmar widget sempre no topo e arrastável;
+- [ ] confirmar persistência após reiniciar;
+- [ ] confirmar escalada 1–4 com sessão real.
 
 Critério de conclusão:
 
@@ -28,31 +43,33 @@ Critério de conclusão:
 
 ## v0.2 — Voz
 
-- [ ] TTS.
+- [x] TTS local inicial usando Windows SAPI.
+- [ ] seletor de vozes instaladas no Windows.
 - [ ] STT push-to-talk.
-- [ ] interrupção da fala;
-- [ ] seleção de voz;
-- [ ] controles de volume;
-- [ ] fallback textual.
+- [ ] interrupção da fala.
+- [ ] seleção de voz pela interface.
+- [ ] controles de volume pela interface.
+- [x] fallback textual no balão.
 
 ## v0.3 — Personalidade programável
 
 - [ ] presets;
 - [ ] editor de traços;
-- [ ] calor humano;
-- [ ] sarcasmo;
-- [ ] rigor;
-- [ ] paciência;
-- [ ] humor;
-- [ ] iniciativa;
+- [x] estrutura para calor humano;
+- [x] estrutura para sarcasmo;
+- [x] estrutura para rigor;
+- [x] estrutura para paciência;
+- [x] estrutura para humor;
+- [x] estrutura para iniciativa;
 - [ ] exemplos de fala;
-- [ ] limites de linguagem.
+- [ ] limites de linguagem;
+- [ ] geração contextual por LLM.
 
 ## v0.4 — Memória
 
-- [ ] SQLite;
+- [x] SQLite inicial;
 - [ ] fatos do usuário;
-- [ ] histórico de compromissos;
+- [x] histórico de compromissos/sessões;
 - [ ] padrões de procrastinação;
 - [ ] resumos periódicos;
 - [ ] esquecimento/configuração de retenção.
@@ -73,16 +90,16 @@ Sempre opt-in.
 - [ ] minimizar aplicativo;
 - [ ] ocultar janela;
 - [ ] fechar aplicativo;
-- [ ] cooldown;
+- [ ] cooldown configurável pela interface;
 - [ ] lista de aplicativos protegidos;
 - [ ] botão de emergência para suspender controle.
 
 ## v0.7 — Estatísticas de estudo
 
-- [ ] tempo líquido;
-- [ ] tempo distraído;
+- [x] coleta de tempo líquido classificado;
+- [x] coleta de tempo distraído;
 - [ ] adesão ao plano;
-- [ ] número de intervenções;
+- [x] registro do número de intervenções;
 - [ ] taxa de retorno após intervenção;
 - [ ] calendário;
 - [ ] padrões por horário/dia.
@@ -113,5 +130,5 @@ Sempre opt-in.
 - [ ] onboarding;
 - [ ] permissões;
 - [ ] documentação de privacidade;
-- [ ] testes automatizados;
+- [ ] testes automatizados abrangentes;
 - [ ] recuperação de falhas.
