@@ -87,3 +87,16 @@ def test_emergency_disable_revokes_every_permission(tmp_path) -> None:
     assert store.permissions.enabled is False
     assert store.permissions.allow_minimize is False
     assert store.permissions.allow_close is False
+
+
+def test_default_protections_cannot_be_removed_by_config(tmp_path) -> None:
+    controller, store, backend = _controller(tmp_path)
+    store.permissions.enabled = True
+    store.permissions.allow_close = True
+    store.permissions.protected_processes = []
+    window = ActiveWindow("powershell.exe", "Terminal", hwnd=101)
+
+    result = controller.perform("close_and_nag", window)
+
+    assert result.performed is False
+    assert backend.calls == []
