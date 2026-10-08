@@ -202,6 +202,10 @@ class DesktopInterventionController:
             p.casefold().strip()
             for p in self.permissions.protected_processes
         }
+        protected |= {
+            p.casefold().strip()
+            for p in _DEFAULT_PROTECTED_PROCESSES
+        }
         return process in protected
 
     def perform(self, response: str, window: ActiveWindow) -> InterventionResult:
