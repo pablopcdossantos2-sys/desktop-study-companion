@@ -38,6 +38,7 @@ from desktop_study_companion.activity.windows_monitor import (
     WindowsActiveWindowMonitor,
 )
 from desktop_study_companion.config.models import AppConfig
+from desktop_study_companion.config.writer import save_config
 from desktop_study_companion.desktop.interventions import (
     DesktopInterventionController,
     InterventionPermissionStore,
@@ -67,6 +68,7 @@ from desktop_study_companion.ui.intervention_settings_dialog import (
 )
 from desktop_study_companion.ui.routine_dialog import RoutineDialog
 from desktop_study_companion.ui.session_dialog import SessionDialog
+from desktop_study_companion.ui.settings_dialog import SettingsDialog
 from desktop_study_companion.ui.standing_rule_dialog import StandingRuleDialog
 from desktop_study_companion.voice.windows_sapi import WindowsSapiTTS
 from desktop_study_companion import __version__
@@ -161,6 +163,7 @@ class ApplicationController(QObject):
         self.widget.history_requested.connect(self.show_history)
         self.widget.export_csv_requested.connect(self.export_csv)
         self.widget.backup_requested.connect(self.create_backup)
+        self.widget.settings_requested.connect(self.open_settings)
         self.widget.pause_monitoring_requested.connect(self.set_paused)
         self.widget.quit_requested.connect(self.shutdown)
 
@@ -618,6 +621,83 @@ class ApplicationController(QObject):
                 f"Restam cerca de {remaining} minutos."
             )
         return result.performed
+
+    # ------------------------------------------------------------------
+    # Main settings
+    # ------------------------------------------------------------------
+
+    def open_settings(self) -> None:
+        dialog = SettingsDialog(self.config, self.widget)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        new_config = dialog.values()
+        try:
+            save_config(new_config, external_config_path())
+        except Exception as exc:
+            QMessageBox.critical(
+                self.widget,
+                "Configuração inválida",
+                f"Não foi possível salvar as configurações:\n\n{exc}",
+            )
+            return
+
+        self._apply_runtime_config(new_config)
+        self._say("Configurações salvas e aplicadas.")
+
+    def _apply_runtime_config(self, new_config: AppConfig) -> None:
+        self.config = new_config
+
+        self.classifier = ActivityClassifier(
+            productive_keywords=set(
+                new_config.activity.productive_keywords
+            ),
+            neutral_keywords=set(new_config.activity.neutral_keywords),
+            distraction_keywords=set(
+                new_config.activity.distraction_keywords
+            ),
+        )
+
+        self.accountability = AccountabilityEngine(
+            AccountabilityPolicy(
+                gentle_after_seconds=(
+                    new_config.accountability.gentle_after_seconds
+                ),
+                firm_after_seconds=(
+                    new_config.accountability.firm_after_seconds
+                ),
+                direct_after_seconds=(
+                    new_config.accountability.direct_after_seconds
+                ),
+                insistent_after_seconds=(
+                    new_config.accountability.insistent_after_seconds
+                ),
+            )
+        )
+
+        self.personality = PersonalityRenderer(
+            Personality(
+                warmth=new_config.personality.warmth,
+                sarcasm=new_config.personality.sarcasm,
+                strictness=new_config.personality.strictness,
+                patience=new_config.personality.patience,
+                humor=new_config.personality.humor,
+                initiative=new_config.personality.initiative,
+            ),
+            name=new_config.personality.name,
+        )
+        self.widget.name = new_config.personality.name
+
+        if self.voice is not None:
+            self.voice.close()
+            self.voice = None
+        if new_config.voice.enabled:
+            self.voice = WindowsSapiTTS(
+                rate=new_config.voice.rate,
+                volume=new_config.voice.volume,
+            )
+
+        self.timer.setInterval(new_config.monitor.poll_interval_ms)
 
     # ------------------------------------------------------------------
     # History, analytics and backups
