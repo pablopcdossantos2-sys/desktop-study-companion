@@ -4,7 +4,13 @@ import time
 from pathlib import Path
 
 from PySide6.QtCore import QObject, QTimer
-from PySide6.QtWidgets import QApplication, QDialog, QInputDialog, QMessageBox
+from PySide6.QtWidgets import (
+    QApplication,
+    QDialog,
+    QFileDialog,
+    QInputDialog,
+    QMessageBox,
+)
 
 from desktop_study_companion.accountability.directives import DirectiveManager
 from desktop_study_companion.accountability.escalation import (
@@ -37,6 +43,11 @@ from desktop_study_companion.desktop.interventions import (
     InterventionPermissionStore,
     WindowsWindowBackend,
 )
+from desktop_study_companion.memory.analytics import StudyAnalytics
+from desktop_study_companion.memory.exporter import (
+    create_backup_zip,
+    export_csv_directory,
+)
 from desktop_study_companion.memory.sqlite_store import SQLiteMemoryStore
 from desktop_study_companion.personality.models import Personality
 from desktop_study_companion.personality.renderer import PersonalityRenderer
@@ -45,6 +56,7 @@ from desktop_study_companion.routines.models import Routine
 from desktop_study_companion.study.manager import StudySessionManager
 from desktop_study_companion.ui.companion_widget import CompanionWidget
 from desktop_study_companion.ui.directive_dialog import DirectiveDialog
+from desktop_study_companion.ui.history_dialog import HistoryDialog
 from desktop_study_companion.ui.intervention_settings_dialog import (
     InterventionSettingsDialog,
 )
@@ -52,6 +64,7 @@ from desktop_study_companion.ui.routine_dialog import RoutineDialog
 from desktop_study_companion.ui.session_dialog import SessionDialog
 from desktop_study_companion.ui.standing_rule_dialog import StandingRuleDialog
 from desktop_study_companion.voice.windows_sapi import WindowsSapiTTS
+from desktop_study_companion import __version__
 
 
 class ApplicationController(QObject):
@@ -103,6 +116,7 @@ class ApplicationController(QObject):
             else None
         )
         self.memory = SQLiteMemoryStore(Path("data") / "companion.db")
+        self.analytics = StudyAnalytics(self.memory.path)
         self.widget = CompanionWidget(config.personality.name)
         self.intervention_permissions = InterventionPermissionStore(
             Path("data") / "intervention_permissions.json"
@@ -138,6 +152,9 @@ class ApplicationController(QObject):
             self.emergency_disable_interventions
         )
         self.widget.end_lockdown_requested.connect(self.end_lockdown)
+        self.widget.history_requested.connect(self.show_history)
+        self.widget.export_csv_requested.connect(self.export_csv)
+        self.widget.backup_requested.connect(self.create_backup)
         self.widget.pause_monitoring_requested.connect(self.set_paused)
         self.widget.quit_requested.connect(self.shutdown)
 
@@ -187,6 +204,7 @@ class ApplicationController(QObject):
         self._say(
             f"Sessão encerrada. Foco classificado: {focused} minutos; "
             f"distração: {distracted} minutos."
+            + self._behavioral_insight_suffix()
         )
 
     # ------------------------------------------------------------------
@@ -596,6 +614,83 @@ class ApplicationController(QObject):
         return result.performed
 
     # ------------------------------------------------------------------
+    # History, analytics and backups
+    # ------------------------------------------------------------------
+
+    def show_history(self) -> None:
+        overview = self.analytics.overview(30)
+        sessions = self.analytics.sessions(100)
+        dialog = HistoryDialog(overview, sessions, self.widget)
+        dialog.exec()
+
+    def export_csv(self) -> None:
+        destination = QFileDialog.getExistingDirectory(
+            self.widget,
+            "Escolha a pasta para exportar os CSVs",
+            str(Path.cwd()),
+        )
+        if not destination:
+            return
+
+        try:
+            created = export_csv_directory(
+                self.memory.path,
+                destination,
+            )
+        except Exception as exc:
+            QMessageBox.critical(
+                self.widget,
+                "Falha na exportação",
+                f"Não foi possível exportar os dados:\n\n{exc}",
+            )
+            return
+
+        self._say(
+            f"Exportação concluída. {len(created)} arquivos CSV foram criados."
+        )
+
+    def create_backup(self) -> None:
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        suggested = str(
+            Path.cwd() / f"desktop-study-companion-backup-{timestamp}.zip"
+        )
+        destination, _ = QFileDialog.getSaveFileName(
+            self.widget,
+            "Salvar backup",
+            suggested,
+            "Arquivo ZIP (*.zip)",
+        )
+        if not destination:
+            return
+        if not destination.casefold().endswith(".zip"):
+            destination += ".zip"
+
+        config_path = Path.cwd() / "config" / "default.json"
+        try:
+            backup = create_backup_zip(
+                self.memory.path,
+                self.memory.path.parent,
+                destination,
+                config_path=config_path,
+                app_version=__version__,
+            )
+        except Exception as exc:
+            QMessageBox.critical(
+                self.widget,
+                "Falha no backup",
+                f"Não foi possível criar o backup:\n\n{exc}",
+            )
+            return
+
+        self._say(f"Backup criado: {backup.name}.")
+
+    def _behavioral_insight_suffix(self) -> str:
+        overview = self.analytics.overview(30)
+        if overview.session_count < 3 or not overview.insights:
+            return ""
+        return f" {overview.insights[0]}"
+
+    # ------------------------------------------------------------------
     # Routines
     # ------------------------------------------------------------------
 
@@ -762,6 +857,7 @@ class ApplicationController(QObject):
                 self._say(
                     f"Tempo cumprido para {session.goal}. "
                     "Sessão registrada. Bom trabalho."
+                    + self._behavioral_insight_suffix()
                 )
             return
 
