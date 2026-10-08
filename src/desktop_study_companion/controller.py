@@ -25,6 +25,11 @@ from desktop_study_companion.activity.windows_monitor import (
     WindowsActiveWindowMonitor,
 )
 from desktop_study_companion.config.models import AppConfig
+from desktop_study_companion.desktop.interventions import (
+    DesktopInterventionController,
+    InterventionPermissionStore,
+    WindowsWindowBackend,
+)
 from desktop_study_companion.memory.sqlite_store import SQLiteMemoryStore
 from desktop_study_companion.personality.models import Personality
 from desktop_study_companion.personality.renderer import PersonalityRenderer
@@ -33,6 +38,9 @@ from desktop_study_companion.routines.models import Routine
 from desktop_study_companion.study.manager import StudySessionManager
 from desktop_study_companion.ui.companion_widget import CompanionWidget
 from desktop_study_companion.ui.directive_dialog import DirectiveDialog
+from desktop_study_companion.ui.intervention_settings_dialog import (
+    InterventionSettingsDialog,
+)
 from desktop_study_companion.ui.routine_dialog import RoutineDialog
 from desktop_study_companion.ui.session_dialog import SessionDialog
 from desktop_study_companion.ui.standing_rule_dialog import StandingRuleDialog
@@ -87,6 +95,13 @@ class ApplicationController(QObject):
         )
         self.memory = SQLiteMemoryStore(Path("data") / "companion.db")
         self.widget = CompanionWidget(config.personality.name)
+        self.intervention_permissions = InterventionPermissionStore(
+            Path("data") / "intervention_permissions.json"
+        )
+        self.desktop_interventions = DesktopInterventionController(
+            self.intervention_permissions,
+            WindowsWindowBackend(),
+        )
 
         self._paused = False
         self._last_poll = time.monotonic()
@@ -107,6 +122,12 @@ class ApplicationController(QObject):
         self.widget.manage_rules_requested.connect(self.manage_standing_rules)
         self.widget.add_routine_requested.connect(self.add_daily_routine)
         self.widget.manage_routines_requested.connect(self.manage_routines)
+        self.widget.intervention_settings_requested.connect(
+            self.configure_interventions
+        )
+        self.widget.emergency_disable_requested.connect(
+            self.emergency_disable_interventions
+        )
         self.widget.pause_monitoring_requested.connect(self.set_paused)
         self.widget.quit_requested.connect(self.shutdown)
 
@@ -287,7 +308,7 @@ class ApplicationController(QObject):
             StandingRule(
                 description=description,
                 patterns=patterns,
-                response="nag",
+                response=dialog.response_code(),
                 cooldown_s=dialog.cooldown.value(),
             )
         )
@@ -328,6 +349,7 @@ class ApplicationController(QObject):
             f"{rule.description}\n\n"
             f"Padrões: {', '.join(rule.patterns)}\n"
             f"Flagrantes: {rule.catch_count}\n"
+            f"Resposta: {rule.response}\n"
             f"Cooldown: {rule.cooldown_s:g} s"
         )
         toggle = box.addButton(
@@ -356,13 +378,58 @@ class ApplicationController(QObject):
 
         for violation in violations:
             self.standing_rules.record_trigger(violation.rule)
+            result = self.desktop_interventions.perform(
+                violation.rule.response,
+                violation.window,
+            )
             message = self.personality.standing_rule_message(
                 violation.rule.description,
                 violation.rule.catch_count,
             )
+            if result.performed:
+                if result.requested_action == "minimize_and_nag":
+                    message += " Eu minimizei a janela."
+                elif result.requested_action == "close_and_nag":
+                    message += " Eu fechei a distração."
             self._say(message)
 
         return True
+
+    # ------------------------------------------------------------------
+    # Desktop intervention permissions
+    # ------------------------------------------------------------------
+
+    def configure_interventions(self) -> None:
+        dialog = InterventionSettingsDialog(
+            self.intervention_permissions.permissions,
+            self.widget,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        values = dialog.values()
+        self.intervention_permissions.permissions = values
+        self.intervention_permissions.save()
+
+        if values.enabled:
+            actions = []
+            if values.allow_minimize:
+                actions.append("minimizar")
+            if values.allow_close:
+                actions.append("fechar")
+            detail = ", ".join(actions) if actions else "nenhuma ação invasiva"
+            self._say(
+                f"Intervenções habilitadas. Permissões atuais: {detail}."
+            )
+        else:
+            self._say("Intervenções no desktop permanecem desativadas.")
+
+    def emergency_disable_interventions(self) -> None:
+        self.intervention_permissions.emergency_disable()
+        self._say(
+            "Intervenções desativadas imediatamente. "
+            "Não vou minimizar nem fechar nenhuma janela."
+        )
 
     # ------------------------------------------------------------------
     # Routines
