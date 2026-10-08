@@ -1,0 +1,81 @@
+# Limitações conhecidas da v0.1
+
+A v0.1 é um MVP para validar o ciclo de accountability no Windows. Ela ainda não representa a experiência final planejada.
+
+## Personagem
+
+A interface atual usa um widget flutuante simples e um ícone provisório. Ainda não há:
+
+- avatar Live2D/VRM;
+- animações;
+- expressões;
+- lip-sync;
+- movimentação autônoma pela área de trabalho.
+
+## Inteligência
+
+As mensagens atuais são geradas por regras de personalidade. Ainda não há LLM conectado.
+
+Isso é intencional: detecção, segurança e política de intervenção devem funcionar antes de acrescentarmos geração de linguagem.
+
+## Monitoramento
+
+A v0.1 utiliza somente metadados locais:
+
+- processo em primeiro plano;
+- título da janela.
+
+Ela não captura screenshots para classificar distrações.
+
+Consequências:
+
+- um site pode não ser reconhecido se o título da aba não contiver uma palavra configurada;
+- títulos genéricos podem exigir novas palavras-chave;
+- aplicativos desconhecidos ficam na categoria `UNKNOWN`.
+
+## Navegadores
+
+A classificação procura palavras tanto no nome do processo quanto no título da janela. Isso permite diferenciar, por exemplo, uma aba do YouTube de uma página de estudo aberta no mesmo Chrome/Edge, mas depende do título fornecido pelo navegador.
+
+## Voz
+
+O TTS inicial usa o Windows SAPI e, portanto:
+
+- depende das vozes instaladas no Windows;
+- ainda não há seletor de voz na interface;
+- ainda não há reconhecimento de fala;
+- ainda não há lip-sync.
+
+A voz pode ser desativada em `config/default.json`.
+
+## Métricas
+
+Tempo produtivo só é contado quando a janela corresponde a uma regra `productive_keywords`.
+
+Atividade `NEUTRAL` ou `UNKNOWN` não aumenta o tempo produtivo nem o tempo de distração.
+
+## Banco de dados
+
+Os dados são armazenados localmente em `data/companion.db`.
+
+Nesta versão ainda não existe:
+
+- interface para consultar histórico;
+- exportação;
+- backup automático;
+- migração formal de esquema entre releases.
+
+## Intervenções
+
+A v0.1 apenas fala e exibe mensagens.
+
+Ela **não**:
+
+- minimiza;
+- fecha;
+- bloqueia;
+- impede o uso
+
+de qualquer programa.
+
+Essas ações serão implementadas apenas como recursos explicitamente opt-in.
