@@ -103,12 +103,17 @@ Critério de conclusão:
 
 Sempre opt-in.
 
-- [ ] minimizar aplicativo;
+- [x] minimizar janela por Standing Rule, somente opt-in;
 - [ ] ocultar janela;
-- [ ] fechar aplicativo;
-- [ ] cooldown configurável pela interface;
-- [ ] lista de aplicativos protegidos;
-- [ ] botão de emergência para suspender controle.
+- [x] fechar aba/janela por Standing Rule, somente opt-in;
+- [x] cooldown configurável pela interface;
+- [x] lista de processos protegidos;
+- [x] proteções críticas irremovíveis;
+- [x] botão de emergência para suspender controle;
+- [x] fechamento de navegador tenta fechar somente a aba;
+- [x] auditoria SQLite das intervenções executadas;
+- [ ] escalada automática de intervenção vinculada à sessão, opcional;
+- [ ] modo lockdown avançado.
 
 ## v0.7 — Estatísticas de estudo
 
