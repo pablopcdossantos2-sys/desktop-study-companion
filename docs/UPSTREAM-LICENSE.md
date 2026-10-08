@@ -1,46 +1,38 @@
-# Situação do projeto de referência
+# Autorização de reutilização do bonziPONY
 
-## Projeto
+## Projeto upstream
 
-bonziPONY  
+**bonziPONY**  
 https://github.com/maresmaremares/bonziPONY
 
-## Estado observado
+## Situação
 
-Na inspeção realizada ao iniciar este projeto, não foi encontrado um arquivo de licença de software identificável na raiz do repositório upstream.
+Ao iniciar o Desktop Study Companion, o repositório público do bonziPONY não apresentava um arquivo de licença de software identificável na raiz.
 
-Isso significa que o fato de o código estar publicamente visível no GitHub não deve ser interpretado, por si só, como uma autorização ampla para copiar, modificar ou redistribuir o código.
+Posteriormente, o mantenedor deste projeto informou possuir autorização direta e pessoal do criador do bonziPONY para:
+
+- reutilizar o código;
+- modificar o código;
+- reutilizar arquivos do projeto;
+- adaptar esses materiais ao Desktop Study Companion.
+
+A condição comunicada pelo criador foi **atribuir claramente o uso do bonziPONY no README do projeto derivado**.
 
 ## Política deste repositório
 
-Até que a licença seja esclarecida:
+A partir dessa autorização, é permitido incorporar diretamente componentes do bonziPONY neste projeto, desde que:
 
-- não copiar arquivos do bonziPONY;
-- não copiar trechos literais de implementação;
-- não importar assets do projeto;
-- não reutilizar personagens, marcas ou conteúdo protegido;
-- usar apenas requisitos, padrões arquiteturais gerais e ideias funcionais como referência.
+1. a atribuição ao bonziPONY permaneça visível no README;
+2. componentes substancialmente derivados sejam identificados quando isso ajudar a rastreabilidade;
+3. a integração preserve, quando possível, a arquitetura modular do Desktop Study Companion;
+4. materiais de terceiros eventualmente incluídos pelo próprio bonziPONY sejam revisados separadamente caso possuam licenças próprias.
 
-## Próxima ação recomendada
+## Rastreabilidade
 
-Solicitar ao mantenedor que esclareça a licença aplicável ao código.
+O arquivo [../THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md) registra as origens externas incorporadas ao projeto.
 
-Caso seja fornecida uma licença compatível, registrar aqui:
+## Recomendação adicional
 
-- licença;
-- data da confirmação;
-- link da confirmação;
-- componentes cuja reutilização é permitida;
-- obrigações de atribuição;
-- restrições.
+Para facilitar redistribuição pública futura e eliminar ambiguidades para outros colaboradores, continua sendo recomendável que o criador do bonziPONY adicione ao repositório upstream um arquivo `LICENSE` ou uma declaração pública equivalente.
 
-## Referências secundárias
-
-Outros projetos analisados anteriormente podem servir como inspiração arquitetural, respeitando suas respectivas licenças:
-
-- YUI;
-- Warashi;
-- Noema;
-- companion-emergence.
-
-A incorporação literal de qualquer código de terceiros exige revisão da licença correspondente.
+Essa recomendação não bloqueia o desenvolvimento deste projeto, pois a autorização direta já foi comunicada ao mantenedor.
