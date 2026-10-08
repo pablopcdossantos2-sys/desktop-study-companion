@@ -7,6 +7,10 @@ from PySide6.QtCore import QObject, QTimer
 from PySide6.QtWidgets import QApplication, QDialog, QInputDialog, QMessageBox
 
 from desktop_study_companion.accountability.directives import DirectiveManager
+from desktop_study_companion.accountability.escalation import (
+    LimitedLockdown,
+    SessionEscalationPolicy,
+)
 from desktop_study_companion.accountability.engine import (
     AccountabilityEngine,
     AccountabilityPolicy,
@@ -69,6 +73,8 @@ class ApplicationController(QObject):
             Path("data") / "standing_rules.json"
         )
         self.routines = RoutineManager(Path("data") / "routines.json")
+        self.session_escalation = SessionEscalationPolicy()
+        self.lockdown = LimitedLockdown()
         self.accountability = AccountabilityEngine(
             AccountabilityPolicy(
                 gentle_after_seconds=config.accountability.gentle_after_seconds,
@@ -131,6 +137,7 @@ class ApplicationController(QObject):
         self.widget.emergency_disable_requested.connect(
             self.emergency_disable_interventions
         )
+        self.widget.end_lockdown_requested.connect(self.end_lockdown)
         self.widget.pause_monitoring_requested.connect(self.set_paused)
         self.widget.quit_requested.connect(self.shutdown)
 
@@ -156,6 +163,7 @@ class ApplicationController(QObject):
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
+        self.lockdown.clear()
         session = self.sessions.start(dialog.goal.text(), dialog.minutes.value())
         self.memory.save_session(session)
         self._last_session_save_at = time.monotonic()
@@ -172,6 +180,7 @@ class ApplicationController(QObject):
             return
 
         session = self.sessions.finish()
+        self.lockdown.clear()
         self.memory.save_session(session)
         focused = round(session.focused_seconds / 60, 1)
         distracted = round(session.distracted_seconds / 60, 1)
@@ -390,32 +399,16 @@ class ApplicationController(QObject):
                 violation.rule.catch_count,
             )
             if result.performed:
-                session_id = (
-                    self.sessions.session.id
-                    if self.sessions.session is not None
-                    else None
-                )
                 if result.requested_action == "minimize_and_nag":
                     message += " Eu minimizei a janela."
-                    intervention_kind = InterventionKind.MINIMIZE_DISTRACTION
                 else:
                     message += " Eu fechei a distração."
-                    intervention_kind = InterventionKind.CLOSE_DISTRACTION
-
-                self.memory.save_intervention(
-                    session_id,
-                    Intervention(
-                        intervention_kind,
-                        min(5, max(1, violation.rule.catch_count)),
-                        f"standing rule: {violation.rule.description}",
-                    ),
-                    payload={
-                        "rule_id": violation.rule.id,
-                        "process_name": violation.window.process_name,
-                        "window_title": violation.window.title,
-                        "response": violation.rule.response,
-                        "result": result.reason,
-                    },
+                self._audit_desktop_action(
+                    result,
+                    violation.window,
+                    reason=f"standing rule: {violation.rule.description}",
+                    severity=violation.rule.catch_count,
+                    rule_id=violation.rule.id,
                 )
             self._say(message)
 
@@ -436,6 +429,8 @@ class ApplicationController(QObject):
         values = dialog.values()
         self.intervention_permissions.permissions = values
         self.intervention_permissions.save()
+        if not values.allow_lockdown or not values.allow_session_escalation:
+            self.lockdown.clear()
 
         if values.enabled:
             actions = []
@@ -452,10 +447,153 @@ class ApplicationController(QObject):
 
     def emergency_disable_interventions(self) -> None:
         self.intervention_permissions.emergency_disable()
+        self.lockdown.clear()
         self._say(
             "Intervenções desativadas imediatamente. "
             "Não vou minimizar nem fechar nenhuma janela."
         )
+
+    def end_lockdown(self) -> None:
+        if not self.lockdown.is_active():
+            self._say("Nenhum lockdown está ativo.")
+            return
+        self.lockdown.clear()
+        self._say(
+            "Lockdown encerrado. As permissões gerais continuam como estavam."
+        )
+
+    def _audit_desktop_action(
+        self,
+        result,
+        window,
+        *,
+        reason: str,
+        severity: int,
+        rule_id: str | None = None,
+    ) -> None:
+        if not result.performed:
+            return
+
+        session_id = (
+            self.sessions.session.id
+            if self.sessions.session is not None
+            else None
+        )
+        if result.requested_action == "minimize_and_nag":
+            intervention_kind = InterventionKind.MINIMIZE_DISTRACTION
+        else:
+            intervention_kind = InterventionKind.CLOSE_DISTRACTION
+
+        payload = {
+            "process_name": window.process_name,
+            "window_title": window.title,
+            "response": result.requested_action,
+            "result": result.reason,
+        }
+        if rule_id:
+            payload["rule_id"] = rule_id
+
+        self.memory.save_intervention(
+            session_id,
+            Intervention(
+                intervention_kind,
+                max(1, min(5, int(severity))),
+                reason,
+            ),
+            payload=payload,
+        )
+
+    def _apply_session_intervention(
+        self,
+        intervention: Intervention,
+        classified: ClassifiedActivity,
+    ) -> str:
+        permissions = self.intervention_permissions.permissions
+        response = self.session_escalation.response_for(
+            intervention,
+            permissions,
+            lockdown_active=False,
+        )
+        result = self.desktop_interventions.perform(
+            response,
+            classified.window,
+        )
+        self._audit_desktop_action(
+            result,
+            classified.window,
+            reason="automatic session escalation",
+            severity=intervention.severity,
+        )
+
+        suffix = ""
+        if result.performed:
+            if result.requested_action == "minimize_and_nag":
+                suffix = " Eu minimizei a distração."
+            elif result.requested_action == "close_and_nag":
+                suffix = " Eu fechei a distração."
+
+        if (
+            intervention.severity >= 4
+            and permissions.enabled
+            and permissions.allow_session_escalation
+            and permissions.allow_lockdown
+            and (permissions.allow_minimize or permissions.allow_close)
+            and not self.lockdown.is_active()
+        ):
+            self.lockdown.activate(permissions.lockdown_minutes)
+            suffix += (
+                f" Modo de foco limitado ativado por "
+                f"{permissions.lockdown_minutes} minutos."
+            )
+
+        return suffix
+
+    def _apply_lockdown_if_needed(
+        self,
+        classified: ClassifiedActivity,
+    ) -> bool:
+        if not self.sessions.active:
+            self.lockdown.clear()
+            return False
+        if classified.kind != ActivityKind.DISTRACTION:
+            return False
+        if not self.lockdown.is_active():
+            return False
+
+        key = (
+            f"{classified.window.process_name.casefold()}|"
+            f"{classified.window.title.casefold()}"
+        )
+        if not self.lockdown.should_act(key):
+            return False
+
+        permissions = self.intervention_permissions.permissions
+        response = self.session_escalation.response_for(
+            Intervention(
+                InterventionKind.INSISTENT_CHALLENGE,
+                4,
+                "limited lockdown active",
+            ),
+            permissions,
+            lockdown_active=True,
+        )
+        result = self.desktop_interventions.perform(
+            response,
+            classified.window,
+        )
+        self._audit_desktop_action(
+            result,
+            classified.window,
+            reason="limited lockdown",
+            severity=4,
+        )
+        if result.performed:
+            remaining = max(1, self.lockdown.remaining_seconds() // 60)
+            self._say(
+                f"Modo de foco ativo. A distração foi interrompida. "
+                f"Restam cerca de {remaining} minutos."
+            )
+        return result.performed
 
     # ------------------------------------------------------------------
     # Routines
@@ -611,11 +749,14 @@ class ApplicationController(QObject):
         if tick is None:
             return
 
+        self._apply_lockdown_if_needed(classified)
+
         self._save_session_periodically(now)
 
         if not self.sessions.active:
             session = self.sessions.session
             if session:
+                self.lockdown.clear()
                 self.memory.save_session(session)
                 self._say(
                     f"Tempo cumprido para {session.goal}. "
@@ -641,6 +782,10 @@ class ApplicationController(QObject):
             return
 
         message = self.personality.intervention_message(intervention.kind)
+        message += self._apply_session_intervention(
+            intervention,
+            classified,
+        )
         self._say(message)
         self.memory.save_intervention(
             session_id,
@@ -657,6 +802,7 @@ class ApplicationController(QObject):
     def shutdown(self) -> None:
         if self.sessions.session is not None:
             self.memory.save_session(self.sessions.session)
+        self.lockdown.clear()
         self.timer.stop()
         if self.voice is not None:
             self.voice.close()
