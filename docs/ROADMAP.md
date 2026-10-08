@@ -112,8 +112,14 @@ Sempre opt-in.
 - [x] botão de emergência para suspender controle;
 - [x] fechamento de navegador tenta fechar somente a aba;
 - [x] auditoria SQLite das intervenções executadas;
-- [ ] escalada automática de intervenção vinculada à sessão, opcional;
-- [ ] modo lockdown avançado.
+- [x] escalada automática de intervenção vinculada à sessão, opcional;
+- [x] fala → minimizar → fechar conforme severidade e permissões;
+- [x] lockdown limitado temporário e reversível;
+- [x] cooldown por alvo durante lockdown;
+- [x] encerramento manual do lockdown;
+- [x] lockdown termina com sessão/emergência;
+- [x] configuração inválida falha para permissões seguras;
+- [ ] modo lockdown avançado com políticas personalizadas por perfil.
 
 ## v0.7 — Estatísticas de estudo
 
