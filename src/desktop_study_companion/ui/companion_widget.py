@@ -17,6 +17,9 @@ class CompanionWidget(QWidget):
     intervention_settings_requested = Signal()
     emergency_disable_requested = Signal()
     end_lockdown_requested = Signal()
+    history_requested = Signal()
+    export_csv_requested = Signal()
+    backup_requested = Signal()
     pause_monitoring_requested = Signal(bool)
     quit_requested = Signal()
 
@@ -103,6 +106,19 @@ class CompanionWidget(QWidget):
         emergency = QAction("DESATIVAR INTERVENÇÕES AGORA", self)
         emergency.triggered.connect(self.emergency_disable_requested.emit)
         intervention_menu.addAction(emergency)
+
+        data_menu = menu.addMenu("Histórico e dados")
+        history = QAction("Histórico e insights", self)
+        history.triggered.connect(self.history_requested.emit)
+        data_menu.addAction(history)
+
+        export_csv = QAction("Exportar CSV", self)
+        export_csv.triggered.connect(self.export_csv_requested.emit)
+        data_menu.addAction(export_csv)
+
+        backup = QAction("Criar backup ZIP", self)
+        backup.triggered.connect(self.backup_requested.emit)
+        data_menu.addAction(backup)
 
         menu.addSeparator()
 
