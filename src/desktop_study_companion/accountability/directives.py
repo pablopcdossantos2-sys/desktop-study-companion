@@ -129,7 +129,7 @@ class DirectiveManager:
             source=source,
             created_at=now.isoformat(),
             next_nag_at=(now + timedelta(seconds=max(0, delay_seconds))).isoformat(),
-            delayed=delay_seconds > 0,
+            delayed=False,
         )
         self.directives.append(directive)
         self.save()
@@ -169,6 +169,28 @@ class DirectiveManager:
         directive.delayed = False
         self.save()
         return decision
+
+    def snooze(
+        self,
+        directive_id: str,
+        *,
+        minutes: int = 5,
+        now: datetime | None = None,
+    ) -> bool:
+        """Allow one negotiated delay, mirroring bonziPONY's delayed flag."""
+        now = now or datetime.now().astimezone()
+        for directive in self.directives:
+            if directive.id != directive_id or not directive.active:
+                continue
+            if directive.delayed:
+                return False
+            directive.delayed = True
+            directive.next_nag_at = (
+                now + timedelta(minutes=max(1, int(minutes)))
+            ).isoformat()
+            self.save()
+            return True
+        return False
 
     def complete(self, directive_id: str, now: datetime | None = None) -> bool:
         now = now or datetime.now().astimezone()
