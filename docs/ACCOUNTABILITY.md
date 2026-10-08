@@ -133,3 +133,37 @@ O LLM, quando for adicionado, poderá:
 - sugerir compromissos/regras.
 
 Mas não poderá conceder a si mesmo permissão para fechar aplicativos ou alterar políticas de segurança.
+
+
+## Escalada da sessão para ações de desktop
+
+O `AccountabilityEngine` continua responsável apenas por classificar a severidade.
+
+A conversão de severidade em ação é feita separadamente por `SessionEscalationPolicy`.
+
+```text
+AccountabilityEngine
+        ↓
+Intervention(severity)
+        ↓
+SessionEscalationPolicy
+        ↓
+Permission Gate
+        ↓
+DesktopInterventionController
+```
+
+Isso garante que personalidade e LLM não possam conceder permissões de sistema.
+
+### Lockdown limitado
+
+A estrutura `LimitedLockdown` é temporária e mantida apenas em memória.
+
+Ela registra:
+
+- horário de expiração;
+- último alvo que recebeu ação;
+- último horário de ação;
+- cooldown de repetição.
+
+A intenção é aumentar a firmeza do acompanhamento sem assumir controle irrestrito do computador.
