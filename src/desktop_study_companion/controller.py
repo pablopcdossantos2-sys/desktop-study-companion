@@ -51,6 +51,11 @@ from desktop_study_companion.memory.exporter import (
 from desktop_study_companion.memory.sqlite_store import SQLiteMemoryStore
 from desktop_study_companion.personality.models import Personality
 from desktop_study_companion.personality.renderer import PersonalityRenderer
+from desktop_study_companion.runtime_paths import (
+    application_root,
+    data_directory,
+    external_config_path,
+)
 from desktop_study_companion.routines.manager import RoutineManager
 from desktop_study_companion.routines.models import Routine
 from desktop_study_companion.study.manager import StudySessionManager
@@ -81,11 +86,12 @@ class ApplicationController(QObject):
             distraction_keywords=set(config.activity.distraction_keywords),
         )
         self.sessions = StudySessionManager()
-        self.directives = DirectiveManager(Path("data") / "directives.json")
+        self.data_dir = data_directory()
+        self.directives = DirectiveManager(self.data_dir / "directives.json")
         self.standing_rules = StandingRuleManager(
-            Path("data") / "standing_rules.json"
+            self.data_dir / "standing_rules.json"
         )
-        self.routines = RoutineManager(Path("data") / "routines.json")
+        self.routines = RoutineManager(self.data_dir / "routines.json")
         self.session_escalation = SessionEscalationPolicy()
         self.lockdown = LimitedLockdown()
         self.accountability = AccountabilityEngine(
@@ -115,11 +121,11 @@ class ApplicationController(QObject):
             if config.voice.enabled
             else None
         )
-        self.memory = SQLiteMemoryStore(Path("data") / "companion.db")
+        self.memory = SQLiteMemoryStore(self.data_dir / "companion.db")
         self.analytics = StudyAnalytics(self.memory.path)
         self.widget = CompanionWidget(config.personality.name)
         self.intervention_permissions = InterventionPermissionStore(
-            Path("data") / "intervention_permissions.json"
+            self.data_dir / "intervention_permissions.json"
         )
         self.desktop_interventions = DesktopInterventionController(
             self.intervention_permissions,
@@ -627,7 +633,7 @@ class ApplicationController(QObject):
         destination = QFileDialog.getExistingDirectory(
             self.widget,
             "Escolha a pasta para exportar os CSVs",
-            str(Path.cwd()),
+            str(application_root()),
         )
         if not destination:
             return
@@ -652,7 +658,8 @@ class ApplicationController(QObject):
     def create_backup(self) -> None:
         timestamp = time.strftime("%Y%m%d-%H%M%S")
         suggested = str(
-            Path.cwd() / f"desktop-study-companion-backup-{timestamp}.zip"
+            application_root()
+            / f"desktop-study-companion-backup-{timestamp}.zip"
         )
         destination, _ = QFileDialog.getSaveFileName(
             self.widget,
@@ -665,7 +672,7 @@ class ApplicationController(QObject):
         if not destination.casefold().endswith(".zip"):
             destination += ".zip"
 
-        config_path = Path.cwd() / "config" / "default.json"
+        config_path = external_config_path()
         try:
             backup = create_backup_zip(
                 self.memory.path,
