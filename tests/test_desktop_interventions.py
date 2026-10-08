@@ -123,3 +123,19 @@ def test_permission_store_persists_escalation_and_lockdown(tmp_path) -> None:
     assert reloaded.permissions.allow_session_escalation is True
     assert reloaded.permissions.allow_lockdown is True
     assert reloaded.permissions.lockdown_minutes == 7
+
+
+def test_malformed_permission_file_falls_back_to_safe_defaults(tmp_path) -> None:
+    path = tmp_path / "permissions.json"
+    path.write_text(
+        '{"enabled": true, "lockdown_minutes": "not-a-number"}',
+        encoding="utf-8",
+    )
+
+    store = InterventionPermissionStore(path)
+
+    assert store.permissions.enabled is False
+    assert store.permissions.allow_minimize is False
+    assert store.permissions.allow_close is False
+    assert store.permissions.allow_session_escalation is False
+    assert store.permissions.allow_lockdown is False
