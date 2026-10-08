@@ -36,7 +36,8 @@ Nesta versão, os seguintes módulos do Desktop Study Companion contêm adaptaç
 - `src/desktop_study_companion/routines/manager.py` — persistência e avaliação de rotinas `daily`, `weekly`, `interval` e `on_wake`, adaptadas de `core/routines.py`;
 - `src/desktop_study_companion/accountability/directives.py` — estado persistente de compromissos, incluindo urgência, próximo nag, contador e atraso único, adaptado do modelo `Directive` de `core/agent_loop.py`;
 - `src/desktop_study_companion/accountability/standing_rules.py` — regras permanentes com padrões, contador de flagrantes e cooldown, adaptadas do modelo `StandingRule` de `core/agent_loop.py`;
-- `src/desktop_study_companion/accountability/nagging.py` — política determinística inspirada na escalada e no agendamento de cobranças do sistema de diretivas do bonziPONY.
+- `src/desktop_study_companion/accountability/nagging.py` — política determinística inspirada na escalada e no agendamento de cobranças do sistema de diretivas do bonziPONY;
+- `src/desktop_study_companion/desktop/interventions.py` — ações direcionadas de minimizar/fechar e fechamento de aba de navegador adaptados de `robot/desktop_controller.py` e das abstrações de janela do bonziPONY, com uma camada adicional de permissões e proteções.
 
 Os arquivos derivados também possuem comentários de atribuição no próprio código.
 
