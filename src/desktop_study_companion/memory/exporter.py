@@ -3,6 +3,7 @@ from __future__ import annotations
 """Backup and human-readable export helpers."""
 
 import csv
+from contextlib import closing
 import json
 import sqlite3
 import tempfile
@@ -23,7 +24,7 @@ def export_csv_directory(
     destination.mkdir(parents=True, exist_ok=True)
 
     created: list[Path] = []
-    with sqlite3.connect(db_path) as connection:
+    with closing(sqlite3.connect(db_path)) as connection:
         connection.row_factory = sqlite3.Row
         for table in _TABLES:
             columns = [
@@ -62,8 +63,8 @@ def create_backup_zip(
 
     with tempfile.TemporaryDirectory() as temp_dir:
         snapshot = Path(temp_dir) / "companion.db"
-        with sqlite3.connect(db_path) as source:
-            with sqlite3.connect(snapshot) as target:
+        with closing(sqlite3.connect(db_path)) as source:
+            with closing(sqlite3.connect(snapshot)) as target:
                 source.backup(target)
 
         metadata = {
