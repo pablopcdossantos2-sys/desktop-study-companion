@@ -38,3 +38,14 @@ def test_complete_stops_future_nags(tmp_path) -> None:
 
     assert manager.complete(directive.id, now=now)
     assert manager.due(now=now + timedelta(hours=1)) == []
+
+
+def test_directive_can_be_snoozed_only_once(tmp_path) -> None:
+    now = datetime(2026, 10, 8, 12, 0, tzinfo=timezone.utc)
+    manager = DirectiveManager(tmp_path / "directives.json")
+    directive = manager.add("Estudar", 7, delay_seconds=0, now=now)
+
+    assert manager.snooze(directive.id, minutes=5, now=now)
+    assert directive.delayed is True
+    assert manager.due(now=now + timedelta(minutes=4)) == []
+    assert manager.snooze(directive.id, minutes=5, now=now) is False
