@@ -28,7 +28,16 @@ Entre os componentes do bonziPONY que podem ser reutilizados ou adaptados ao lon
 - gerenciamento de perfil/memória;
 - integração com provedores de LLM.
 
-A lista será atualizada à medida que componentes concretos forem incorporados.
+### Componentes concretamente incorporados
+
+Nesta versão, os seguintes módulos do Desktop Study Companion contêm adaptação direta da lógica do bonziPONY:
+
+- `src/desktop_study_companion/routines/models.py` — modelo persistente de rotina, inspirado/adaptado de `core/routines.py`;
+- `src/desktop_study_companion/routines/manager.py` — persistência e avaliação de rotinas `daily`, `weekly`, `interval` e `on_wake`, adaptadas de `core/routines.py`.
+
+Os arquivos derivados também possuem comentários de atribuição no próprio código.
+
+Outras áreas do bonziPONY poderão ser incorporadas de forma seletiva nas próximas etapas.
 
 ## Outros projetos
 
