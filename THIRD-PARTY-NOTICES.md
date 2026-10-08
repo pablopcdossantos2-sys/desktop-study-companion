@@ -33,7 +33,10 @@ Entre os componentes do bonziPONY que podem ser reutilizados ou adaptados ao lon
 Nesta versão, os seguintes módulos do Desktop Study Companion contêm adaptação direta da lógica do bonziPONY:
 
 - `src/desktop_study_companion/routines/models.py` — modelo persistente de rotina, inspirado/adaptado de `core/routines.py`;
-- `src/desktop_study_companion/routines/manager.py` — persistência e avaliação de rotinas `daily`, `weekly`, `interval` e `on_wake`, adaptadas de `core/routines.py`.
+- `src/desktop_study_companion/routines/manager.py` — persistência e avaliação de rotinas `daily`, `weekly`, `interval` e `on_wake`, adaptadas de `core/routines.py`;
+- `src/desktop_study_companion/accountability/directives.py` — estado persistente de compromissos, incluindo urgência, próximo nag, contador e atraso único, adaptado do modelo `Directive` de `core/agent_loop.py`;
+- `src/desktop_study_companion/accountability/standing_rules.py` — regras permanentes com padrões, contador de flagrantes e cooldown, adaptadas do modelo `StandingRule` de `core/agent_loop.py`;
+- `src/desktop_study_companion/accountability/nagging.py` — política determinística inspirada na escalada e no agendamento de cobranças do sistema de diretivas do bonziPONY.
 
 Os arquivos derivados também possuem comentários de atribuição no próprio código.
 
