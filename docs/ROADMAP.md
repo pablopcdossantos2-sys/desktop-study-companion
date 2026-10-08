@@ -83,6 +83,22 @@ Critério de conclusão:
 - [ ] comentário espontâneo contextual;
 - [ ] início automático opcional.
 
+## v0.5.1 — Accountability persistente
+
+- [x] diretivas/compromissos persistentes, adaptados do bonziPONY;
+- [x] urgência 1–10;
+- [x] nag_count persistente;
+- [x] escalada determinística de cobrança;
+- [x] uma única prorrogação negociada;
+- [x] concluir/remover compromissos pela interface;
+- [x] regras permanentes baseadas em processo/título;
+- [x] contador de reincidências;
+- [x] cooldown por regra;
+- [x] ativar/desativar/remover regras pela interface;
+- [x] regra permanente influencia a classificação de distração em sessão;
+- [ ] geração automática de padrões por LLM;
+- [ ] criação de compromissos/regras por linguagem natural.
+
 ## v0.6 — Intervenções avançadas
 
 Sempre opt-in.
