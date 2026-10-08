@@ -92,8 +92,8 @@ desktop-study-companion
 
 ## Estado
 
-**v0.1.0-dev2 — MVP de accountability em validação no Windows.**
+**v0.1.0-dev3 — MVP de accountability persistente em validação no Windows.**
 
-Já estão implementados monitor de janela ativa, classificação configurável, sessões de estudo, escalada de cobrança, widget flutuante, persistência SQLite, TTS local do Windows e testes automatizados. O avatar final, STT e LLM ainda não fazem parte desta versão.
+Já estão implementados monitor de janela ativa, classificação configurável, sessões de estudo, escalada de cobrança, compromissos persistentes (Directives), regras permanentes (Standing Rules), rotinas proativas, widget flutuante, persistência local, TTS do Windows e testes automatizados. O avatar final, STT e LLM ainda não fazem parte desta versão.
 
 A reutilização direta de componentes do bonziPONY está autorizada pelo criador do projeto, com obrigação de atribuição. A integração será feita seletivamente para preservar a arquitetura modular deste repositório.
