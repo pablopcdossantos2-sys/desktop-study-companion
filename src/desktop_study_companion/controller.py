@@ -11,7 +11,10 @@ from desktop_study_companion.accountability.engine import (
     AccountabilityEngine,
     AccountabilityPolicy,
 )
-from desktop_study_companion.accountability.models import InterventionKind
+from desktop_study_companion.accountability.models import (
+    Intervention,
+    InterventionKind,
+)
 from desktop_study_companion.accountability.standing_rules import (
     StandingRule,
     StandingRuleManager,
@@ -387,10 +390,33 @@ class ApplicationController(QObject):
                 violation.rule.catch_count,
             )
             if result.performed:
+                session_id = (
+                    self.sessions.session.id
+                    if self.sessions.session is not None
+                    else None
+                )
                 if result.requested_action == "minimize_and_nag":
                     message += " Eu minimizei a janela."
-                elif result.requested_action == "close_and_nag":
+                    intervention_kind = InterventionKind.MINIMIZE_DISTRACTION
+                else:
                     message += " Eu fechei a distração."
+                    intervention_kind = InterventionKind.CLOSE_DISTRACTION
+
+                self.memory.save_intervention(
+                    session_id,
+                    Intervention(
+                        intervention_kind,
+                        min(5, max(1, violation.rule.catch_count)),
+                        f"standing rule: {violation.rule.description}",
+                    ),
+                    payload={
+                        "rule_id": violation.rule.id,
+                        "process_name": violation.window.process_name,
+                        "window_title": violation.window.title,
+                        "response": violation.rule.response,
+                        "result": result.reason,
+                    },
+                )
             self._say(message)
 
         return True
