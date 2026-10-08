@@ -1,0 +1,46 @@
+{
+  "monitor": {
+    "poll_interval_ms": 1000
+  },
+  "activity": {
+    "productive_keywords": [
+      "anki",
+      "obsidian",
+      "visual studio code",
+      "code.exe",
+      "notion",
+      "zotero",
+      "adobe acrobat"
+    ],
+    "neutral_keywords": [
+      "desktop study companion",
+      "explorer.exe"
+    ],
+    "distraction_keywords": [
+      "youtube",
+      "netflix",
+      "reddit",
+      "instagram",
+      "facebook",
+      "tiktok",
+      "twitch",
+      "steam"
+    ]
+  },
+  "accountability": {
+    "gentle_after_seconds": 60,
+    "firm_after_seconds": 180,
+    "direct_after_seconds": 300,
+    "insistent_after_seconds": 600,
+    "cooldown_seconds": 45
+  },
+  "personality": {
+    "name": "Companion",
+    "warmth": 60,
+    "sarcasm": 55,
+    "strictness": 80,
+    "patience": 40,
+    "humor": 50,
+    "initiative": 75
+  }
+}
