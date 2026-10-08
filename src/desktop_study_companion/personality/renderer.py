@@ -29,7 +29,45 @@ class PersonalityRenderer:
 
         if kind == InterventionKind.INSISTENT_CHALLENGE:
             if strict:
-                return "Dez minutos de distração. Você assumiu um compromisso: volte agora."
+                return "A distração já passou do razoável. Você assumiu um compromisso: volte agora."
             return "Já faz bastante tempo. Vamos retomar antes que a sessão se perca."
 
         return ""
+
+    def directive_message(
+        self,
+        goal: str,
+        severity: int,
+        nag_count: int,
+    ) -> str:
+        sarcastic = self.personality.sarcasm >= 60
+        strict = self.personality.strictness >= 70
+
+        if severity <= 1:
+            return f"Lembrete: você se comprometeu a {goal}."
+        if severity == 2:
+            if sarcastic:
+                return f"O compromisso continua existindo, mesmo se você fingir que esqueceu: {goal}."
+            return f"Você ainda não concluiu este compromisso: {goal}."
+        if severity == 3:
+            if strict:
+                return f"Chega de adiar. Faça o que você combinou: {goal}."
+            return f"Precisamos resolver este compromisso agora: {goal}."
+
+        if nag_count >= 4 and sarcastic:
+            return f"Sim, eu ainda estou cobrando. E vou continuar: {goal}."
+        return f"Você já foi lembrado várias vezes. Cumpra o compromisso agora: {goal}."
+
+    def standing_rule_message(self, description: str, catch_count: int) -> str:
+        strict = self.personality.strictness >= 70
+        sarcastic = self.personality.sarcasm >= 60
+
+        if catch_count <= 1:
+            return f"Regra permanente acionada: {description}."
+        if catch_count == 2:
+            if sarcastic:
+                return f"De novo? A regra continua a mesma: {description}."
+            return f"Segunda ocorrência. Lembre-se da regra: {description}."
+        if strict:
+            return f"Esta é a ocorrência número {catch_count}. Pare e respeite a regra: {description}."
+        return f"Você já acionou esta regra {catch_count} vezes: {description}."
