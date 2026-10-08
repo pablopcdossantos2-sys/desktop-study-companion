@@ -347,3 +347,48 @@ Se a interface funcionar, mas a voz não sair, informe especificamente:
 - se `"voice": { "enabled": true ... }` continua habilitado.
 
 Assim conseguiremos separar problemas de monitoramento, interface e voz.
+
+
+## 18. Testar uma rotina proativa
+
+A versão atual já incorpora uma adaptação do sistema de rotinas persistentes do bonziPONY.
+
+Esse teste verifica se a personagem consegue falar com você **sem que uma sessão de estudo esteja ativa**.
+
+1. Inicie o Desktop Study Companion.
+2. Clique com o botão direito no personagem.
+3. Escolha **Adicionar rotina diária**.
+4. Em **Lembrete/meta**, escreva algo como:
+
+```text
+Começar a estudar matemática
+```
+
+5. Escolha um horário dois ou três minutos à frente do horário atual.
+6. Em **Urgência**, escolha, por exemplo, `8`.
+7. Confirme.
+8. Não inicie nenhuma sessão de estudo.
+9. Mantenha a aplicação aberta até chegar ao horário escolhido.
+
+No horário da rotina, a personagem deverá exibir e falar espontaneamente algo semelhante a:
+
+```text
+Isso é importante. Hora da rotina. Começar a estudar matemática.
+```
+
+### Gerenciar ou remover uma rotina
+
+1. Clique com o botão direito no personagem.
+2. Escolha **Gerenciar rotinas**.
+3. Selecione a rotina.
+4. Escolha:
+   - **Ativar/Desativar**, ou
+   - **Remover**.
+
+As rotinas ficam armazenadas localmente em:
+
+```text
+data\routines.json
+```
+
+Elas permanecem cadastradas mesmo depois que a aplicação é fechada e aberta novamente.
