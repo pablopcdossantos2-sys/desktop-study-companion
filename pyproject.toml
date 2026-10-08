@@ -4,17 +4,29 @@ build-backend = "hatchling.build"
 
 [project]
 name = "desktop-study-companion"
-version = "0.0.1"
+version = "0.1.0-dev1"
 description = "Desktop companion for study accountability and focus."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.14"
 authors = [
   { name = "Desktop Study Companion contributors" }
 ]
-dependencies = []
+dependencies = [
+  "psutil>=6.0,<8",
+  "PySide6>=6.8,<7"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0,<10"
+]
 
 [project.scripts]
 desktop-study-companion = "desktop_study_companion.app:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/desktop_study_companion"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
