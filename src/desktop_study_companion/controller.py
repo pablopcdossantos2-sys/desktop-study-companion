@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 
 from PySide6.QtCore import QObject, QTimer
-from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtWidgets import QApplication
 
 from desktop_study_companion.accountability.engine import (
     AccountabilityEngine,
@@ -24,6 +24,8 @@ from desktop_study_companion.ui.session_dialog import SessionDialog
 
 
 class ApplicationController(QObject):
+    SESSION_SAVE_INTERVAL_SECONDS = 10.0
+
     def __init__(self, app: QApplication, config: AppConfig) -> None:
         super().__init__()
         self.app = app
@@ -61,6 +63,8 @@ class ApplicationController(QObject):
         self._last_poll = time.monotonic()
         self._last_intervention_kind = InterventionKind.NONE
         self._last_intervention_at = 0.0
+        self._last_session_save_at = 0.0
+        self._last_activity_key: tuple[str, str, str] | None = None
 
         self.timer = QTimer(self)
         self.timer.setInterval(config.monitor.poll_interval_ms)
@@ -86,6 +90,8 @@ class ApplicationController(QObject):
 
         session = self.sessions.start(dialog.goal.text(), dialog.minutes.value())
         self.memory.save_session(session)
+        self._last_session_save_at = time.monotonic()
+        self._last_activity_key = None
         self._last_intervention_kind = InterventionKind.NONE
         self.widget.say(
             f"Combinado: {session.planned_minutes} min para “{session.goal}”. "
@@ -110,6 +116,23 @@ class ApplicationController(QObject):
         self._paused = paused
         self._last_poll = time.monotonic()
 
+    def _save_activity_if_changed(self, session_id: str | None, classified) -> None:
+        key = (
+            classified.window.process_name.casefold(),
+            classified.window.title.casefold(),
+            classified.kind.value,
+        )
+        if key != self._last_activity_key:
+            self.memory.save_activity(session_id, classified)
+            self._last_activity_key = key
+
+    def _save_session_periodically(self, now: float) -> None:
+        if self.sessions.session is None:
+            return
+        if now - self._last_session_save_at >= self.SESSION_SAVE_INTERVAL_SECONDS:
+            self.memory.save_session(self.sessions.session)
+            self._last_session_save_at = now
+
     def _poll(self) -> None:
         now = time.monotonic()
         elapsed = max(0.0, now - self._last_poll)
@@ -123,18 +146,18 @@ class ApplicationController(QObject):
 
         session_id = self.sessions.session.id if self.sessions.session else None
         if self.sessions.active:
-            self.memory.save_activity(session_id, classified)
+            self._save_activity_if_changed(session_id, classified)
 
         tick = self.sessions.tick(classified.kind, elapsed)
         if tick is None:
             return
 
-        if self.sessions.session is not None:
-            self.memory.save_session(self.sessions.session)
+        self._save_session_periodically(now)
 
         if not self.sessions.active:
             session = self.sessions.session
             if session:
+                self.memory.save_session(session)
                 self.widget.say(
                     f"Tempo cumprido para “{session.goal}”. "
                     "Sessão registrada. Bom trabalho."
