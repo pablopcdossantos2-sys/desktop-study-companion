@@ -80,6 +80,8 @@ def test_emergency_disable_revokes_every_permission(tmp_path) -> None:
     store.permissions.enabled = True
     store.permissions.allow_minimize = True
     store.permissions.allow_close = True
+    store.permissions.allow_session_escalation = True
+    store.permissions.allow_lockdown = True
     store.save()
 
     store.emergency_disable()
@@ -87,6 +89,8 @@ def test_emergency_disable_revokes_every_permission(tmp_path) -> None:
     assert store.permissions.enabled is False
     assert store.permissions.allow_minimize is False
     assert store.permissions.allow_close is False
+    assert store.permissions.allow_session_escalation is False
+    assert store.permissions.allow_lockdown is False
 
 
 def test_default_protections_cannot_be_removed_by_config(tmp_path) -> None:
@@ -100,3 +104,22 @@ def test_default_protections_cannot_be_removed_by_config(tmp_path) -> None:
 
     assert result.performed is False
     assert backend.calls == []
+
+
+def test_permission_store_persists_escalation_and_lockdown(tmp_path) -> None:
+    path = tmp_path / "permissions.json"
+    store = InterventionPermissionStore(path)
+    store.permissions.enabled = True
+    store.permissions.allow_minimize = True
+    store.permissions.allow_session_escalation = True
+    store.permissions.allow_lockdown = True
+    store.permissions.lockdown_minutes = 7
+    store.save()
+
+    reloaded = InterventionPermissionStore(path)
+
+    assert reloaded.permissions.enabled is True
+    assert reloaded.permissions.allow_minimize is True
+    assert reloaded.permissions.allow_session_escalation is True
+    assert reloaded.permissions.allow_lockdown is True
+    assert reloaded.permissions.lockdown_minutes == 7
