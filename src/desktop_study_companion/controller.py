@@ -749,7 +749,8 @@ class ApplicationController(QObject):
         if tick is None:
             return
 
-        self._apply_lockdown_if_needed(classified)
+        lockdown_acted = self._apply_lockdown_if_needed(classified)
+        lockdown_active = self.lockdown.is_active()
 
         self._save_session_periodically(now)
 
@@ -782,11 +783,13 @@ class ApplicationController(QObject):
             return
 
         message = self.personality.intervention_message(intervention.kind)
-        message += self._apply_session_intervention(
-            intervention,
-            classified,
-        )
-        self._say(message)
+        if not lockdown_active:
+            message += self._apply_session_intervention(
+                intervention,
+                classified,
+            )
+        if not lockdown_acted:
+            self._say(message)
         self.memory.save_intervention(
             session_id,
             intervention,
