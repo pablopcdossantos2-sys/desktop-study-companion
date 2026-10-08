@@ -42,5 +42,10 @@
     "patience": 40,
     "humor": 50,
     "initiative": 75
+  },
+  "voice": {
+    "enabled": true,
+    "rate": 0,
+    "volume": 90
   }
 }
