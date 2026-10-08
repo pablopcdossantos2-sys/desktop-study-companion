@@ -26,11 +26,14 @@ jobs:
       - name: Install project and builder
         run: |
           python -m pip install --upgrade pip
-          python -m pip install .
+          python -m pip install ".[dev]"
           python -m pip install "pyinstaller>=6.10,<7"
 
       - name: Run source compile check
         run: python -m compileall -q src
+
+      - name: Run test suite before packaging
+        run: python -m pytest -q
 
       - name: Build portable application
         shell: pwsh
@@ -53,6 +56,8 @@ jobs:
           Copy-Item "THIRD-PARTY-NOTICES.md" "dist/DesktopStudyCompanion/THIRD-PARTY-NOTICES.md"
           Copy-Item "docs/TUTORIAL-INSTALACAO-WINDOWS.md" "dist/DesktopStudyCompanion/docs/TUTORIAL-INSTALACAO-WINDOWS.md"
           Copy-Item "docs/DESKTOP-INTERVENTIONS.md" "dist/DesktopStudyCompanion/docs/DESKTOP-INTERVENTIONS.md"
+          Copy-Item "docs/BEHAVIORAL-MEMORY.md" "dist/DesktopStudyCompanion/docs/BEHAVIORAL-MEMORY.md"
+          Copy-Item "docs/ACCOUNTABILITY.md" "dist/DesktopStudyCompanion/docs/ACCOUNTABILITY.md"
 
       - name: Smoke test packaged executable presence
         shell: pwsh
