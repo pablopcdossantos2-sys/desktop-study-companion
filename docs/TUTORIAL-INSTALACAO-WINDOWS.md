@@ -606,3 +606,139 @@ Se a regra for detectada, mas a janela não minimizar/fechar, informe:
 5. se apareceu alguma mensagem de erro no PowerShell.
 
 Não é necessário enviar o banco `companion.db`.
+
+
+## 26. Testar a escalada automática da sessão
+
+Faça este teste primeiro **somente com minimizar**.
+
+### 26.1 Preparar tempos curtos
+
+Feche a aplicação e abra:
+
+```text
+config\default.json
+```
+
+Para o teste, use:
+
+```json
+"gentle_after_seconds": 5,
+"firm_after_seconds": 10,
+"direct_after_seconds": 15,
+"insistent_after_seconds": 20
+```
+
+Salve e reinicie.
+
+### 26.2 Autorizar a escalada
+
+1. Abra **Intervenções no desktop > Configurar permissões**.
+2. Marque:
+   - **Permitir intervenções no desktop**;
+   - **Permitir minimizar janelas**;
+   - **Permitir escalada automática durante sessão de estudo**.
+3. Deixe **Permitir fechar janela/aba** desmarcado.
+4. Deixe o lockdown desmarcado neste primeiro teste.
+5. Salve.
+
+### 26.3 Executar
+
+1. Inicie uma sessão de estudo.
+2. Abra uma janela classificada como distração, por exemplo YouTube.
+3. Permaneça nela.
+
+Com os tempos de teste:
+
+```text
+5 s  → fala
+10 s → fala mais firme
+15 s → a janela pode ser minimizada
+20 s → continua usando a ação máxima autorizada
+```
+
+Se minimizar funcionar, o encadeamento básico está validado.
+
+## 27. Testar escalada até fechamento
+
+Somente depois do teste anterior:
+
+1. habilite **Permitir fechar janela/aba**;
+2. mantenha **Permitir escalada automática durante sessão de estudo** ligado;
+3. use uma aba descartável do navegador;
+4. inicie uma sessão;
+5. abra o YouTube e permaneça nele até o nível máximo.
+
+No nível máximo, o navegador deve tentar fechar apenas a aba ativa.
+
+Se fechar estiver desativado, a aplicação não pode ultrapassar a ação de minimizar.
+
+## 28. Testar o lockdown limitado
+
+O lockdown só pode ser ativado se estas opções estiverem habilitadas:
+
+- **Permitir intervenções no desktop**;
+- **Permitir escalada automática durante sessão de estudo**;
+- **Permitir modo de foco limitado (lockdown)**;
+- pelo menos uma ação entre minimizar/fechar.
+
+Para um teste seguro:
+
+1. habilite apenas **minimizar**;
+2. habilite escalada automática;
+3. habilite lockdown;
+4. configure **Duração do lockdown = 2 min**;
+5. mantenha os limites de 5/10/15/20 segundos;
+6. inicie uma sessão;
+7. permaneça em uma distração até atingir a severidade máxima.
+
+A personagem deverá informar que o modo de foco limitado foi ativado.
+
+Durante os dois minutos seguintes:
+
+- abra outra distração;
+- ela deverá ser minimizada rapidamente, sem esperar novamente os 15 segundos;
+- aplicativos produtivos devem continuar funcionando normalmente.
+
+### Encerrar antes do tempo
+
+Clique:
+
+```text
+Intervenções no desktop
+→ Encerrar lockdown atual
+```
+
+A personagem deverá confirmar o encerramento.
+
+### Testar emergência
+
+Ative o lockdown novamente e clique:
+
+```text
+Intervenções no desktop
+→ DESATIVAR INTERVENÇÕES AGORA
+```
+
+Isso deve:
+
+- encerrar o lockdown;
+- desativar minimizar;
+- desativar fechar;
+- desativar escalada automática;
+- desativar permissão de lockdown.
+
+As Standing Rules e sessões continuam existindo, mas voltam a apenas cobrar verbalmente.
+
+## 29. Restaurar os tempos normais
+
+Depois dos testes, restaure:
+
+```json
+"gentle_after_seconds": 60,
+"firm_after_seconds": 180,
+"direct_after_seconds": 300,
+"insistent_after_seconds": 600
+```
+
+Assim a aplicação não ficará excessivamente agressiva no uso diário.
