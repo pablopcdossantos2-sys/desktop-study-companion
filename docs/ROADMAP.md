@@ -4,7 +4,7 @@
 
 - [x] Criar repositório.
 - [x] Definir arquitetura modular.
-- [x] Registrar a pendência de licença do projeto de referência.
+- [x] Registrar autorização de reutilização e atribuição ao bonziPONY.
 - [x] Criar scaffold Python inicial.
 - [ ] Definir identidade/nome definitivo da personagem.
 - [x] Definir stack visual provisória da v0.1: PySide6.
@@ -77,8 +77,8 @@ Critério de conclusão:
 ## v0.5 — Proatividade
 
 - [ ] agenda;
-- [ ] rotinas;
-- [ ] lembretes;
+- [x] rotinas persistentes básicas, adaptadas do bonziPONY;
+- [x] lembretes proativos por horário/intervalo;
 - [ ] heartbeat;
 - [ ] comentário espontâneo contextual;
 - [ ] início automático opcional.
