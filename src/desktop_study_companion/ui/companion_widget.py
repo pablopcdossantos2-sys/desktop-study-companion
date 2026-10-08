@@ -8,6 +8,10 @@ from PySide6.QtWidgets import QLabel, QMenu, QVBoxLayout, QWidget
 class CompanionWidget(QWidget):
     start_session_requested = Signal()
     finish_session_requested = Signal()
+    add_directive_requested = Signal()
+    manage_directives_requested = Signal()
+    add_rule_requested = Signal()
+    manage_rules_requested = Signal()
     add_routine_requested = Signal()
     manage_routines_requested = Signal()
     pause_monitoring_requested = Signal(bool)
@@ -28,7 +32,7 @@ class CompanionWidget(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.resize(330, 170)
 
-        self.bubble = QLabel("Clique com o botão direito para iniciar uma sessão.")
+        self.bubble = QLabel("Clique com o botão direito para abrir o menu.")
         self.bubble.setWordWrap(True)
         self.bubble.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.bubble.setStyleSheet(
@@ -53,27 +57,45 @@ class CompanionWidget(QWidget):
     def contextMenuEvent(self, event) -> None:  # noqa: N802
         menu = QMenu(self)
 
-        start = QAction("Iniciar sessão de estudo", self)
+        session_menu = menu.addMenu("Sessão de estudo")
+        start = QAction("Iniciar sessão", self)
         start.triggered.connect(self.start_session_requested.emit)
-        menu.addAction(start)
-
+        session_menu.addAction(start)
         finish = QAction("Encerrar sessão atual", self)
         finish.triggered.connect(self.finish_session_requested.emit)
-        menu.addAction(finish)
+        session_menu.addAction(finish)
 
-        menu.addSeparator()
+        directive_menu = menu.addMenu("Compromissos")
+        add_directive = QAction("Adicionar compromisso", self)
+        add_directive.triggered.connect(self.add_directive_requested.emit)
+        directive_menu.addAction(add_directive)
+        manage_directives = QAction("Gerenciar compromissos", self)
+        manage_directives.triggered.connect(self.manage_directives_requested.emit)
+        directive_menu.addAction(manage_directives)
 
+        rule_menu = menu.addMenu("Regras permanentes")
+        add_rule = QAction("Adicionar regra", self)
+        add_rule.triggered.connect(self.add_rule_requested.emit)
+        rule_menu.addAction(add_rule)
+        manage_rules = QAction("Gerenciar regras", self)
+        manage_rules.triggered.connect(self.manage_rules_requested.emit)
+        rule_menu.addAction(manage_rules)
+
+        routine_menu = menu.addMenu("Rotinas")
         add_routine = QAction("Adicionar rotina diária", self)
         add_routine.triggered.connect(self.add_routine_requested.emit)
-        menu.addAction(add_routine)
-
+        routine_menu.addAction(add_routine)
         manage_routines = QAction("Gerenciar rotinas", self)
         manage_routines.triggered.connect(self.manage_routines_requested.emit)
-        menu.addAction(manage_routines)
+        routine_menu.addAction(manage_routines)
 
         menu.addSeparator()
 
-        pause_text = "Retomar monitoramento" if self._monitoring_paused else "Pausar monitoramento"
+        pause_text = (
+            "Retomar monitoramento"
+            if self._monitoring_paused
+            else "Pausar monitoramento"
+        )
         pause = QAction(pause_text, self)
         pause.triggered.connect(self._toggle_pause)
         menu.addAction(pause)
@@ -99,11 +121,16 @@ class CompanionWidget(QWidget):
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         if event.button() == Qt.MouseButton.LeftButton:
-            self._drag_origin = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+            self._drag_origin = (
+                event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+            )
             event.accept()
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        if self._drag_origin is not None and event.buttons() & Qt.MouseButton.LeftButton:
+        if (
+            self._drag_origin is not None
+            and event.buttons() & Qt.MouseButton.LeftButton
+        ):
             self.move(event.globalPosition().toPoint() - self._drag_origin)
             event.accept()
 
