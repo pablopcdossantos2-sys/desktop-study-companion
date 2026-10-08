@@ -8,6 +8,8 @@ from PySide6.QtWidgets import QLabel, QMenu, QVBoxLayout, QWidget
 class CompanionWidget(QWidget):
     start_session_requested = Signal()
     finish_session_requested = Signal()
+    add_routine_requested = Signal()
+    manage_routines_requested = Signal()
     pause_monitoring_requested = Signal(bool)
     quit_requested = Signal()
 
@@ -58,6 +60,16 @@ class CompanionWidget(QWidget):
         finish = QAction("Encerrar sessão atual", self)
         finish.triggered.connect(self.finish_session_requested.emit)
         menu.addAction(finish)
+
+        menu.addSeparator()
+
+        add_routine = QAction("Adicionar rotina diária", self)
+        add_routine.triggered.connect(self.add_routine_requested.emit)
+        menu.addAction(add_routine)
+
+        manage_routines = QAction("Gerenciar rotinas", self)
+        manage_routines.triggered.connect(self.manage_routines_requested.emit)
+        menu.addAction(manage_routines)
 
         menu.addSeparator()
 
