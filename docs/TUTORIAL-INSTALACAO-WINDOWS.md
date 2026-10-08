@@ -306,3 +306,44 @@ Para validar a v0.1 no Windows, faça quatro testes:
 Se algum teste falhar, envie a mensagem exibida no PowerShell e descreva o comportamento observado.
 
 Não é necessário fornecer nenhum dado pessoal do banco `companion.db`.
+
+
+## 16. Testar a voz
+
+A versão atual usa o sintetizador de fala que já existe no Windows.
+
+Depois de iniciar uma sessão, a personagem deverá falar algumas mensagens, inclusive as cobranças.
+
+Se você quiser testar sem som:
+
+1. feche a aplicação;
+2. abra `config\default.json`;
+3. localize:
+
+```json
+"voice": {
+  "enabled": true,
+  "rate": 0,
+  "volume": 90
+}
+```
+
+4. troque `true` por `false`;
+5. salve e execute novamente.
+
+`rate` aceita valores entre -10 e 10.
+
+`volume` aceita valores entre 0 e 100.
+
+Nesta versão, a voz utilizada é uma das vozes SAPI configuradas no Windows. A seleção de voz pela própria interface será adicionada depois.
+
+## 17. Informações úteis ao relatar um problema
+
+Se a interface funcionar, mas a voz não sair, informe especificamente:
+
+- se as mensagens aparecem no balão;
+- se outras aplicações do Windows conseguem usar leitura em voz alta;
+- se aparece algum erro no PowerShell;
+- se `"voice": { "enabled": true ... }` continua habilitado.
+
+Assim conseguiremos separar problemas de monitoramento, interface e voz.
