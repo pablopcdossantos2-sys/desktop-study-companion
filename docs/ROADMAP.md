@@ -54,7 +54,7 @@ Critério de conclusão:
 ## v0.3 — Personalidade programável
 
 - [ ] presets;
-- [ ] editor de traços;
+- [x] editor nativo de traços básicos;
 - [x] estrutura para calor humano;
 - [x] estrutura para sarcasmo;
 - [x] estrutura para rigor;
@@ -159,11 +159,11 @@ Sempre opt-in.
 
 ## v1.0
 
-- [ ] instalador Windows;
+- [x] build portátil Windows via GitHub Actions;\n- [ ] instalador Windows;
 - [ ] atualização automática;
 - [x] backup/exportação básica;
 - [ ] onboarding;
-- [ ] permissões;
+- [x] permissões de intervenção configuráveis pela interface;
 - [ ] documentação de privacidade;
 - [ ] testes automatizados abrangentes;
 - [ ] recuperação de falhas.
