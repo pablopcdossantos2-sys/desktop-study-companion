@@ -742,3 +742,194 @@ Depois dos testes, restaure:
 ```
 
 Assim a aplicação não ficará excessivamente agressiva no uso diário.
+
+
+## 30. Opção mais simples: versão portátil sem instalar Python
+
+A partir da v0.1.0-dev6, o GitHub Actions gera automaticamente uma versão portátil para Windows.
+
+Essa opção é recomendada para o primeiro teste porque não exige:
+
+- instalar Python;
+- criar ambiente virtual;
+- usar `pip`;
+- executar comandos no PowerShell.
+
+### Como baixar
+
+1. Abra o repositório no GitHub.
+2. Clique na aba **Actions**.
+3. Abra a execução mais recente chamada:
+
+```text
+build-windows-portable
+```
+
+4. Role a página até **Artifacts**.
+5. Baixe:
+
+```text
+DesktopStudyCompanion-Windows-Portable
+```
+
+6. O GitHub baixará um arquivo ZIP.
+7. Extraia o ZIP para uma pasta normal, por exemplo:
+
+```text
+C:\Users\SEU_USUARIO\Documents\Programas\DesktopStudyCompanion
+```
+
+8. Entre na pasta extraída.
+9. Execute:
+
+```text
+DesktopStudyCompanion.exe
+```
+
+### Importante
+
+Não execute o programa diretamente de dentro do ZIP. Extraia todo o conteúdo primeiro.
+
+A pasta portátil contém o executável e arquivos auxiliares necessários.
+
+Os seus dados serão criados em:
+
+```text
+data\
+```
+
+dentro da própria pasta da versão portátil.
+
+Isso facilita copiar a instalação inteira para outro local e também torna claro onde o histórico está armazenado.
+
+## 31. Configurar pela própria interface
+
+Não é mais necessário editar `config/default.json` para as configurações principais.
+
+1. Clique com o botão direito no personagem.
+2. Escolha **Configurações**.
+
+A janela possui quatro áreas.
+
+### Atividade
+
+Permite editar, uma palavra-chave por linha:
+
+- aplicativos/contextos produtivos;
+- neutros;
+- distrações.
+
+### Cobrança
+
+Permite editar:
+
+- tempo até lembrete gentil;
+- tempo até cobrança firme;
+- tempo até cobrança direta;
+- tempo até cobrança insistente;
+- cooldown.
+
+Os tempos de severidade devem permanecer em ordem crescente.
+
+### Personalidade
+
+Permite alterar:
+
+- nome;
+- calor humano;
+- sarcasmo;
+- rigor;
+- paciência;
+- humor;
+- iniciativa.
+
+### Voz
+
+Permite:
+
+- ligar/desligar TTS;
+- alterar velocidade;
+- alterar volume.
+
+As alterações são salvas em `config/default.json` e aplicadas à sessão em execução sem precisar reiniciar a aplicação.
+
+## 32. Consultar histórico e insights
+
+Depois que você tiver realizado algumas sessões:
+
+1. clique com o botão direito no personagem;
+2. abra **Histórico e dados**;
+3. clique em **Histórico e insights**.
+
+A aba **Resumo** mostra indicadores dos últimos 30 dias.
+
+A aba **Sessões** mostra até 100 registros recentes com:
+
+- horário;
+- objetivo;
+- estado;
+- duração planejada;
+- foco;
+- distração;
+- percentual de foco.
+
+Com poucas sessões, alguns indicadores ficam indisponíveis de propósito para evitar conclusões frágeis.
+
+## 33. Exportar dados para CSV
+
+Abra:
+
+```text
+Histórico e dados
+→ Exportar CSV
+```
+
+Escolha uma pasta.
+
+Serão criados:
+
+```text
+study_sessions.csv
+activity_events.csv
+interventions.csv
+```
+
+Esses arquivos podem ser abertos no Excel, LibreOffice Calc ou importados no Google Sheets.
+
+## 34. Criar um backup
+
+Abra:
+
+```text
+Histórico e dados
+→ Criar backup ZIP
+```
+
+Escolha onde salvar.
+
+O ZIP inclui:
+
+- banco SQLite;
+- compromissos;
+- rotinas;
+- regras permanentes;
+- permissões de intervenção;
+- configuração principal;
+- metadados da versão.
+
+O banco é copiado usando o mecanismo de backup do SQLite, evitando snapshots incompletos mesmo com a aplicação aberta.
+
+## 35. Qual forma de instalação devo usar?
+
+Para testar a aplicação:
+
+**Use primeiro a versão portátil.**
+
+Use `INICIAR-DEV.bat` apenas se você quiser:
+
+- desenvolver o projeto;
+- alterar código-fonte;
+- rodar testes;
+- experimentar mudanças ainda não empacotadas.
+
+A meta futura continua sendo disponibilizar um instalador Windows convencional, mas a versão portátil já remove a necessidade de terminal para o uso comum.
