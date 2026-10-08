@@ -60,7 +60,7 @@ A primeira versão deverá validar a essência do produto:
 - personalidade configurável;
 - contratos para TTS/STT e LLM, mesmo que inicialmente alguns sejam stubs.
 
-O roadmap completo está em [docs/ROADMAP.md](docs/ROADMAP.md).
+O roadmap completo está em [docs/ROADMAP.md](docs/ROADMAP.md).\n\nPara testar a versão atual no Windows, siga [docs/TUTORIAL-INSTALACAO-WINDOWS.md](docs/TUTORIAL-INSTALACAO-WINDOWS.md). As limitações atuais estão documentadas em [docs/KNOWN-LIMITATIONS.md](docs/KNOWN-LIMITATIONS.md).
 
 ## Princípios
 
@@ -90,6 +90,6 @@ desktop-study-companion
 
 ## Estado
 
-**Fase 0 — fundação arquitetural.**
+**v0.1.0-dev2 — MVP de accountability em validação no Windows.**\n\nJá estão implementados monitor de janela ativa, classificação configurável, sessões de estudo, escalada de cobrança, widget flutuante, persistência SQLite, TTS local do Windows e testes automatizados. O avatar final, STT e LLM ainda não fazem parte desta versão.
 
 O projeto ainda não importa código do bonziPONY. Antes de qualquer reutilização literal de arquivos ou trechos, a situação de licenciamento do upstream deve ser esclarecida.
