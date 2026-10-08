@@ -392,3 +392,89 @@ data\routines.json
 ```
 
 Elas permanecem cadastradas mesmo depois que a aplicação é fechada e aberta novamente.
+
+
+## 19. Testar um compromisso que insiste
+
+Um **compromisso** é diferente de um lembrete: ele continua ativo até você marcar como concluído ou removê-lo.
+
+1. Inicie a aplicação.
+2. Clique com o botão direito no personagem.
+3. Abra **Compromissos > Adicionar compromisso**.
+4. Em **Compromisso**, escreva:
+
+```text
+Terminar o teste do sistema
+```
+
+5. Coloque **Urgência = 10**.
+6. Coloque **Primeira cobrança em = 0 min**.
+7. Confirme.
+
+A primeira cobrança deverá ocorrer rapidamente. Se o compromisso permanecer aberto, novas cobranças acontecerão e ficarão progressivamente mais firmes.
+
+### Testar a prorrogação única
+
+1. Abra **Compromissos > Gerenciar compromissos**.
+2. Selecione o compromisso.
+3. Clique em **Adiar 5 min uma vez**.
+
+Esse botão só pode ser usado uma vez para o mesmo compromisso.
+
+Depois, volte ao gerenciamento e marque **Marcar como concluído**. As cobranças devem cessar imediatamente.
+
+Os compromissos persistem em:
+
+```text
+data\directives.json
+```
+
+## 20. Testar uma regra permanente
+
+Uma regra permanente observa continuamente o título e o processo da janela ativa.
+
+1. Clique com o botão direito no personagem.
+2. Abra **Regras permanentes > Adicionar regra**.
+3. Em **Regra**, escreva:
+
+```text
+Não ficar no YouTube quando quero manter foco
+```
+
+4. Em **Padrões**, escreva:
+
+```text
+youtube
+```
+
+5. Para teste, use **Intervalo mínimo entre cobranças = 10 s**.
+6. Confirme.
+7. Abra uma página do YouTube cujo título da janela contenha a palavra `YouTube`.
+
+A personagem deverá detectar a regra, falar com você e aumentar o contador de flagrantes.
+
+Depois de pelo menos 10 segundos, permaneça ou volte a uma janela do YouTube. A nova ocorrência deverá produzir uma mensagem mais firme.
+
+### Conferir o contador
+
+1. Abra **Regras permanentes > Gerenciar regras**.
+2. Selecione a regra.
+3. Observe o campo **Flagrantes**.
+
+Você também pode:
+
+- desativar a regra sem apagá-la;
+- reativá-la;
+- removê-la.
+
+As regras ficam em:
+
+```text
+data\standing_rules.json
+```
+
+### Relação com a sessão de estudo
+
+Se uma regra permanente for acionada enquanto uma sessão estiver ativa, aquela janela também será contabilizada como distração, mesmo que ela não esteja em `distraction_keywords`.
+
+Isso permite criar regras pessoais sem editar manualmente o classificador global.
