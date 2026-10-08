@@ -23,7 +23,7 @@ O projeto toma **bonziPONY** como principal referência funcional:
 
 Recursos especialmente relevantes observados no projeto de referência incluem presença persistente no desktop, voz, monitoramento da janela ativa, diretivas, regras permanentes, rotinas, visão e mecanismos progressivos de cobrança.
 
-> **Importante:** até a inicialização deste repositório, o bonziPONY não apresentava uma licença de software identificável na raiz do repositório. Por isso, nenhum código-fonte do bonziPONY é copiado para cá nesta fase. A implementação inicial é original e usa apenas conceitos e requisitos funcionais como referência. Consulte [docs/UPSTREAM-LICENSE.md](docs/UPSTREAM-LICENSE.md).
+> **Atribuição:** este projeto utiliza e adapta código e arquivos do projeto **bonziPONY**, de [maresmaremares](https://github.com/maresmaremares/bonziPONY). O criador do bonziPONY autorizou pessoalmente a reutilização livre do código e dos arquivos, solicitando apenas que o uso seja citado no README deste projeto. Consulte [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) e [docs/UPSTREAM-LICENSE.md](docs/UPSTREAM-LICENSE.md).
 
 ## Arquitetura inicial
 
@@ -60,7 +60,9 @@ A primeira versão deverá validar a essência do produto:
 - personalidade configurável;
 - contratos para TTS/STT e LLM, mesmo que inicialmente alguns sejam stubs.
 
-O roadmap completo está em [docs/ROADMAP.md](docs/ROADMAP.md).\n\nPara testar a versão atual no Windows, siga [docs/TUTORIAL-INSTALACAO-WINDOWS.md](docs/TUTORIAL-INSTALACAO-WINDOWS.md). As limitações atuais estão documentadas em [docs/KNOWN-LIMITATIONS.md](docs/KNOWN-LIMITATIONS.md).
+O roadmap completo está em [docs/ROADMAP.md](docs/ROADMAP.md).
+
+Para testar a versão atual no Windows, siga [docs/TUTORIAL-INSTALACAO-WINDOWS.md](docs/TUTORIAL-INSTALACAO-WINDOWS.md). As limitações atuais estão documentadas em [docs/KNOWN-LIMITATIONS.md](docs/KNOWN-LIMITATIONS.md).
 
 ## Princípios
 
@@ -90,6 +92,8 @@ desktop-study-companion
 
 ## Estado
 
-**v0.1.0-dev2 — MVP de accountability em validação no Windows.**\n\nJá estão implementados monitor de janela ativa, classificação configurável, sessões de estudo, escalada de cobrança, widget flutuante, persistência SQLite, TTS local do Windows e testes automatizados. O avatar final, STT e LLM ainda não fazem parte desta versão.
+**v0.1.0-dev2 — MVP de accountability em validação no Windows.**
 
-O projeto ainda não importa código do bonziPONY. Antes de qualquer reutilização literal de arquivos ou trechos, a situação de licenciamento do upstream deve ser esclarecida.
+Já estão implementados monitor de janela ativa, classificação configurável, sessões de estudo, escalada de cobrança, widget flutuante, persistência SQLite, TTS local do Windows e testes automatizados. O avatar final, STT e LLM ainda não fazem parte desta versão.
+
+A reutilização direta de componentes do bonziPONY está autorizada pelo criador do projeto, com obrigação de atribuição. A integração será feita seletivamente para preservar a arquitetura modular deste repositório.
