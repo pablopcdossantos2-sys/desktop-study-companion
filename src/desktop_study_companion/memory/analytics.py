@@ -7,6 +7,7 @@ into stable facts the companion can later use as context.
 """
 
 import json
+from contextlib import closing
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -65,7 +66,7 @@ class StudyAnalytics:
         if not self.db_path.exists():
             return []
 
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             rows = connection.execute(
                 """
                 SELECT
@@ -162,7 +163,7 @@ class StudyAnalytics:
         if not self.db_path.exists():
             return 0, None
 
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             rows = connection.execute(
                 """
                 SELECT kind, COUNT(*) AS n
@@ -183,7 +184,7 @@ class StudyAnalytics:
         if not self.db_path.exists():
             return None
 
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             row = connection.execute(
                 """
                 SELECT process_name, COUNT(*) AS n
@@ -208,7 +209,7 @@ class StudyAnalytics:
         if not self.db_path.exists():
             return None
 
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             rows = connection.execute(
                 """
                 SELECT id, session_id, created_at
