@@ -20,6 +20,7 @@ class CompanionWidget(QWidget):
     history_requested = Signal()
     export_csv_requested = Signal()
     backup_requested = Signal()
+    settings_requested = Signal()
     pause_monitoring_requested = Signal(bool)
     quit_requested = Signal()
 
@@ -119,6 +120,10 @@ class CompanionWidget(QWidget):
         backup = QAction("Criar backup ZIP", self)
         backup.triggered.connect(self.backup_requested.emit)
         data_menu.addAction(backup)
+
+        settings_action = QAction("Configurações", self)
+        settings_action.triggered.connect(self.settings_requested.emit)
+        menu.addAction(settings_action)
 
         menu.addSeparator()
 
