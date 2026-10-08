@@ -36,8 +36,16 @@ class PersonalityConfig:
 
 
 @dataclass(slots=True)
+class VoiceConfig:
+    enabled: bool = True
+    rate: int = 0
+    volume: int = 90
+
+
+@dataclass(slots=True)
 class AppConfig:
     monitor: MonitorConfig = field(default_factory=MonitorConfig)
     activity: ActivityConfig = field(default_factory=ActivityConfig)
     accountability: AccountabilityConfig = field(default_factory=AccountabilityConfig)
     personality: PersonalityConfig = field(default_factory=PersonalityConfig)
+    voice: VoiceConfig = field(default_factory=VoiceConfig)
