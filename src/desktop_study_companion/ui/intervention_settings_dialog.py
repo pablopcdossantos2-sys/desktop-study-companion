@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QLabel,
     QLineEdit,
+    QSpinBox,
     QVBoxLayout,
 )
 
@@ -39,6 +40,23 @@ class InterventionSettingsDialog(QDialog):
         )
         self.allow_close.setChecked(permissions.allow_close)
 
+        self.allow_session_escalation = QCheckBox(
+            "Permitir escalada automática durante sessão de estudo"
+        )
+        self.allow_session_escalation.setChecked(
+            permissions.allow_session_escalation
+        )
+
+        self.allow_lockdown = QCheckBox(
+            "Permitir modo de foco limitado (lockdown)"
+        )
+        self.allow_lockdown.setChecked(permissions.allow_lockdown)
+
+        self.lockdown_minutes = QSpinBox()
+        self.lockdown_minutes.setRange(1, 60)
+        self.lockdown_minutes.setValue(permissions.lockdown_minutes)
+        self.lockdown_minutes.setSuffix(" min")
+
         self.protected = QLineEdit(
             ", ".join(permissions.protected_processes)
         )
@@ -47,6 +65,9 @@ class InterventionSettingsDialog(QDialog):
         form.addRow("", self.enabled)
         form.addRow("", self.allow_minimize)
         form.addRow("", self.allow_close)
+        form.addRow("", self.allow_session_escalation)
+        form.addRow("", self.allow_lockdown)
+        form.addRow("Duração do lockdown:", self.lockdown_minutes)
         form.addRow("Processos protegidos:", self.protected)
 
         buttons = QDialogButtonBox(
@@ -71,5 +92,8 @@ class InterventionSettingsDialog(QDialog):
             enabled=self.enabled.isChecked(),
             allow_minimize=self.allow_minimize.isChecked(),
             allow_close=self.allow_close.isChecked(),
+            allow_session_escalation=self.allow_session_escalation.isChecked(),
+            allow_lockdown=self.allow_lockdown.isChecked(),
+            lockdown_minutes=self.lockdown_minutes.value(),
             protected_processes=protected,
         )
