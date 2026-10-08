@@ -1,0 +1,20 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "desktop-study-companion"
+version = "0.0.1"
+description = "Desktop companion for study accountability and focus."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+  { name = "Desktop Study Companion contributors" }
+]
+dependencies = []
+
+[project.scripts]
+desktop-study-companion = "desktop_study_companion.app:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/desktop_study_companion"]
