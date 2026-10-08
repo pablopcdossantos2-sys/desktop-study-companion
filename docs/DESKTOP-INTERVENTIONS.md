@@ -133,3 +133,80 @@ mas não poderá:
 - remover as proteções críticas;
 - ignorar o botão de emergência;
 - transformar uma regra `nag` em `close_and_nag` fora da política configurada.
+
+
+## Escalada automática durante uma sessão
+
+Além das Standing Rules, a sessão de estudo agora pode solicitar ações automaticamente conforme a severidade da distração.
+
+Esse recurso possui uma permissão própria:
+
+```text
+Permitir escalada automática durante sessão de estudo
+```
+
+Ele permanece desligado por padrão.
+
+Com os limites padrão de accountability:
+
+```text
+< 1 min  → nenhuma ação
+1 min    → cobrança gentil
+3 min    → cobrança firme
+5 min    → cobrança direta
+10 min   → cobrança insistente
+```
+
+A política de intervenção automática é:
+
+```text
+severidade 1 → fala
+severidade 2 → fala
+severidade 3 → minimizar, se autorizado
+severidade 4 → fechar, se autorizado
+```
+
+Se a permissão de fechar não estiver ativa, severidade 4 usa a ação mais forte ainda permitida. Se nenhuma ação invasiva estiver autorizada, continua somente falando.
+
+A política é determinística; um LLM não decide quando minimizar ou fechar.
+
+## Lockdown limitado
+
+O lockdown do Desktop Study Companion é propositalmente diferente do comportamento mais agressivo encontrado no bonziPONY.
+
+Ele **não**:
+
+- bloqueia mouse;
+- bloqueia teclado;
+- trava a estação;
+- impede acesso ao Task Manager;
+- sobrevive a uma reinicialização da aplicação.
+
+Quando explicitamente autorizado, uma distração de severidade máxima pode ativar temporariamente o modo de foco limitado.
+
+Durante esse período:
+
+1. a sessão continua normalmente;
+2. atividades produtivas não sofrem nenhuma intervenção;
+3. novas distrações recebem imediatamente a ação mais forte autorizada;
+4. a mesma janela possui cooldown para não receber ações a cada segundo;
+5. o modo expira automaticamente;
+6. encerrar a sessão encerra o lockdown;
+7. o botão de emergência encerra o lockdown;
+8. existe também **Encerrar lockdown atual** no menu.
+
+A duração é configurável de 1 a 60 minutos.
+
+## Falha segura
+
+Arquivos de permissão inválidos ou malformados fazem a aplicação voltar aos padrões seguros:
+
+```text
+intervenções = desligadas
+minimizar = desligado
+fechar = desligado
+escalada automática = desligada
+lockdown = desligado
+```
+
+Uma configuração corrompida nunca deve resultar em permissões mais amplas.
