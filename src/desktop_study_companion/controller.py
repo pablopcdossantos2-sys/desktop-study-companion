@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 
 from PySide6.QtCore import QObject, QTimer
-from PySide6.QtWidgets import QApplication, QDialog
+from PySide6.QtWidgets import QApplication, QDialog, QInputDialog, QMessageBox
 
 from desktop_study_companion.accountability.engine import (
     AccountabilityEngine,
@@ -18,8 +18,11 @@ from desktop_study_companion.config.models import AppConfig
 from desktop_study_companion.memory.sqlite_store import SQLiteMemoryStore
 from desktop_study_companion.personality.models import Personality
 from desktop_study_companion.personality.renderer import PersonalityRenderer
+from desktop_study_companion.routines.manager import RoutineManager
+from desktop_study_companion.routines.models import Routine
 from desktop_study_companion.study.manager import StudySessionManager
 from desktop_study_companion.ui.companion_widget import CompanionWidget
+from desktop_study_companion.ui.routine_dialog import RoutineDialog
 from desktop_study_companion.ui.session_dialog import SessionDialog
 from desktop_study_companion.voice.windows_sapi import WindowsSapiTTS
 
@@ -38,6 +41,7 @@ class ApplicationController(QObject):
             distraction_keywords=set(config.activity.distraction_keywords),
         )
         self.sessions = StudySessionManager()
+        self.routines = RoutineManager(Path("data") / "routines.json")
         self.accountability = AccountabilityEngine(
             AccountabilityPolicy(
                 gentle_after_seconds=config.accountability.gentle_after_seconds,
@@ -78,6 +82,8 @@ class ApplicationController(QObject):
 
         self.widget.start_session_requested.connect(self.start_session)
         self.widget.finish_session_requested.connect(self.finish_session)
+        self.widget.add_routine_requested.connect(self.add_daily_routine)
+        self.widget.manage_routines_requested.connect(self.manage_routines)
         self.widget.pause_monitoring_requested.connect(self.set_paused)
         self.widget.quit_requested.connect(self.shutdown)
 
@@ -123,9 +129,93 @@ class ApplicationController(QObject):
             f"distração: {distracted} minutos."
         )
 
+    def add_daily_routine(self) -> None:
+        dialog = RoutineDialog(self.widget)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        goal = dialog.goal.text().strip()
+        if not goal:
+            QMessageBox.warning(
+                self.widget,
+                "Rotina sem descrição",
+                "Escreva o que a personagem deve lembrar.",
+            )
+            return
+
+        routine = Routine(
+            goal=goal,
+            schedule="daily",
+            time=dialog.time.time().toString("HH:mm"),
+            urgency=dialog.urgency.value(),
+        )
+        if not self.routines.add_if_unique(routine):
+            self._say("Já existe uma rotina com essa descrição.")
+            return
+
+        self._say(
+            f"Rotina criada. Todos os dias às {routine.time}, eu vou lembrar: {routine.goal}."
+        )
+
+    def manage_routines(self) -> None:
+        if not self.routines.routines:
+            QMessageBox.information(
+                self.widget,
+                "Rotinas",
+                "Nenhuma rotina foi cadastrada.",
+            )
+            return
+
+        labels = [
+            f"{routine.goal} — {self.routines.describe(routine)}"
+            + ("" if routine.enabled else " [desativada]")
+            for routine in self.routines.routines
+        ]
+        selected, ok = QInputDialog.getItem(
+            self.widget,
+            "Gerenciar rotinas",
+            "Selecione uma rotina para ativar/desativar ou remover:",
+            labels,
+            0,
+            False,
+        )
+        if not ok or not selected:
+            return
+
+        index = labels.index(selected)
+        routine = self.routines.routines[index]
+
+        box = QMessageBox(self.widget)
+        box.setWindowTitle("Gerenciar rotina")
+        box.setText(f"{routine.goal}\n\n{self.routines.describe(routine)}")
+        toggle = box.addButton(
+            "Desativar" if routine.enabled else "Ativar",
+            QMessageBox.ButtonRole.ActionRole,
+        )
+        remove = box.addButton("Remover", QMessageBox.ButtonRole.DestructiveRole)
+        box.addButton(QMessageBox.StandardButton.Cancel)
+        box.exec()
+
+        if box.clickedButton() is toggle:
+            self.routines.toggle(routine.id)
+            state = "ativada" if routine.enabled else "desativada"
+            self._say(f"Rotina {state}: {routine.goal}.")
+        elif box.clickedButton() is remove:
+            self.routines.remove(routine.id)
+            self._say(f"Rotina removida: {routine.goal}.")
+
     def set_paused(self, paused: bool) -> None:
         self._paused = paused
         self._last_poll = time.monotonic()
+
+    def _poll_routines(self) -> None:
+        for routine in self.routines.get_due_routines():
+            prefix = "Hora da rotina."
+            if routine.urgency >= 8:
+                prefix = "Isso é importante. Hora da rotina."
+            elif routine.urgency >= 5:
+                prefix = "Lembrete de rotina."
+            self._say(f"{prefix} {routine.goal}")
 
     def _save_activity_if_changed(self, session_id: str | None, classified) -> None:
         key = (
@@ -151,6 +241,9 @@ class ApplicationController(QObject):
 
         if self._paused:
             return
+
+        # Routines are proactive and can fire even when no study session is active.
+        self._poll_routines()
 
         window = self.monitor.sample()
         classified = self.classifier.classify(window)
