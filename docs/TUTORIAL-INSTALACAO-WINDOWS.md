@@ -933,3 +933,21 @@ Use `INICIAR-DEV.bat` apenas se você quiser:
 - experimentar mudanças ainda não empacotadas.
 
 A meta futura continua sendo disponibilizar um instalador Windows convencional, mas a versão portátil já remove a necessidade de terminal para o uso comum.
+
+
+## 36. Se o arquivo portátil tiver expirado
+
+Os artefatos automáticos do GitHub não são binários permanentes do repositório.
+
+A configuração atual mantém a build por até **90 dias**.
+
+Se você abrir o projeto depois disso e o artefato não estiver mais disponível:
+
+1. abra a aba **Actions**;
+2. na lateral, escolha **build-windows-portable**;
+3. clique em **Run workflow**;
+4. confirme **Run workflow** usando a branch `main`;
+5. quando a execução terminar com um indicador verde, abra a execução;
+6. em **Artifacts**, baixe **DesktopStudyCompanion-Windows-Portable**.
+
+O GitHub recompilará a versão atual da `main`, executará os testes antes do empacotamento e publicará um novo ZIP portátil.
