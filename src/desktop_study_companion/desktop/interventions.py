@@ -58,6 +58,9 @@ class InterventionPermissions:
     enabled: bool = False
     allow_minimize: bool = False
     allow_close: bool = False
+    allow_session_escalation: bool = False
+    allow_lockdown: bool = False
+    lockdown_minutes: int = 5
     protected_processes: list[str] = field(
         default_factory=lambda: sorted(_DEFAULT_PROTECTED_PROCESSES)
     )
@@ -71,6 +74,11 @@ class InterventionPermissions:
             enabled=bool(data.get("enabled", False)),
             allow_minimize=bool(data.get("allow_minimize", False)),
             allow_close=bool(data.get("allow_close", False)),
+            allow_session_escalation=bool(
+                data.get("allow_session_escalation", False)
+            ),
+            allow_lockdown=bool(data.get("allow_lockdown", False)),
+            lockdown_minutes=max(1, min(60, int(data.get("lockdown_minutes", 5)))),
             protected_processes=list(
                 data.get(
                     "protected_processes",
@@ -111,6 +119,8 @@ class InterventionPermissionStore:
         self.permissions.enabled = False
         self.permissions.allow_minimize = False
         self.permissions.allow_close = False
+        self.permissions.allow_session_escalation = False
+        self.permissions.allow_lockdown = False
         self.save()
 
 
