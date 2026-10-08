@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 
 from PySide6.QtCore import QObject, QTimer
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QDialog
 
 from desktop_study_companion.accountability.engine import (
     AccountabilityEngine,
@@ -96,7 +96,7 @@ class ApplicationController(QObject):
             return
 
         dialog = SessionDialog(self.widget)
-        if dialog.exec() != dialog.DialogCode.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
         session = self.sessions.start(dialog.goal.text(), dialog.minutes.value())
