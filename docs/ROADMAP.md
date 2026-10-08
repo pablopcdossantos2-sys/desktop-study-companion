@@ -70,8 +70,13 @@ Critério de conclusão:
 - [x] SQLite inicial;
 - [ ] fatos do usuário;
 - [x] histórico de compromissos/sessões;
-- [ ] padrões de procrastinação;
-- [ ] resumos periódicos;
+- [x] padrões comportamentais locais básicos;
+- [x] taxa de retorno após intervenção;
+- [x] tendência recente de foco;
+- [x] processo de distração mais recorrente;
+- [x] melhor horário de foco com amostra mínima;
+- [ ] fatos pessoais extraídos de conversa;
+- [ ] resumos periódicos por LLM;
 - [ ] esquecimento/configuração de retenção.
 
 ## v0.5 — Proatividade
@@ -125,11 +130,14 @@ Sempre opt-in.
 
 - [x] coleta de tempo líquido classificado;
 - [x] coleta de tempo distraído;
-- [ ] adesão ao plano;
+- [x] taxa de conclusão;
 - [x] registro do número de intervenções;
-- [ ] taxa de retorno após intervenção;
+- [x] taxa estimada de retorno após intervenção;
 - [ ] calendário;
-- [ ] padrões por horário/dia.
+- [x] padrões básicos por horário;
+- [x] histórico consultável pela interface;
+- [x] exportação CSV;
+- [x] backup ZIP consistente.
 
 ## v0.8 — Inteligência contextual
 
@@ -153,7 +161,7 @@ Sempre opt-in.
 
 - [ ] instalador Windows;
 - [ ] atualização automática;
-- [ ] backup/exportação;
+- [x] backup/exportação básica;
 - [ ] onboarding;
 - [ ] permissões;
 - [ ] documentação de privacidade;
