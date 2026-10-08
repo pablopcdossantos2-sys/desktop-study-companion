@@ -1,0 +1,77 @@
+name: build-windows-portable
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/build-windows.yml"
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  build-portable:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install project and builder
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .
+          python -m pip install "pyinstaller>=6.10,<7"
+
+      - name: Run source compile check
+        run: python -m compileall -q src
+
+      - name: Build portable application
+        shell: pwsh
+        run: >
+          pyinstaller --noconfirm --clean --windowed
+          --name DesktopStudyCompanion
+          --paths src
+          --collect-submodules win32com
+          --hidden-import pythoncom
+          --hidden-import pywintypes
+          src/desktop_study_companion/app.py
+
+      - name: Add editable configuration and docs
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "dist/DesktopStudyCompanion/config" | Out-Null
+          New-Item -ItemType Directory -Force -Path "dist/DesktopStudyCompanion/docs" | Out-Null
+          Copy-Item "config/default.json" "dist/DesktopStudyCompanion/config/default.json"
+          Copy-Item "README.md" "dist/DesktopStudyCompanion/README.md"
+          Copy-Item "THIRD-PARTY-NOTICES.md" "dist/DesktopStudyCompanion/THIRD-PARTY-NOTICES.md"
+          Copy-Item "docs/TUTORIAL-INSTALACAO-WINDOWS.md" "dist/DesktopStudyCompanion/docs/TUTORIAL-INSTALACAO-WINDOWS.md"
+          Copy-Item "docs/DESKTOP-INTERVENTIONS.md" "dist/DesktopStudyCompanion/docs/DESKTOP-INTERVENTIONS.md"
+
+      - name: Smoke test packaged executable presence
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "dist/DesktopStudyCompanion/DesktopStudyCompanion.exe")) {
+            throw "DesktopStudyCompanion.exe was not generated."
+          }
+          if (-not (Test-Path "dist/DesktopStudyCompanion/config/default.json")) {
+            throw "Portable config/default.json was not packaged."
+          }
+
+      - name: Create portable ZIP
+        shell: pwsh
+        run: Compress-Archive -Path "dist/DesktopStudyCompanion/*" -DestinationPath "DesktopStudyCompanion-Windows-Portable.zip" -Force
+
+      - name: Upload portable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DesktopStudyCompanion-Windows-Portable
+          path: DesktopStudyCompanion-Windows-Portable.zip
+          if-no-files-found: error
+          retention-days: 30
