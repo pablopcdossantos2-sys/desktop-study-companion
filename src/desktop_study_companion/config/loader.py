@@ -3,6 +3,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from desktop_study_companion.runtime_paths import (
+    bundled_config_path,
+    external_config_path,
+)
+
 from .models import (
     AccountabilityConfig,
     ActivityConfig,
@@ -15,11 +20,12 @@ from .models import (
 
 def _default_config_path() -> Path:
     candidates = [
-        Path.cwd() / "config" / "default.json",
+        external_config_path(),
+        bundled_config_path(),
         Path(__file__).resolve().parents[3] / "config" / "default.json",
     ]
     for candidate in candidates:
-        if candidate.exists():
+        if candidate is not None and candidate.exists():
             return candidate
     raise FileNotFoundError(
         "config/default.json was not found. Run the app from the project folder "
