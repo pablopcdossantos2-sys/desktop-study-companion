@@ -92,8 +92,8 @@ desktop-study-companion
 
 ## Estado
 
-**v0.1.0-dev5 — MVP com escalada automática opt-in e lockdown limitado em validação no Windows.**
+**v0.1.0-dev6 — MVP portátil com memória comportamental, configurações nativas e backup/exportação em validação no Windows.**
 
-Já estão implementados monitor de janela ativa, sessões de estudo, compromissos persistentes, regras permanentes, rotinas proativas, escalada fala → minimizar → fechar, lockdown limitado e reversível, widget flutuante, persistência local, TTS do Windows e testes automatizados. Todas as ações de desktop permanecem opt-in. O avatar final, STT e LLM ainda não fazem parte desta versão.
+Já estão implementados monitor de janela ativa, sessões de estudo, compromissos persistentes, regras permanentes, rotinas proativas, escalada fala → minimizar → fechar, lockdown limitado e reversível, memória comportamental local, histórico/insights, configuração pela interface, exportação CSV, backup ZIP, build portátil do Windows, TTS do Windows e testes automatizados. Todas as ações de desktop permanecem opt-in. O avatar final, STT e LLM ainda não fazem parte desta versão.
 
 A reutilização direta de componentes do bonziPONY está autorizada pelo criador do projeto, com obrigação de atribuição. A integração será feita seletivamente para preservar a arquitetura modular deste repositório.
