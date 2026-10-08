@@ -478,3 +478,131 @@ data\standing_rules.json
 Se uma regra permanente for acionada enquanto uma sessão estiver ativa, aquela janela também será contabilizada como distração, mesmo que ela não esteja em `distraction_keywords`.
 
 Isso permite criar regras pessoais sem editar manualmente o classificador global.
+
+
+## 21. Testar intervenções no desktop com segurança
+
+As intervenções são **desativadas por padrão**. Faça o primeiro teste somente com minimizar.
+
+### 21.1 Habilitar apenas minimizar
+
+1. Inicie a aplicação.
+2. Clique com o botão direito no personagem.
+3. Abra **Intervenções no desktop > Configurar permissões**.
+4. Marque:
+   - **Permitir intervenções no desktop**;
+   - **Permitir minimizar janelas**.
+5. Deixe **Permitir fechar janela/aba** desmarcado.
+6. Salve.
+
+### 21.2 Criar uma regra de teste
+
+1. Abra **Regras permanentes > Adicionar regra**.
+2. Em **Regra**, escreva:
+
+```text
+Minimizar o YouTube durante o teste
+```
+
+3. Em **Padrões**, escreva:
+
+```text
+youtube
+```
+
+4. Em **Resposta**, escolha **Minimizar e cobrar**.
+5. Use um cooldown de 10 segundos.
+6. Confirme.
+7. Abra uma aba do YouTube.
+
+O comportamento esperado é:
+
+```text
+YouTube detectado
+→ Standing Rule registra o flagrante
+→ janela do navegador é minimizada
+→ personagem reclama
+→ ação fica registrada no SQLite
+```
+
+### 21.3 Testar a trava de permissão
+
+Sem alterar a mesma regra:
+
+1. abra **Intervenções no desktop > Configurar permissões**;
+2. desmarque **Permitir minimizar janelas**;
+3. salve;
+4. volte ao YouTube depois do cooldown.
+
+A personagem deverá reclamar, mas a janela **não** deverá ser minimizada.
+
+Isso confirma que a ação da regra e a permissão global são independentes.
+
+## 22. Testar fechamento de aba
+
+Faça este teste somente depois que o teste de minimizar estiver funcionando.
+
+1. Em **Intervenções no desktop > Configurar permissões**, habilite:
+   - **Permitir intervenções no desktop**;
+   - **Permitir fechar janela/aba**.
+2. Crie uma nova Standing Rule para `youtube`.
+3. Em **Resposta**, escolha **Fechar e cobrar**.
+4. Abra o navegador com pelo menos duas abas.
+5. Deixe uma aba do YouTube ativa.
+
+Em Chrome, Edge, Firefox, Brave, Opera e Vivaldi, a aplicação tenta usar `Ctrl+W` para fechar **somente a aba ativa**, em vez de encerrar o navegador inteiro.
+
+Use uma aba sem conteúdo importante nesse teste.
+
+## 23. Testar o botão de emergência
+
+Com intervenções habilitadas:
+
+1. clique com o botão direito no personagem;
+2. abra **Intervenções no desktop**;
+3. clique em **DESATIVAR INTERVENÇÕES AGORA**.
+
+A personagem deverá informar que não minimizará nem fechará outras janelas.
+
+Depois disso, mesmo uma regra configurada como **Fechar e cobrar** deverá apenas reclamar.
+
+O arquivo:
+
+```text
+data\intervention_permissions.json
+```
+
+deverá mostrar as permissões desligadas.
+
+## 24. Processos protegidos
+
+O sistema possui uma camada de proteção que não pode ser removida pela configuração comum.
+
+Entre os processos críticos estão:
+
+```text
+explorer.exe
+taskmgr.exe
+powershell.exe
+pwsh.exe
+cmd.exe
+conhost.exe
+python.exe
+pythonw.exe
+```
+
+Você pode acrescentar outros processos à lista de proteção.
+
+Se uma regra coincidir com um processo protegido, a personagem pode reclamar, mas a ação de minimizar/fechar é recusada.
+
+## 25. O que enviar se uma intervenção falhar
+
+Se a regra for detectada, mas a janela não minimizar/fechar, informe:
+
+1. qual navegador/programa estava aberto;
+2. o texto completo do título da janela;
+3. qual resposta a Standing Rule estava usando;
+4. quais permissões estavam habilitadas;
+5. se apareceu alguma mensagem de erro no PowerShell.
+
+Não é necessário enviar o banco `companion.db`.
