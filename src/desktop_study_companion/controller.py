@@ -171,8 +171,17 @@ class ApplicationController(QObject):
         self.widget.show()
         self.timer.start()
 
-    def _say(self, text: str, *, voice: bool = True) -> None:
+    def _say(
+        self,
+        text: str,
+        *,
+        voice: bool = True,
+        avatar_state: str | None = None,
+    ) -> None:
         self.widget.say(text)
+        if avatar_state:
+            self.widget.set_avatar_expression(avatar_state)
+        self.widget.animate_avatar_speech(text)
         if voice and self.voice is not None:
             self.voice.speak(text)
 
@@ -197,7 +206,8 @@ class ApplicationController(QObject):
         self._last_intervention_kind = InterventionKind.NONE
         self._say(
             f"Combinado: {session.planned_minutes} minutos para {session.goal}. "
-            "Eu vou acompanhar."
+            "Eu vou acompanhar.",
+            avatar_state="happy",
         )
 
     def finish_session(self) -> None:
@@ -213,7 +223,8 @@ class ApplicationController(QObject):
         self._say(
             f"Sessão encerrada. Foco classificado: {focused} minutos; "
             f"distração: {distracted} minutos."
-            + self._behavioral_insight_suffix()
+            + self._behavioral_insight_suffix(),
+            avatar_state="happy",
         )
 
     # ------------------------------------------------------------------
@@ -317,7 +328,12 @@ class ApplicationController(QObject):
                 decision.severity,
                 directive.nag_count,
             )
-            self._say(message)
+            avatar_state = (
+                "angry" if decision.severity >= 3 else
+                "relaxed" if decision.severity == 2 else
+                "neutral"
+            )
+            self._say(message, avatar_state=avatar_state)
             self.directives.record_nag(directive, message)
 
     # ------------------------------------------------------------------
@@ -437,7 +453,8 @@ class ApplicationController(QObject):
                     severity=violation.rule.catch_count,
                     rule_id=violation.rule.id,
                 )
-            self._say(message)
+            state = "angry" if violation.rule.catch_count >= 2 else "neutral"
+            self._say(message, avatar_state=state)
 
         return True
 
@@ -867,7 +884,10 @@ class ApplicationController(QObject):
                 prefix = "Isso é importante. Hora da rotina."
             elif routine.urgency >= 5:
                 prefix = "Lembrete de rotina."
-            self._say(f"{prefix} {routine.goal}")
+            self._say(
+                f"{prefix} {routine.goal}",
+                avatar_state="neutral",
+            )
 
     # ------------------------------------------------------------------
     # Main monitoring loop
@@ -972,7 +992,13 @@ class ApplicationController(QObject):
                 classified,
             )
         if not lockdown_acted:
-            self._say(message)
+            state = {
+                InterventionKind.GENTLE_REMINDER: "neutral",
+                InterventionKind.FIRM_REMINDER: "relaxed",
+                InterventionKind.DIRECT_CHALLENGE: "angry",
+                InterventionKind.INSISTENT_CHALLENGE: "angry",
+            }.get(intervention.kind, "neutral")
+            self._say(message, avatar_state=state)
         self.memory.save_intervention(
             session_id,
             intervention,
@@ -993,4 +1019,5 @@ class ApplicationController(QObject):
         if self.voice is not None:
             self.voice.close()
         self.memory.close()
+        self.widget.shutdown_avatar()
         self.app.quit()
