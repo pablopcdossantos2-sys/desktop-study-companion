@@ -90,6 +90,7 @@ jobs:
           Copy-Item "docs/DESKTOP-INTERVENTIONS.md" "dist/DesktopStudyCompanion/docs/DESKTOP-INTERVENTIONS.md"
           Copy-Item "docs/BEHAVIORAL-MEMORY.md" "dist/DesktopStudyCompanion/docs/BEHAVIORAL-MEMORY.md"
           Copy-Item "docs/ACCOUNTABILITY.md" "dist/DesktopStudyCompanion/docs/ACCOUNTABILITY.md"
+          Copy-Item "docs/AVATAR-VRM.md" "dist/DesktopStudyCompanion/docs/AVATAR-VRM.md"
 
       - name: Smoke test packaged executable presence
         shell: pwsh
