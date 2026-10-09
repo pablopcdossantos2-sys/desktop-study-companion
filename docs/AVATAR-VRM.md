@@ -78,3 +78,18 @@ O GitHub Actions:
 - gestos de cobrança e comemoração;
 - configuração de escala/enquadramento;
 - possível importação de outros modelos VRM pela interface.
+
+
+## Configuração pela interface
+
+A aba **Configurações > Avatar** permite alterar:
+
+- ativar/desativar o avatar VRM;
+- largura da janela;
+- altura da janela;
+- acompanhamento do cursor com `lookAt`;
+- animação aproximada da boca durante a fala.
+
+Essas opções são persistidas em `config/default.json` e aplicadas sem reiniciar o aplicativo.
+
+Desativar o avatar não desativa o Study Accountability Engine, TTS, histórico ou monitoramento. Apenas substitui a renderização 3D pelo fallback visual.
