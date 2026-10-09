@@ -44,7 +44,7 @@ src/desktop_study_companion/
 
 A intenção é evitar um núcleo monolítico e permitir que voz, LLM, memória, avatar e políticas de cobrança possam evoluir ou ser substituídos independentemente.
 
-Veja [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). O funcionamento de sessões, rotinas, compromissos, regras permanentes e escalada está detalhado em [docs/ACCOUNTABILITY.md](docs/ACCOUNTABILITY.md). As intervenções opcionais no Windows estão documentadas em [docs/DESKTOP-INTERVENTIONS.md](docs/DESKTOP-INTERVENTIONS.md). A memória comportamental local e os indicadores estão descritos em [docs/BEHAVIORAL-MEMORY.md](docs/BEHAVIORAL-MEMORY.md).
+Veja [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). O funcionamento de sessões, rotinas, compromissos, regras permanentes e escalada está detalhado em [docs/ACCOUNTABILITY.md](docs/ACCOUNTABILITY.md). As intervenções opcionais no Windows estão documentadas em [docs/DESKTOP-INTERVENTIONS.md](docs/DESKTOP-INTERVENTIONS.md). A memória comportamental local e os indicadores estão descritos em [docs/BEHAVIORAL-MEMORY.md](docs/BEHAVIORAL-MEMORY.md). O avatar e o renderer VRM estão documentados em [docs/AVATAR-VRM.md](docs/AVATAR-VRM.md).
 
 ## Escopo da v0.1
 
@@ -92,8 +92,8 @@ desktop-study-companion
 
 ## Estado
 
-**v0.1.0-dev6 — MVP portátil com memória comportamental, configurações nativas e backup/exportação em validação no Windows.**
+**v0.1.0-dev7 — MVP com avatar VRM 1.0 integrado em validação no Windows.**
 
-Já estão implementados monitor de janela ativa, sessões de estudo, compromissos persistentes, regras permanentes, rotinas proativas, escalada fala → minimizar → fechar, lockdown limitado e reversível, memória comportamental local, histórico/insights, configuração pela interface, exportação CSV, backup ZIP, build portátil do Windows, TTS do Windows e testes automatizados. Todas as ações de desktop permanecem opt-in. O avatar final, STT e LLM ainda não fazem parte desta versão.
+Já estão implementados monitor de janela ativa, sessões de estudo, compromissos persistentes, regras permanentes, rotinas proativas, escalada fala → minimizar → fechar, lockdown limitado e reversível, memória comportamental local, histórico/insights, configuração pela interface, exportação CSV, backup ZIP, build portátil do Windows, TTS e o avatar VRM 1.0 Sendagaya Shino com expressões, piscada, look-at e lip-sync aproximado. Todas as ações de desktop permanecem opt-in. STT e LLM ainda não fazem parte desta versão.
 
 A reutilização direta de componentes do bonziPONY está autorizada pelo criador do projeto, com obrigação de atribuição. A integração será feita seletivamente para preservar a arquitetura modular deste repositório.
