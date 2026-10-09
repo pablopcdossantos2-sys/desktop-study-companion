@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QTimer, QUrl, Qt
+from PySide6.QtCore import QTimer, QUrl, Qt, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
@@ -10,6 +10,8 @@ from .server import AvatarAssetServer
 
 
 class AvatarWidget(QWebEngineView):
+    avatar_ready = Signal()
+    avatar_failed = Signal(str)
     def __init__(self, renderer_dir: Path, model_path: Path, parent=None) -> None:
         super().__init__(parent)
         self.server = AvatarAssetServer(renderer_dir, model_path)
@@ -25,7 +27,44 @@ class AvatarWidget(QWebEngineView):
         self._expression_timer.timeout.connect(
             lambda: self.set_expression("neutral", hold_ms=0)
         )
+        self._ready = False
+        self._ready_checks = 0
+        self._ready_timer = QTimer(self)
+        self._ready_timer.setInterval(250)
+        self._ready_timer.timeout.connect(self._poll_ready)
+        self.loadFinished.connect(self._on_page_loaded)
 
+    def _on_page_loaded(self, ok: bool) -> None:
+        if not ok:
+            self.avatar_failed.emit("renderer page failed to load")
+            return
+        self._ready_checks = 0
+        self._ready_timer.start()
+
+    def _poll_ready(self) -> None:
+        self._ready_checks += 1
+        self.page().runJavaScript(
+            "({ready:document.body.dataset.ready||'',error:document.body.dataset.error||''})",
+            self._handle_ready_state,
+        )
+
+    def _handle_ready_state(self, state) -> None:
+        if self._ready:
+            return
+        state = state or {}
+        if state.get("ready") == "true":
+            self._ready = True
+            self._ready_timer.stop()
+            self.avatar_ready.emit()
+            return
+        error = str(state.get("error") or "")
+        if error:
+            self._ready_timer.stop()
+            self.avatar_failed.emit(error)
+            return
+        if self._ready_checks >= 40:
+            self._ready_timer.stop()
+            self.avatar_failed.emit("avatar load timed out")
     def js(self, code: str) -> None:
         self.page().runJavaScript(code)
 
