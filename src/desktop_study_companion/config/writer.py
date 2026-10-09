@@ -42,6 +42,11 @@ def validate_config(config: AppConfig) -> None:
     if not 0 <= config.voice.volume <= 100:
         raise ValueError("voice volume must be between 0 and 100")
 
+    if not 220 <= config.avatar.width <= 900:
+        raise ValueError("avatar width must be between 220 and 900")
+    if not 320 <= config.avatar.height <= 1100:
+        raise ValueError("avatar height must be between 320 and 1100")
+
 
 def save_config(config: AppConfig, path: str | Path) -> Path:
     validate_config(config)
