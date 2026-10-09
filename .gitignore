@@ -14,3 +14,6 @@ logs/
 data/
 .pytest_cache/
 .ruff_cache/
+avatar_web/node_modules/
+avatar_web/dist/
+assets/avatar/*.vrm
