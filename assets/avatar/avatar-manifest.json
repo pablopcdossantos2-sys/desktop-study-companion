@@ -1,0 +1,33 @@
+{
+  "id": "sendagaya-shino",
+  "label": "Sendagaya Shino",
+  "format": "VRM 1.0",
+  "source": "https://hub.vroid.com/en/characters/4593660874193246717/models/7956589129305596116",
+  "sha256": "fab70124f0025e444a6eef84d6ab3a04e78c0adb626099e54b55287d0f083a47",
+  "size_bytes": 21140516,
+  "expressions": [
+    "neutral",
+    "happy",
+    "angry",
+    "sad",
+    "relaxed",
+    "surprised",
+    "blink",
+    "blinkLeft",
+    "blinkRight",
+    "aa",
+    "ih",
+    "ou",
+    "ee",
+    "oh"
+  ],
+  "state_mapping": {
+    "idle": "neutral",
+    "session_started": "happy",
+    "session_completed": "happy",
+    "reminder": "neutral",
+    "firm": "relaxed",
+    "direct": "angry",
+    "insistent": "angry"
+  }
+}
