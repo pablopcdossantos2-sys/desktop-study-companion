@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QPoint, Qt, Signal
-from PySide6.QtGui import QAction, QMouseEvent, QPainter
+from PySide6.QtCore import QPoint, QTimer, Qt, Signal
+from PySide6.QtGui import QAction, QCursor, QMouseEvent, QPainter
 from PySide6.QtWidgets import QLabel, QMenu, QVBoxLayout, QWidget
 
 from desktop_study_companion.avatar.widget import AvatarWidget
@@ -54,6 +54,10 @@ class CompanionWidget(QWidget):
         )
 
         self.avatar = self._create_avatar()
+        self._look_timer = QTimer(self)
+        self._look_timer.setInterval(120)
+        self._look_timer.timeout.connect(self._update_avatar_look)
+        self._look_timer.start()
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
@@ -85,6 +89,14 @@ class CompanionWidget(QWidget):
         if isinstance(self.avatar, AvatarWidget):
             self.avatar.talk_for_text(text)
 
+    def _update_avatar_look(self) -> None:
+        if not isinstance(self.avatar, AvatarWidget):
+            return
+        cursor = QCursor.pos()
+        center = self.frameGeometry().center()
+        dx = (cursor.x() - center.x()) / max(1, self.width())
+        dy = (center.y() - cursor.y()) / max(1, self.height())
+        self.avatar.set_look(dx * 1.8, dy * 1.8)
     def paintEvent(self, event) -> None:  # noqa: N802
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
