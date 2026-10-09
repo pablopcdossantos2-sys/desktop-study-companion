@@ -18,6 +18,7 @@ from desktop_study_companion.config.models import (
     AccountabilityConfig,
     ActivityConfig,
     AppConfig,
+    AvatarConfig,
     MonitorConfig,
     PersonalityConfig,
     VoiceConfig,
@@ -51,6 +52,7 @@ class SettingsDialog(QDialog):
         tabs.addTab(self._accountability_tab(config), "Cobrança")
         tabs.addTab(self._personality_tab(config), "Personalidade")
         tabs.addTab(self._voice_tab(config), "Voz")
+        tabs.addTab(self._avatar_tab(config), "Avatar")
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save
@@ -139,6 +141,37 @@ class SettingsDialog(QDialog):
         form.addRow("Volume:", self.voice_volume)
         return widget
 
+
+    def _avatar_tab(self, config: AppConfig) -> QWidget:
+        widget = QWidget()
+        form = QFormLayout(widget)
+
+        self.avatar_enabled = QCheckBox("Ativar avatar VRM 3D")
+        self.avatar_enabled.setChecked(config.avatar.enabled)
+
+        self.avatar_width = QSpinBox()
+        self.avatar_width.setRange(220, 900)
+        self.avatar_width.setValue(config.avatar.width)
+        self.avatar_width.setSuffix(" px")
+
+        self.avatar_height = QSpinBox()
+        self.avatar_height.setRange(320, 1100)
+        self.avatar_height.setValue(config.avatar.height)
+        self.avatar_height.setSuffix(" px")
+
+        self.avatar_look = QCheckBox("Olhar acompanha o cursor")
+        self.avatar_look.setChecked(config.avatar.look_at_cursor)
+
+        self.avatar_lip_sync = QCheckBox("Animar boca durante a fala")
+        self.avatar_lip_sync.setChecked(config.avatar.lip_sync)
+
+        form.addRow("", self.avatar_enabled)
+        form.addRow("Largura:", self.avatar_width)
+        form.addRow("Altura:", self.avatar_height)
+        form.addRow("", self.avatar_look)
+        form.addRow("", self.avatar_lip_sync)
+        return widget
+
     def _seconds_spin(self, value: int) -> QSpinBox:
         spin = QSpinBox()
         spin.setRange(0, 86400)
@@ -186,5 +219,12 @@ class SettingsDialog(QDialog):
                 enabled=self.voice_enabled.isChecked(),
                 rate=self.voice_rate.value(),
                 volume=self.voice_volume.value(),
+            ),
+            avatar=AvatarConfig(
+                enabled=self.avatar_enabled.isChecked(),
+                width=self.avatar_width.value(),
+                height=self.avatar_height.value(),
+                look_at_cursor=self.avatar_look.isChecked(),
+                lip_sync=self.avatar_lip_sync.isChecked(),
             ),
         )
