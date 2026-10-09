@@ -95,6 +95,7 @@ jobs:
           Copy-Item "assets/avatar/avatar-manifest.json" "dist/DesktopStudyCompanion/assets/avatar/avatar-manifest.json"
           Copy-Item "README.md" "dist/DesktopStudyCompanion/README.md"
           Copy-Item "THIRD-PARTY-NOTICES.md" "dist/DesktopStudyCompanion/THIRD-PARTY-NOTICES.md"
+          Copy-Item "avatar_web/THIRD_PARTY_LICENSES.md" "dist/DesktopStudyCompanion/THIRD_PARTY_LICENSES-AVATAR.md"
           Copy-Item "docs/TUTORIAL-INSTALACAO-WINDOWS.md" "dist/DesktopStudyCompanion/docs/TUTORIAL-INSTALACAO-WINDOWS.md"
           Copy-Item "docs/DESKTOP-INTERVENTIONS.md" "dist/DesktopStudyCompanion/docs/DESKTOP-INTERVENTIONS.md"
           Copy-Item "docs/BEHAVIORAL-MEMORY.md" "dist/DesktopStudyCompanion/docs/BEHAVIORAL-MEMORY.md"
