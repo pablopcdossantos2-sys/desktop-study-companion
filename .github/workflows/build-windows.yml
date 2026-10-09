@@ -4,6 +4,12 @@ on:
   push:
     branches: [main]
     paths:
+      - "src/**"
+      - "avatar_web/**"
+      - "config/**"
+      - "assets/avatar/**"
+      - "scripts/fetch-avatar.ps1"
+      - "pyproject.toml"
       - ".github/workflows/build-windows.yml"
   workflow_dispatch:
   release:
@@ -23,11 +29,30 @@ jobs:
           python-version: "3.12"
           cache: pip
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: avatar_web/package.json
+
+
       - name: Install project and builder
         run: |
           python -m pip install --upgrade pip
           python -m pip install ".[dev]"
           python -m pip install "pyinstaller>=6.10,<7"
+
+      - name: Fetch verified CC0 avatar
+        shell: pwsh
+        run: ./scripts/fetch-avatar.ps1
+
+      - name: Build VRM renderer
+        shell: pwsh
+        run: |
+          Set-Location avatar_web
+          npm install
+          npm run build
 
       - name: Run source compile check
         run: python -m compileall -q src
@@ -44,6 +69,8 @@ jobs:
           --collect-submodules win32com
           --hidden-import pythoncom
           --hidden-import pywintypes
+          --hidden-import PySide6.QtWebEngineWidgets
+          --hidden-import PySide6.QtWebEngineCore
           src/desktop_study_companion/app.py
 
       - name: Add editable configuration and docs
@@ -51,7 +78,12 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path "dist/DesktopStudyCompanion/config" | Out-Null
           New-Item -ItemType Directory -Force -Path "dist/DesktopStudyCompanion/docs" | Out-Null
+          New-Item -ItemType Directory -Force -Path "dist/DesktopStudyCompanion/avatar/renderer" | Out-Null
+          New-Item -ItemType Directory -Force -Path "dist/DesktopStudyCompanion/assets/avatar" | Out-Null
           Copy-Item "config/default.json" "dist/DesktopStudyCompanion/config/default.json"
+          Copy-Item "avatar_web/dist/*" "dist/DesktopStudyCompanion/avatar/renderer/" -Recurse -Force
+          Copy-Item "assets/avatar/Sendagaya_Shino.vrm" "dist/DesktopStudyCompanion/assets/avatar/Sendagaya_Shino.vrm"
+          Copy-Item "assets/avatar/README.md" "dist/DesktopStudyCompanion/assets/avatar/README.md"
           Copy-Item "README.md" "dist/DesktopStudyCompanion/README.md"
           Copy-Item "THIRD-PARTY-NOTICES.md" "dist/DesktopStudyCompanion/THIRD-PARTY-NOTICES.md"
           Copy-Item "docs/TUTORIAL-INSTALACAO-WINDOWS.md" "dist/DesktopStudyCompanion/docs/TUTORIAL-INSTALACAO-WINDOWS.md"
@@ -67,6 +99,12 @@ jobs:
           }
           if (-not (Test-Path "dist/DesktopStudyCompanion/config/default.json")) {
             throw "Portable config/default.json was not packaged."
+          }
+          if (-not (Test-Path "dist/DesktopStudyCompanion/avatar/renderer/index.html")) {
+            throw "VRM renderer was not packaged."
+          }
+          if (-not (Test-Path "dist/DesktopStudyCompanion/assets/avatar/Sendagaya_Shino.vrm")) {
+            throw "Sendagaya_Shino.vrm was not packaged."
           }
 
       - name: Create portable ZIP
