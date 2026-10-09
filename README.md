@@ -92,7 +92,7 @@ desktop-study-companion
 
 ## Estado
 
-**v0.1.0-dev7 — MVP com avatar VRM 1.0 integrado em validação no Windows.**
+**v0.1.0-dev8 — MVP com avatar VRM 1.0 integrado e configurável em validação no Windows.**
 
 Já estão implementados monitor de janela ativa, sessões de estudo, compromissos persistentes, regras permanentes, rotinas proativas, escalada fala → minimizar → fechar, lockdown limitado e reversível, memória comportamental local, histórico/insights, configuração pela interface, exportação CSV, backup ZIP, build portátil do Windows, TTS e o avatar VRM 1.0 Sendagaya Shino com expressões, piscada, look-at e lip-sync aproximado. Todas as ações de desktop permanecem opt-in. STT e LLM ainda não fazem parte desta versão.
 
