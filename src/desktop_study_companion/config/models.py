@@ -43,9 +43,19 @@ class VoiceConfig:
 
 
 @dataclass(slots=True)
+class AvatarConfig:
+    enabled: bool = True
+    width: int = 360
+    height: int = 540
+    look_at_cursor: bool = True
+    lip_sync: bool = True
+
+
+@dataclass(slots=True)
 class AppConfig:
     monitor: MonitorConfig = field(default_factory=MonitorConfig)
     activity: ActivityConfig = field(default_factory=ActivityConfig)
     accountability: AccountabilityConfig = field(default_factory=AccountabilityConfig)
     personality: PersonalityConfig = field(default_factory=PersonalityConfig)
     voice: VoiceConfig = field(default_factory=VoiceConfig)
+    avatar: AvatarConfig = field(default_factory=AvatarConfig)
