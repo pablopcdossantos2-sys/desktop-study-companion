@@ -26,3 +26,25 @@ jobs:
 
       - name: Run tests
         run: python -m pytest -q
+
+
+  avatar-web:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: avatar_web/package.json
+
+      - name: Install avatar dependencies
+        working-directory: avatar_web
+        run: npm install
+
+      - name: Build avatar renderer
+        working-directory: avatar_web
+        run: npm run build
