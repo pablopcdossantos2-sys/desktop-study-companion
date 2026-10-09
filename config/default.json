@@ -47,5 +47,12 @@
     "enabled": true,
     "rate": 0,
     "volume": 90
+  },
+  "avatar": {
+    "enabled": true,
+    "width": 360,
+    "height": 540,
+    "look_at_cursor": true,
+    "lip_sync": true
   }
 }
