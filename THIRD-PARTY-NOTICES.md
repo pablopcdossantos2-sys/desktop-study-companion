@@ -47,3 +47,21 @@ Outras áreas do bonziPONY poderão ser incorporadas de forma seletiva nas próx
 ## Outros projetos
 
 YUI, Warashi, Noema e companion-emergence foram analisados durante a fase de arquitetura. Ideias gerais podem servir como referência, mas nenhuma reutilização literal deve ser presumida sem observar a licença específica de cada projeto.
+
+
+## Sendagaya Shino (VRM 1.0)
+
+Avatar usado pelo Desktop Study Companion:
+
+- **Modelo:** Sendagaya Shino
+- **Fonte oficial:** https://hub.vroid.com/en/characters/4593660874193246717/models/7956589129305596116
+- **Formato:** VRM 1.0
+- **Licença/condições:** coleção declarada CC0; uso, alteração e redistribuição permitidos; atribuição não exigida.
+
+O projeto mantém este aviso por rastreabilidade, ainda que o crédito não seja obrigatório.
+
+O arquivo binário é obtido durante build/desenvolvimento e validado por SHA-256 antes de ser usado.
+
+## Three.js e @pixiv/three-vrm
+
+O renderer do avatar usa Three.js e `@pixiv/three-vrm` para carregar e animar modelos VRM 1.0. As respectivas licenças permanecem aplicáveis aos componentes de software de terceiros.
