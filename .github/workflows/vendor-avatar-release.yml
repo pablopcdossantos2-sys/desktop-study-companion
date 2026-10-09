@@ -1,0 +1,40 @@
+name: vendor-avatar-release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/vendor-avatar-release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-avatar:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch and verify CC0 avatar
+        shell: pwsh
+        run: ./scripts/fetch-avatar.ps1
+
+      - name: Create asset release if missing
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "avatar-assets-v1"
+          gh release view $tag 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --title "Avatar Assets v1" --notes "CC0/runtime avatar assets for Desktop Study Companion. See assets/avatar/README.md for provenance."
+          }
+
+      - name: Upload verified avatar asset
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload avatar-assets-v1 "assets/avatar/Sendagaya_Shino.vrm#Sendagaya_Shino.vrm" --clobber
