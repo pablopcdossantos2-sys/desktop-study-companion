@@ -12,6 +12,7 @@ from .models import (
     AccountabilityConfig,
     ActivityConfig,
     AppConfig,
+    AvatarConfig,
     MonitorConfig,
     PersonalityConfig,
     VoiceConfig,
@@ -43,4 +44,5 @@ def load_config(path: str | Path | None = None) -> AppConfig:
         accountability=AccountabilityConfig(**data.get("accountability", {})),
         personality=PersonalityConfig(**data.get("personality", {})),
         voice=VoiceConfig(**data.get("voice", {})),
+        avatar=AvatarConfig(**data.get("avatar", {})),
     )
