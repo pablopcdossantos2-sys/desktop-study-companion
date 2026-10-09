@@ -30,6 +30,11 @@ class AvatarWidget(QWebEngineView):
             f"window.companionAvatar?.setExpression('{safe}', {float(weight)});"
         )
 
+    def set_look(self, x: float, y: float) -> None:
+        x = max(-1.0, min(1.0, float(x)))
+        y = max(-1.0, min(1.0, float(y)))
+        self.js(f"window.companionAvatar?.setLook({x}, {y});")
+
     def set_speaking(self, speaking: bool) -> None:
         self.js(
             f"window.companionAvatar?.setSpeaking({str(bool(speaking)).lower()});"
