@@ -951,3 +951,123 @@ Se você abrir o projeto depois disso e o artefato não estiver mais disponível
 6. em **Artifacts**, baixe **DesktopStudyCompanion-Windows-Portable**.
 
 O GitHub recompilará a versão atual da `main`, executará os testes antes do empacotamento e publicará um novo ZIP portátil.
+
+
+## 37. Testar o avatar VRM 1.0
+
+A versão atual usa **Sendagaya Shino** como personagem 3D.
+
+Na versão portátil, o arquivo VRM e o renderer já vêm incluídos. Não é necessário baixar o modelo manualmente.
+
+Ao abrir `DesktopStudyCompanion.exe`, o esperado é:
+
+1. aparecer a personagem 3D no lugar do antigo ícone de livro;
+2. o fundo ao redor dela permanecer transparente;
+3. a personagem piscar automaticamente;
+4. o olhar acompanhar suavemente a posição do cursor;
+5. o balão de fala continuar acima da personagem.
+
+O carregamento inicial do modelo pode levar alguns segundos.
+
+## 38. Testar expressões do avatar
+
+As expressões são ligadas aos estados que já existem no sistema.
+
+Faça estes testes em sequência:
+
+### Iniciar uma sessão
+
+Ao confirmar uma nova sessão, a personagem deve usar uma expressão positiva (`happy`) por alguns segundos e depois retornar a `neutral`.
+
+### Encerrar uma sessão
+
+Ao concluir uma sessão, deve ocorrer novamente uma expressão positiva.
+
+### Cobrança leve
+
+As primeiras cobranças usam expressão neutra ou relaxada.
+
+### Cobrança forte
+
+Cobranças diretas/insistentes usam `angry`.
+
+As expressões temporárias retornam automaticamente para `neutral`, para evitar que a personagem fique permanentemente sorrindo ou irritada.
+
+## 39. Testar fala e boca
+
+Quando a voz estiver habilitada:
+
+1. inicie uma sessão;
+2. observe a boca enquanto a personagem fala;
+3. provoque uma cobrança curta.
+
+O avatar usa os visemes do próprio VRM:
+
+```text
+aa
+ih
+ou
+ee
+oh
+```
+
+Nesta fase, o movimento da boca acompanha aproximadamente a duração da fala. A sincronização ainda não é baseada nos fonemas reais do áudio SAPI.
+
+## 40. Testar o olhar
+
+Mova o cursor lentamente:
+
+- para a esquerda da personagem;
+- para a direita;
+- acima;
+- abaixo.
+
+O `lookAt` do VRM deverá acompanhar o cursor de forma limitada.
+
+Esse movimento não interfere nos cliques: o renderer do avatar é transparente aos eventos do mouse e o menu continua pertencendo ao widget principal.
+
+## 41. Se aparecer apenas o ícone de livro
+
+O ícone de livro agora é um **fallback de segurança**.
+
+Ele aparece quando:
+
+- o arquivo VRM está ausente;
+- o renderer web está ausente;
+- Qt WebEngine não consegue iniciar;
+- o VRM gera erro durante o carregamento;
+- o carregamento excede o limite esperado.
+
+Na versão portátil oficial, os dois primeiros casos não deveriam ocorrer porque o CI verifica a presença de:
+
+```text
+avatar\renderer\index.html
+assets\avatar\Sendagaya_Shino.vrm
+```
+
+Se o livro aparecer, informe:
+
+1. sua versão do Windows;
+2. sua placa de vídeo, se souber;
+3. se o balão de fala aparece normalmente;
+4. se o restante da aplicação funciona;
+5. qualquer mensagem mostrada ao iniciar pela versão de desenvolvimento.
+
+## 42. Integridade do modelo
+
+O avatar oficial desta versão possui SHA-256:
+
+```text
+fab70124f0025e444a6eef84d6ab3a04e78c0adb626099e54b55287d0f083a47
+```
+
+O GitHub Actions verifica:
+
+- hash do arquivo;
+- formato glTF binário;
+- VRM 1.x;
+- esqueleto humanoide;
+- presença das expressões usadas pelo aplicativo;
+- presença dos visemes usados para fala.
+
+Assim, uma alteração inesperada do arquivo deve fazer a build falhar em vez de produzir silenciosamente um executável incompatível.
