@@ -1,5 +1,9 @@
 name: build-windows-portable
 
+concurrency:
+  group: build-windows-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
@@ -84,6 +88,7 @@ jobs:
           Copy-Item "avatar_web/dist/*" "dist/DesktopStudyCompanion/avatar/renderer/" -Recurse -Force
           Copy-Item "assets/avatar/Sendagaya_Shino.vrm" "dist/DesktopStudyCompanion/assets/avatar/Sendagaya_Shino.vrm"
           Copy-Item "assets/avatar/README.md" "dist/DesktopStudyCompanion/assets/avatar/README.md"
+          Copy-Item "assets/avatar/avatar-manifest.json" "dist/DesktopStudyCompanion/assets/avatar/avatar-manifest.json"
           Copy-Item "README.md" "dist/DesktopStudyCompanion/README.md"
           Copy-Item "THIRD-PARTY-NOTICES.md" "dist/DesktopStudyCompanion/THIRD-PARTY-NOTICES.md"
           Copy-Item "docs/TUTORIAL-INSTALACAO-WINDOWS.md" "dist/DesktopStudyCompanion/docs/TUTORIAL-INSTALACAO-WINDOWS.md"
