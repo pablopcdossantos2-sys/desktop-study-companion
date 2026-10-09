@@ -1,0 +1,1 @@
+"""VRM avatar integration layer."""
