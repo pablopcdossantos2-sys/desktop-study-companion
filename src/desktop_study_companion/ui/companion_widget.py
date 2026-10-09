@@ -5,6 +5,7 @@ from PySide6.QtGui import QAction, QCursor, QMouseEvent, QPainter
 from PySide6.QtWidgets import QLabel, QMenu, QVBoxLayout, QWidget
 
 from desktop_study_companion.avatar.widget import AvatarWidget
+from desktop_study_companion.config.models import AvatarConfig
 from desktop_study_companion.runtime_paths import (
     avatar_model_path,
     avatar_renderer_directory,
@@ -30,11 +31,16 @@ class CompanionWidget(QWidget):
     pause_monitoring_requested = Signal(bool)
     quit_requested = Signal()
 
-    def __init__(self, name: str = "Companion") -> None:
+    def __init__(
+        self,
+        name: str = "Companion",
+        avatar_config: AvatarConfig | None = None,
+    ) -> None:
         super().__init__()
         self.name = name
         self._drag_origin: QPoint | None = None
         self._monitoring_paused = False
+        self.avatar_config = avatar_config or AvatarConfig()
 
         self.setWindowTitle("Desktop Study Companion")
         self.setWindowFlags(
@@ -43,7 +49,7 @@ class CompanionWidget(QWidget):
             | Qt.WindowType.Tool
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.resize(360, 540)
+        self.resize(self.avatar_config.width, self.avatar_config.height)
 
         self.bubble = QLabel("Clique com o botão direito para abrir o menu.")
         self.bubble.setWordWrap(True)
@@ -65,6 +71,9 @@ class CompanionWidget(QWidget):
         self._look_timer.start()
 
     def _create_avatar(self):
+        if not self.avatar_config.enabled:
+            return self._fallback_avatar()
+
         renderer = avatar_renderer_directory()
         model = avatar_model_path()
         if renderer.exists() and (renderer / "index.html").exists() and model.exists():
@@ -87,12 +96,7 @@ class CompanionWidget(QWidget):
     def _avatar_failed(self, reason: str) -> None:
         if not isinstance(self.avatar, AvatarWidget):
             return
-        old = self.avatar
-        fallback = self._fallback_avatar()
-        self._layout.replaceWidget(old, fallback)
-        self.avatar = fallback
-        old.close_avatar()
-        old.deleteLater()
+        self._replace_avatar_widget(self._fallback_avatar())
         self.say(
             "Avatar 3D indisponível; usando fallback. "
             "Consulte o tutorial de diagnóstico."
@@ -103,17 +107,38 @@ class CompanionWidget(QWidget):
             self.avatar.set_expression(name, weight)
 
     def animate_avatar_speech(self, text: str) -> None:
-        if isinstance(self.avatar, AvatarWidget):
+        if self.avatar_config.lip_sync and isinstance(self.avatar, AvatarWidget):
             self.avatar.talk_for_text(text)
 
     def _update_avatar_look(self) -> None:
-        if not isinstance(self.avatar, AvatarWidget):
+        if (
+            not self.avatar_config.look_at_cursor
+            or not isinstance(self.avatar, AvatarWidget)
+        ):
             return
         cursor = QCursor.pos()
         center = self.frameGeometry().center()
         dx = (cursor.x() - center.x()) / max(1, self.width())
         dy = (center.y() - cursor.y()) / max(1, self.height())
         self.avatar.set_look(dx * 1.8, dy * 1.8)
+    def _replace_avatar_widget(self, new_widget) -> None:
+        old = self.avatar
+        self._layout.replaceWidget(old, new_widget)
+        self.avatar = new_widget
+        if isinstance(old, AvatarWidget):
+            old.close_avatar()
+        old.deleteLater()
+
+    def apply_avatar_config(self, config: AvatarConfig) -> None:
+        self.avatar_config = config
+        self.resize(config.width, config.height)
+
+        has_vrm = isinstance(self.avatar, AvatarWidget)
+        if config.enabled and not has_vrm:
+            self._replace_avatar_widget(self._create_avatar())
+        elif not config.enabled and has_vrm:
+            self._replace_avatar_widget(self._fallback_avatar())
+
     def paintEvent(self, event) -> None:  # noqa: N802
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
