@@ -4,6 +4,12 @@ from PySide6.QtCore import QPoint, Qt, Signal
 from PySide6.QtGui import QAction, QMouseEvent, QPainter
 from PySide6.QtWidgets import QLabel, QMenu, QVBoxLayout, QWidget
 
+from desktop_study_companion.avatar.widget import AvatarWidget
+from desktop_study_companion.runtime_paths import (
+    avatar_model_path,
+    avatar_renderer_directory,
+)
+
 
 class CompanionWidget(QWidget):
     start_session_requested = Signal()
@@ -37,7 +43,7 @@ class CompanionWidget(QWidget):
             | Qt.WindowType.Tool
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.resize(330, 170)
+        self.resize(360, 540)
 
         self.bubble = QLabel("Clique com o botão direito para abrir o menu.")
         self.bubble.setWordWrap(True)
@@ -47,14 +53,37 @@ class CompanionWidget(QWidget):
             "border: 1px solid #999; border-radius: 12px; padding: 10px; }"
         )
 
-        self.avatar = QLabel("📚")
-        self.avatar.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.avatar.setStyleSheet("font-size: 64px; background: transparent;")
+        self.avatar = self._create_avatar()
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.addWidget(self.bubble)
-        layout.addWidget(self.avatar)
+        layout.addWidget(self.avatar, 1)
+
+
+    def _create_avatar(self):
+        renderer = avatar_renderer_directory()
+        model = avatar_model_path()
+        if renderer.exists() and (renderer / "index.html").exists() and model.exists():
+            try:
+                avatar = AvatarWidget(renderer, model, self)
+                avatar.setMinimumHeight(380)
+                return avatar
+            except Exception:
+                pass
+
+        fallback = QLabel("📚")
+        fallback.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        fallback.setStyleSheet("font-size: 64px; background: transparent;")
+        return fallback
+
+    def set_avatar_expression(self, name: str, weight: float = 1.0) -> None:
+        if isinstance(self.avatar, AvatarWidget):
+            self.avatar.set_expression(name, weight)
+
+    def animate_avatar_speech(self, text: str) -> None:
+        if isinstance(self.avatar, AvatarWidget):
+            self.avatar.talk_for_text(text)
 
     def paintEvent(self, event) -> None:  # noqa: N802
         painter = QPainter(self)
@@ -173,3 +202,7 @@ class CompanionWidget(QWidget):
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         self._drag_origin = None
         event.accept()
+
+    def shutdown_avatar(self) -> None:
+        if isinstance(self.avatar, AvatarWidget):
+            self.avatar.close_avatar()
