@@ -54,16 +54,15 @@ class CompanionWidget(QWidget):
         )
 
         self.avatar = self._create_avatar()
+        self._layout = QVBoxLayout(self)
+        self._layout.setContentsMargins(8, 8, 8, 8)
+        self._layout.addWidget(self.bubble)
+        self._layout.addWidget(self.avatar, 1)
+
         self._look_timer = QTimer(self)
         self._look_timer.setInterval(120)
         self._look_timer.timeout.connect(self._update_avatar_look)
         self._look_timer.start()
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(8, 8, 8, 8)
-        layout.addWidget(self.bubble)
-        layout.addWidget(self.avatar, 1)
-
 
     def _create_avatar(self):
         renderer = avatar_renderer_directory()
@@ -72,14 +71,32 @@ class CompanionWidget(QWidget):
             try:
                 avatar = AvatarWidget(renderer, model, self)
                 avatar.setMinimumHeight(380)
+                avatar.avatar_failed.connect(self._avatar_failed)
                 return avatar
             except Exception:
                 pass
 
+        return self._fallback_avatar()
+
+    def _fallback_avatar(self) -> QLabel:
         fallback = QLabel("📚")
         fallback.setAlignment(Qt.AlignmentFlag.AlignCenter)
         fallback.setStyleSheet("font-size: 64px; background: transparent;")
         return fallback
+
+    def _avatar_failed(self, reason: str) -> None:
+        if not isinstance(self.avatar, AvatarWidget):
+            return
+        old = self.avatar
+        fallback = self._fallback_avatar()
+        self._layout.replaceWidget(old, fallback)
+        self.avatar = fallback
+        old.close_avatar()
+        old.deleteLater()
+        self.say(
+            "Avatar 3D indisponível; usando fallback. "
+            "Consulte o tutorial de diagnóstico."
+        )
 
     def set_avatar_expression(self, name: str, weight: float = 1.0) -> None:
         if isinstance(self.avatar, AvatarWidget):
