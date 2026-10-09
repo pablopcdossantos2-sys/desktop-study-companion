@@ -851,6 +851,15 @@ Permite:
 - alterar velocidade;
 - alterar volume.
 
+### Avatar
+
+Permite:
+
+- ligar/desligar o avatar VRM;
+- alterar largura e altura da janela;
+- ligar/desligar o olhar que acompanha o cursor;
+- ligar/desligar a animação da boca durante a fala.
+
 As alterações são salvas em `config/default.json` e aplicadas à sessão em execução sem precisar reiniciar a aplicação.
 
 ## 32. Consultar histórico e insights
