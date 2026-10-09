@@ -125,7 +125,10 @@ class ApplicationController(QObject):
         )
         self.memory = SQLiteMemoryStore(self.data_dir / "companion.db")
         self.analytics = StudyAnalytics(self.memory.path)
-        self.widget = CompanionWidget(config.personality.name)
+        self.widget = CompanionWidget(
+            config.personality.name,
+            config.avatar,
+        )
         self.intervention_permissions = InterventionPermissionStore(
             self.data_dir / "intervention_permissions.json"
         )
@@ -704,6 +707,7 @@ class ApplicationController(QObject):
             name=new_config.personality.name,
         )
         self.widget.name = new_config.personality.name
+        self.widget.apply_avatar_config(new_config.avatar)
 
         if self.voice is not None:
             self.voice.close()
