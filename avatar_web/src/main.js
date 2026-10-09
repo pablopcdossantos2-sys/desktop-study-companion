@@ -22,6 +22,8 @@ let currentExpression = 'neutral';
 let speaking = false;
 let mouthPhase = 0;
 let nextBlinkAt = performance.now() + 2500;
+let avatarBaseY = 0;
+let chestBone = null;
 const lookTarget = new THREE.Object3D();
 lookTarget.position.set(0, 1.45, 2.5);
 scene.add(lookTarget);
@@ -58,6 +60,11 @@ loader.load('/model.vrm', gltf => {
   const center = box.getCenter(new THREE.Vector3());
   vrm.scene.position.x -= center.x;
   vrm.scene.position.y -= box.min.y;
+  avatarBaseY = vrm.scene.position.y;
+  chestBone =
+    vrm.humanoid?.getNormalizedBoneNode('upperChest') ??
+    vrm.humanoid?.getNormalizedBoneNode('chest') ??
+    null;
   camera.position.set(0, Math.max(1.0, size.y * 0.52), Math.max(3.0, size.y * 2.2));
   camera.lookAt(0, Math.max(0.9, size.y * 0.52), 0);
   if (vrm.lookAt) vrm.lookAt.target = lookTarget;
@@ -91,6 +98,12 @@ function animate(now) {
         const seq = ['aa','ih','ou','ee','oh'];
         m.setValue(seq[Math.floor(mouthPhase) % seq.length], weight);
       }
+    }
+    const t = now * 0.001;
+    vrm.scene.position.y = avatarBaseY + Math.sin(t * 1.7) * 0.004;
+    if (chestBone) {
+      chestBone.rotation.x = Math.sin(t * 1.7) * 0.008;
+      chestBone.rotation.z = Math.sin(t * 0.65) * 0.004;
     }
     vrm.update(dt);
   }
