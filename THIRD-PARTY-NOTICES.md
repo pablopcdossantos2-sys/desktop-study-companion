@@ -65,3 +65,8 @@ O arquivo binário é obtido durante build/desenvolvimento e validado por SHA-25
 ## Three.js e @pixiv/three-vrm
 
 O renderer do avatar usa Three.js e `@pixiv/three-vrm` para carregar e animar modelos VRM 1.0. As respectivas licenças permanecem aplicáveis aos componentes de software de terceiros.
+
+
+The full MIT notices for Three.js and @pixiv/three-vrm are included in
+`avatar_web/THIRD_PARTY_LICENSES.md` and copied into the portable build as
+`THIRD_PARTY_LICENSES-AVATAR.md`.
