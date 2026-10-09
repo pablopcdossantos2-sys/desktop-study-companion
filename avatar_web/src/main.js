@@ -22,6 +22,9 @@ let currentExpression = 'neutral';
 let speaking = false;
 let mouthPhase = 0;
 let nextBlinkAt = performance.now() + 2500;
+const lookTarget = new THREE.Object3D();
+lookTarget.position.set(0, 1.45, 2.5);
+scene.add(lookTarget);
 
 function setOnlyExpression(name, weight = 1) {
   if (!vrm?.expressionManager) return;
@@ -35,11 +38,8 @@ window.companionAvatar = {
   setExpression(name, weight = 1) { setOnlyExpression(name, weight); },
   setSpeaking(value) { speaking = !!value; },
   setLook(x, y) {
-    if (!vrm?.lookAt) return;
-    const target = new THREE.Object3D();
-    target.position.set(Number(x) * 1.2, 1.45 + Number(y) * 0.7, 2.5);
-    scene.add(target);
-    vrm.lookAt.target = target;
+    lookTarget.position.set(Number(x) * 1.2, 1.45 + Number(y) * 0.7, 2.5);
+    if (vrm?.lookAt) vrm.lookAt.target = lookTarget;
   },
   isReady() { return !!vrm; }
 };
@@ -60,6 +60,7 @@ loader.load('/model.vrm', gltf => {
   vrm.scene.position.y -= box.min.y;
   camera.position.set(0, Math.max(1.0, size.y * 0.52), Math.max(3.0, size.y * 2.2));
   camera.lookAt(0, Math.max(0.9, size.y * 0.52), 0);
+  if (vrm.lookAt) vrm.lookAt.target = lookTarget;
   setOnlyExpression('neutral');
   document.body.dataset.ready = 'true';
 }, undefined, err => {
