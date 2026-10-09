@@ -29,3 +29,11 @@ def bundled_config_path() -> Path | None:
     if not bundle_root:
         return None
     return Path(bundle_root) / "config" / "default.json"
+
+
+def avatar_model_path() -> Path:
+    return application_root() / "assets" / "avatar" / "Sendagaya_Shino.vrm"
+
+
+def avatar_renderer_directory() -> Path:
+    return application_root() / "avatar" / "renderer"
