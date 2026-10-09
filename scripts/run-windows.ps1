@@ -51,6 +51,25 @@ Write-Host "Atualizando pip..."
 Write-Host "Instalando/atualizando o projeto e dependências..."
 & $venvPython -m pip install -e ".[dev]"
 
+Write-Host "Preparando avatar VRM..."
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$projectRoot\scripts\fetch-avatar.ps1"
+
+$avatarDist = Join-Path $projectRoot "avatar_web\dist"
+if (-not (Test-Path (Join-Path $avatarDist "index.html"))) {
+    if (Get-Command npm -ErrorAction SilentlyContinue) {
+        Write-Host "Construindo renderer 3D do avatar..."
+        Push-Location (Join-Path $projectRoot "avatar_web")
+        try {
+            npm install
+            npm run build
+        } finally {
+            Pop-Location
+        }
+    } else {
+        Write-Host "Node/npm não encontrado. O app iniciará com o fallback visual." -ForegroundColor Yellow
+        Write-Host "A versão portátil do GitHub já inclui o renderer 3D pronto." -ForegroundColor Yellow
+    }
+}
 Write-Host "Executando testes rápidos..."
 & $venvPython -m pytest
 if ($LASTEXITCODE -ne 0) {
