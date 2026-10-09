@@ -51,6 +51,10 @@ jobs:
         shell: pwsh
         run: ./scripts/fetch-avatar.ps1
 
+      - name: Validate VRM structure and capabilities
+        run: python -m desktop_study_companion.avatar.validate_model assets/avatar/Sendagaya_Shino.vrm
+
+
       - name: Build VRM renderer
         shell: pwsh
         run: |
