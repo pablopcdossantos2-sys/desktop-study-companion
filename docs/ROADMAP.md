@@ -150,12 +150,18 @@ Sempre opt-in.
 
 ## v0.9 — Personagem avançada
 
-- [ ] expressões;
-- [ ] animações;
-- [ ] lip-sync;
+- [x] renderer VRM 1.0;
+- [x] avatar Sendagaya Shino integrado;
+- [x] transparência;
+- [x] piscada automática;
+- [x] look-at seguindo cursor;
+- [x] expressões básicas ligadas ao estado;
+- [x] lip-sync aproximado com visemes VRM;
+- [ ] lip-sync baseado no áudio real;
+- [ ] animações corporais/VRMA;
 - [ ] gestos;
 - [ ] estados de humor persistentes;
-- [ ] múltiplas aparências.
+- [ ] importação de outros avatares VRM pela interface.
 
 ## v1.0
 
