@@ -101,6 +101,7 @@ logger = logging.getLogger("desktop_study_companion.controller")
 
 class ApplicationController(QObject):
     SESSION_SAVE_INTERVAL_SECONDS = 10.0
+    WAKE_GAP_SECONDS = 60.0
 
     def __init__(self, app: QApplication, config: AppConfig) -> None:
         super().__init__()
@@ -219,7 +220,6 @@ class ApplicationController(QObject):
 
     def start(self) -> None:
         self.widget.show()
-        self._poll_routines(wake_event=True)
         self.timer.start()
         self._schedule_next_motivation()
 
@@ -743,8 +743,10 @@ class ApplicationController(QObject):
                 "relaxed" if decision.severity == 2 else
                 "neutral"
             )
-            self._say(message, avatar_state=avatar_state)
+            # Advance the nag schedule before presentation. If TTS/UI fails,
+            # the same overdue directive will not break every monitoring tick.
             self.directives.record_nag(directive, message)
+            self._say(message, avatar_state=avatar_state)
 
     # ------------------------------------------------------------------
     # Standing rules
@@ -1262,19 +1264,36 @@ class ApplicationController(QObject):
             )
             return
 
+        schedule = str(dialog.schedule.currentData() or "daily")
         routine = Routine(
             goal=goal,
-            schedule="daily",
-            time=dialog.time.time().toString("HH:mm"),
+            schedule=schedule,
+            time=(
+                dialog.time.time().toString("HH:mm")
+                if schedule in {"daily", "weekly"}
+                else None
+            ),
+            day=(
+                str(dialog.day.currentData())
+                if schedule == "weekly"
+                else None
+            ),
+            interval_hours=(
+                float(dialog.interval_hours.value())
+                if schedule == "interval"
+                else None
+            ),
             urgency=dialog.urgency.value(),
         )
         if not self.routines.add_if_unique(routine):
-            self._say("Já existe uma rotina com essa descrição.")
+            self._say(
+                "Essa mesma rotina, com a mesma agenda, já está cadastrada."
+            )
             return
 
         self._say(
-            f"Rotina criada. Todos os dias às {routine.time}, "
-            f"eu vou lembrar: {routine.goal}."
+            f"Rotina criada: {routine.goal}. "
+            f"{self.routines.describe(routine)}."
         )
 
     def manage_routines(self) -> None:
@@ -1339,6 +1358,31 @@ class ApplicationController(QObject):
                 avatar_state="neutral",
             )
 
+    def _safe_poll_routines(self, *, wake_event: bool = False) -> None:
+        try:
+            self._poll_routines(wake_event=wake_event)
+        except Exception:
+            logger.exception(
+                "Routine polling failed; continuing core monitoring"
+            )
+
+    def _safe_poll_directives(self) -> None:
+        try:
+            self._poll_directives()
+        except Exception:
+            logger.exception(
+                "Directive polling failed; continuing core monitoring"
+            )
+
+    def _safe_poll_standing_rules(self, window) -> bool:
+        try:
+            return self._poll_standing_rules(window)
+        except Exception:
+            logger.exception(
+                "Standing-rule polling failed; continuing core monitoring"
+            )
+            return False
+
     # ------------------------------------------------------------------
     # Main monitoring loop
     # ------------------------------------------------------------------
@@ -1380,6 +1424,7 @@ class ApplicationController(QObject):
         now = time.monotonic()
         elapsed = max(0.0, now - self._last_poll)
         self._last_poll = now
+        wake_event = elapsed >= self.WAKE_GAP_SECONDS
         suspension_threshold = max(
             5.0,
             (self.config.monitor.poll_interval_ms / 1000.0) * 5.0,
@@ -1395,12 +1440,14 @@ class ApplicationController(QObject):
         if self._paused:
             return
 
-        # Proactive systems work even when no study session is active.
-        self._poll_routines()
-        self._poll_directives()
+        # Proactive systems are isolated from the core monitoring loop.
+        # A wake routine is only considered after a real monitoring gap,
+        # never merely because the application has just started.
+        self._safe_poll_routines(wake_event=wake_event)
+        self._safe_poll_directives()
 
         window = self.monitor.sample()
-        rule_violated = self._poll_standing_rules(window)
+        rule_violated = self._safe_poll_standing_rules(window)
         classified = self.classifier.classify(window)
 
         # A permanent rule violation is considered a distraction during an
@@ -1487,7 +1534,7 @@ class ApplicationController(QObject):
         logger.info("Clean shutdown requested by user")
         try:
             if self.sessions.active:
-                self.memory.save_session(self.sessions.abandon())
+                self.memory.save_session(self.sessions.finish())
             elif self.sessions.session is not None:
                 self.memory.save_session(self.sessions.session)
             self.lockdown.clear()
