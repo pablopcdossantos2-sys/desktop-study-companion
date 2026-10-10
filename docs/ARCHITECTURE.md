@@ -12,6 +12,7 @@ Application Orchestrator
         │
         ├── Personality
         ├── Voice
+        ├── Conversational Brain
         ├── Study Session Manager
         ├── Accountability Engine
         ├── Activity Monitor
@@ -101,6 +102,28 @@ Persistência local de:
 
 SQLite é a opção preferencial para a primeira implementação persistente.
 
+### `brain`
+
+Camada opcional de conversa com LLM.
+
+Responsabilidades:
+
+- montar prompt com personalidade e contexto comportamental resumido;
+- enviar mensagens a endpoints compatíveis com `/v1/chat/completions`;
+- manter o histórico local no SQLite;
+- sanitizar a resposta antes de enviá-la à UI/TTS;
+- executar chamadas de rede fora da thread da interface.
+
+Limite arquitetural:
+
+```text
+BrainService ──X──> DesktopInterventionController
+BrainService ──X──> InterventionPermissionStore
+BrainService ──X──> StandingRuleManager
+```
+
+Essas ligações não existem. O cérebro conversacional recebe contexto e retorna texto.
+
 ### `voice`
 
 Interfaces desacopladas:
@@ -170,3 +193,36 @@ O modelo pode produzir linguagem e raciocínio contextual, mas:
 ### Windows primeiro
 
 A v0.1 é direcionada a Windows 10/11. Interfaces internas deverão evitar dependências desnecessárias para permitir portabilidade futura.
+
+
+## Fluxo de conversa
+
+```text
+Usuário
+   │
+   ▼
+ChatDialog
+   │
+   ▼
+BrainChatWorker
+   │
+   ▼
+BrainService
+   ├── personalidade configurada
+   ├── contexto da sessão
+   ├── analytics local resumido
+   └── histórico SQLite limitado
+   │
+   ▼
+OpenAICompatibleProvider
+   │
+   ▼
+sanitização da resposta
+   │
+   ├── ChatDialog
+   ├── balão
+   ├── TTS
+   └── expressão/lip-sync do avatar
+```
+
+Nenhuma ferramenta de desktop é incluída no payload da API.
