@@ -68,11 +68,11 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: avatar_web/package.json
+          cache-dependency-path: avatar_web/package-lock.json
 
       - name: Install avatar dependencies
         working-directory: avatar_web
-        run: npm install
+        run: npm ci
 
       - name: Build avatar renderer
         working-directory: avatar_web
