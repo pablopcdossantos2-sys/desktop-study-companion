@@ -200,7 +200,7 @@ def test_unreadable_config_is_marked_for_backup_before_overwrite(
     assert backup.read_bytes() == original
 
 
-def test_insecure_brain_runtime_disable_preserves_original_before_save(
+def test_insecure_brain_runtime_block_preserves_original_preference(
     tmp_path,
     monkeypatch,
 ) -> None:
@@ -222,11 +222,12 @@ def test_insecure_brain_runtime_disable_preserves_original_before_save(
         include_state=True,
     )
 
-    assert config.brain.enabled is False
+    assert config.brain.enabled is True
     assert notice is not None
     assert state.reason == "brain_transport"
+    assert state.preserve_before_write is None
 
     backup = preserve_recovery_source_before_write(state, path)
-    assert backup is not None
-    preserved = json.loads(backup.read_text(encoding="utf-8"))
+    assert backup is None
+    preserved = json.loads(path.read_text(encoding="utf-8"))
     assert preserved["brain"]["enabled"] is True
