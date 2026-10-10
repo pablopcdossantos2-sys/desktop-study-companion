@@ -261,7 +261,14 @@ A dev15 adiciona Piper TTS, um motor neural local. O runtime suporta Windows e v
 
 O Piper é executado em thread separada para não bloquear a interface.
 
-Na dev16, a síntese usa `PiperVoice.synthesize_wav` e o WAV resultante é reproduzido pela API nativa de áudio do Windows (`winsound`). Essa mudança foi feita porque, em teste real, o modelo Piper carregava corretamente, mas o caminho anterior via `sounddevice.RawOutputStream` não produzia áudio audível.
+Na dev17, a síntese usa `PiperVoice.synthesize_wav` e grava o resultado em
+`data\\temp\\piper-last.wav`. Em seguida, esse arquivo é reproduzido pela
+API nativa de áudio do Windows (`winsound.PlaySound` em modo de arquivo).
+
+A mudança para playback por arquivo foi feita porque alguns testes reais
+continuaram sem áudio audível mesmo quando o modelo era carregado e um WAV
+válido era produzido. O arquivo `piper-last.wav` permite abrir manualmente o
+áudio no Windows e separar falha de síntese de falha de reprodução.
 
 Se síntese ou playback falharem, o fallback SAPI continua disponível.
 
@@ -281,7 +288,7 @@ A dev15 reforça:
 Se um backend insistir em retornar esse conteúdo como resposta, ele é bloqueado e não chega ao TTS.
 
 
-## Playback Piper corrigido na dev16
+## Playback e diagnóstico Piper na dev17
 
 O log real da dev15 mostrou:
 
@@ -292,14 +299,14 @@ Piper voice loaded
 
 sem erro de síntese, mas também sem fala audível.
 
-A dev16 muda o caminho para:
+A dev17 usa o caminho:
 
 ```text
 texto
   ↓
 Piper neural
   ↓
-WAV em memória
+data\\temp\\piper-last.wav
   ↓
 winsound / PlaySound do Windows
   ↓
@@ -319,10 +326,21 @@ Se qualquer etapa lançar erro, o traceback é salvo e, quando habilitado, o SAP
 
 ### Vozes Piper brasileiras expostas na interface
 
-A caixa de seleção oferece:
+O usuário **não precisa digitar um ID Piper manualmente**.
 
-- `pt_BR-faber-medium`;
-- `pt_BR-jeff-medium`;
-- `pt_BR-edresson-low`.
+Em **Configurações > Voz**, a lista apresenta:
 
-O campo continua editável para permitir outros IDs suportados pelo Piper.
+- Faber — `pt_BR-faber-medium`;
+- Jeff — `pt_BR-jeff-medium`;
+- Cadu — `pt_BR-cadu-medium`;
+- Edresson — `pt_BR-edresson-low`.
+
+A interface salva internamente o ID correto. Configurações antigas com um ID
+personalizado continuam sendo preservadas para não quebrar instalações
+existentes.
+
+Também existe o botão **Testar voz Piper**, que fala uma frase curta usando a
+voz selecionada antes de você precisar salvar a configuração.
+
+Para um roteiro de diagnóstico passo a passo, consulte
+`docs/TUTORIAL-PIPER.md`.
