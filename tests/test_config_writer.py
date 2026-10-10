@@ -15,6 +15,9 @@ def test_config_round_trip(tmp_path) -> None:
     config.avatar.width = 420
     config.avatar.height = 620
     config.avatar.look_at_cursor = False
+    config.brain.enabled = True
+    config.brain.model = "local-model"
+    config.brain.base_url = "http://127.0.0.1:11434/v1"
 
     path = save_config(config, tmp_path / "config.json")
     loaded = load_config(path)
@@ -25,6 +28,8 @@ def test_config_round_trip(tmp_path) -> None:
     assert loaded.avatar.width == 420
     assert loaded.avatar.height == 620
     assert loaded.avatar.look_at_cursor is False
+    assert loaded.brain.enabled is True
+    assert loaded.brain.model == "local-model"
 
 
 def test_invalid_accountability_order_is_rejected() -> None:
@@ -41,4 +46,13 @@ def test_invalid_avatar_dimensions_are_rejected() -> None:
     config.avatar.width = 100
 
     with pytest.raises(ValueError, match="avatar width"):
+        validate_config(config)
+
+
+def test_enabled_brain_requires_model() -> None:
+    config = AppConfig()
+    config.brain.enabled = True
+    config.brain.model = ""
+
+    with pytest.raises(ValueError, match="brain model"):
         validate_config(config)
