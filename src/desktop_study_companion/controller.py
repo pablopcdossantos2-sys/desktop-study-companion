@@ -294,6 +294,9 @@ class ApplicationController(QObject):
         if self.recorder.recording:
             return
 
+        if self.voice is not None:
+            self.voice.stop()
+
         try:
             self.recorder.start()
         except Exception as exc:
