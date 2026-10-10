@@ -90,7 +90,7 @@ A aba **Configurações > Avatar** permite alterar:
 - acompanhamento do cursor com `lookAt`;
 - animação aproximada da boca durante a fala.
 
-Essas opções são persistidas em `config/default.json` e aplicadas sem reiniciar o aplicativo.
+Essas opções são persistidas em `data/config.json` e aplicadas sem reiniciar o aplicativo. `config/default.json` é apenas o padrão de fábrica/fallback da aplicação.
 
 Desativar o avatar não desativa o Study Accountability Engine, TTS, histórico ou monitoramento. Apenas substitui a renderização 3D pelo fallback visual.
 
