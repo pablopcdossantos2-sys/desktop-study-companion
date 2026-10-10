@@ -4,7 +4,7 @@
 
 Não.
 
-A partir da **v0.1.0-dev17**, o caminho recomendado é:
+A partir da **v0.1.0-dev17** — comportamento mantido na **dev19** — o caminho recomendado é:
 
 1. clique com o botão direito na personagem;
 2. abra **Configurações**;
@@ -60,12 +60,12 @@ data\models\piper\
 
 ## 4. Como saber se o Piper realmente sintetizou
 
-A dev17 executa a etapa nativa Piper/ONNX em um **processo auxiliar isolado**.
+Desde a dev17, incluindo a dev19, a etapa nativa Piper/ONNX é executada em um **processo auxiliar isolado**.
 Assim, se o motor nativo travar ou sofrer uma falha fatal, ele não deve derrubar
 a interface principal do Desktop Study Companion. Quando o processo auxiliar
 falha e o fallback está habilitado, a aplicação pode usar a voz Windows.
 
-A dev17 mantém o último WAV criado com sucesso pelo Piper em:
+Desde a dev17, incluindo a dev19, o aplicativo mantém o último WAV criado com sucesso pelo Piper em:
 
 ```text
 data\temp\piper-last.wav
@@ -177,7 +177,7 @@ Esse identificador combina:
 - nome do conjunto/voz: `faber`;
 - qualidade: `medium`.
 
-Na dev17, a interface cuida disso automaticamente para que o usuário não precise
+Desde a dev17, e também na dev19, a interface cuida disso automaticamente para que o usuário não precise
 decorar ou digitar essas chaves.
 
 ## 10. O que enviar ao relatar uma falha
@@ -208,7 +208,7 @@ QDxgiVSyncService not destroyed in time
 Isso mostrou que a falha ocorria **depois do carregamento da voz e antes do fim
 da síntese**, portanto antes do playback.
 
-A dev17 deixa de executar essa parte nativa dentro do mesmo processo do Qt.
+Desde a dev17, essa parte nativa deixou de executar dentro do mesmo processo do Qt; a dev19 mantém esse isolamento.
 O fluxo passa a ser:
 
 ```text
