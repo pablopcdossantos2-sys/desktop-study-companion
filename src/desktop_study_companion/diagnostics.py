@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import faulthandler
 import importlib.metadata
+import json
 import logging
+import os
 import platform
 import sys
 import threading
+from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
@@ -21,6 +25,7 @@ from desktop_study_companion.runtime_paths import (
 _LOGGER_NAME = "desktop_study_companion"
 _configured = False
 _log_path: Path | None = None
+_fault_log_handle = None
 
 
 def log_directory() -> Path:
@@ -34,6 +39,105 @@ def current_log_path() -> Path:
     if _log_path is None:
         _log_path = log_directory() / "desktop-study-companion.log"
     return _log_path
+
+
+def native_fault_log_path() -> Path:
+    return log_directory() / "desktop-study-companion-fatal.log"
+
+
+def run_state_path() -> Path:
+    return log_directory() / "run-state.json"
+
+
+def install_native_fault_handler() -> Path:
+    """Persist Python/native fatal fault traces when the process dies abruptly."""
+    global _fault_log_handle
+    path = native_fault_log_path()
+    if _fault_log_handle is not None:
+        return path
+
+    try:
+        _fault_log_handle = path.open("a", encoding="utf-8", buffering=1)
+        faulthandler.enable(file=_fault_log_handle, all_threads=True)
+        logging.getLogger(_LOGGER_NAME).info(
+            "Native fault handler enabled path=%s",
+            path,
+        )
+    except Exception:
+        logging.getLogger(_LOGGER_NAME).exception(
+            "Could not enable native fault handler"
+        )
+    return path
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def mark_run_started() -> bool:
+    """Mark this run as active and report whether the previous run was unclean."""
+    path = run_state_path()
+    previous_unclean = False
+    previous = {}
+    try:
+        if path.exists():
+            previous = json.loads(path.read_text(encoding="utf-8"))
+            previous_unclean = previous.get("clean_exit") is False
+    except Exception:
+        logging.getLogger(_LOGGER_NAME).exception(
+            "Could not read previous run state"
+        )
+
+    payload = {
+        "version": __version__,
+        "pid": os.getpid(),
+        "started_at": _utc_now(),
+        "clean_exit": False,
+    }
+    try:
+        path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    except Exception:
+        logging.getLogger(_LOGGER_NAME).exception(
+            "Could not write run state"
+        )
+
+    if previous_unclean:
+        logging.getLogger(_LOGGER_NAME).warning(
+            "Previous run did not record a clean exit: %r",
+            previous,
+        )
+    return previous_unclean
+
+
+def mark_run_clean() -> None:
+    path = run_state_path()
+    payload = {}
+    try:
+        if path.exists():
+            payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        payload = {}
+
+    payload.update(
+        {
+            "version": __version__,
+            "pid": os.getpid(),
+            "clean_exit": True,
+            "ended_at": _utc_now(),
+        }
+    )
+    try:
+        path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    except Exception:
+        logging.getLogger(_LOGGER_NAME).exception(
+            "Could not mark run as cleanly finished"
+        )
 
 
 def configure_logging() -> Path:
@@ -182,6 +286,8 @@ def diagnostic_summary() -> str:
             f"Raiz: {application_root()}",
             f"Config: {external_config_path()}",
             f"Log atual: {current_log_path()}",
+            f"Falhas nativas: {native_fault_log_path()}",
+            f"Estado da execução: {run_state_path()}",
             "Dependências: "
             + ", ".join(
                 f"{package}="
