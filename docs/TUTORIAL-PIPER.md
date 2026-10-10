@@ -2,7 +2,7 @@
 
 ## 1. Como testar a voz
 
-Na **v0.1.0-dev22**, o procedimento recomendado é:
+Na **v0.1.0-dev23**, o procedimento recomendado é:
 
 1. clique com o botão direito na personagem;
 2. abra **Configurações**;
@@ -232,3 +232,25 @@ Se a dev22 ainda apresentar problema, envie:
 
 Esses dados permitem separar download, carregamento de modelo, runtime,
 síntese e reprodução do Windows.
+
+
+## 13. Robustez adicional da dev23
+
+A dev23 mantém o runtime standalone introduzido na dev22 e acrescenta quatro
+proteções:
+
+1. **Volume Piper real:** o volume configurado passa a escalar as amostras
+   PCM do WAV produzido pelo runtime standalone antes da reprodução.
+2. **Cópia atômica do runtime:** a pasta temporária é copiada para um nome
+   intermediário, validada por fingerprint e só então promovida. Uma cópia
+   interrompida deixa de ser reutilizada.
+3. **Estado explícito do teste:** o preview acompanha `pending`,
+   `running`, `done` e `failed`. Depois de dois minutos ele pode informar
+   que ainda está trabalhando, mas não declara falso erro enquanto o download
+   continua. A preparação inicial do modelo possui um limite próprio maior.
+4. **Arquivo do runtime fixado:** o CI compara o SHA-256 de
+   `piper_windows_amd64.zip` com o valor esperado antes de extrair o
+   executável. Uma alteração inesperada do asset faz a build falhar.
+
+As cópias temporárias das vozes também são comparadas por SHA-256, e não
+apenas pelo tamanho do arquivo.
