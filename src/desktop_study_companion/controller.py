@@ -8,8 +8,6 @@ from PySide6.QtCore import QObject, QThreadPool, QTimer
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
-    QFileDialog,
-    QInputDialog,
     QMessageBox,
 )
 
@@ -85,6 +83,9 @@ from desktop_study_companion.ui.standing_rule_dialog import StandingRuleDialog
 from desktop_study_companion.ui.tutorial_dialog import TutorialDialog
 from desktop_study_companion.ui.windowing import (
     exec_top_level_dialog,
+    get_existing_directory_top_level,
+    get_item_top_level,
+    get_save_file_name_top_level,
     prepare_top_level_window,
 )
 from desktop_study_companion.voice.audio_capture import (
@@ -278,7 +279,7 @@ class ApplicationController(QObject):
             docs_directory() / filename,
             None,
         )
-        exec_top_level_dialog(dialog)
+        exec_top_level_dialog(dialog, avoid_widget=self.widget)
 
     def _say(
         self,
@@ -390,7 +391,7 @@ class ApplicationController(QObject):
                 QMessageBox.ButtonRole.HelpRole,
             )
             box.addButton(QMessageBox.StandardButton.Cancel)
-            exec_top_level_dialog(box)
+            exec_top_level_dialog(box, avoid_widget=self.widget)
             if box.clickedButton() is open_settings:
                 self.open_settings()
             elif box.clickedButton() is open_tutorial:
@@ -402,7 +403,7 @@ class ApplicationController(QObject):
                 self.config.personality.name,
                 None,
             )
-            prepare_top_level_window(self.chat_dialog, modal=False)
+            prepare_top_level_window(self.chat_dialog, modal=False, avoid_widget=self.widget)
             self.chat_dialog.message_submitted.connect(
                 self._submit_chat_message
             )
@@ -425,7 +426,7 @@ class ApplicationController(QObject):
                 limit=self.config.brain.history_messages
             )
         )
-        prepare_top_level_window(self.chat_dialog, modal=False)
+        prepare_top_level_window(self.chat_dialog, modal=False, avoid_widget=self.widget)
         self.chat_dialog.show()
         self.chat_dialog.raise_()
         self.chat_dialog.activateWindow()
@@ -465,7 +466,7 @@ class ApplicationController(QObject):
                 QMessageBox.ButtonRole.ActionRole,
             )
             box.addButton(QMessageBox.StandardButton.Cancel)
-            exec_top_level_dialog(box)
+            exec_top_level_dialog(box, avoid_widget=self.widget)
             if box.clickedButton() is tutorial:
                 self.show_tutorial("voice")
             elif box.clickedButton() is settings:
@@ -614,7 +615,7 @@ class ApplicationController(QObject):
             return
 
         dialog = SessionDialog(None)
-        if exec_top_level_dialog(dialog) != QDialog.DialogCode.Accepted:
+        if exec_top_level_dialog(dialog, avoid_widget=self.widget) != QDialog.DialogCode.Accepted:
             return
 
         self.lockdown.clear()
@@ -679,7 +680,7 @@ class ApplicationController(QObject):
 
     def add_directive(self) -> None:
         dialog = DirectiveDialog(None)
-        if exec_top_level_dialog(dialog) != QDialog.DialogCode.Accepted:
+        if exec_top_level_dialog(dialog, avoid_widget=self.widget) != QDialog.DialogCode.Accepted:
             return
 
         goal = dialog.goal.text().strip()
@@ -719,13 +720,13 @@ class ApplicationController(QObject):
             f"{d.goal} — urgência {d.urgency} — cobranças {d.nag_count}"
             for d in active
         ]
-        selected, ok = QInputDialog.getItem(
-            self.widget,
+        selected, ok = get_item_top_level(
             "Gerenciar compromissos",
             "Selecione um compromisso:",
             labels,
             0,
-            False,
+            editable=False,
+            avoid_widget=self.widget,
         )
         if not ok or not selected:
             return
@@ -753,7 +754,7 @@ class ApplicationController(QObject):
             QMessageBox.ButtonRole.DestructiveRole,
         )
         box.addButton(QMessageBox.StandardButton.Cancel)
-        exec_top_level_dialog(box)
+        exec_top_level_dialog(box, avoid_widget=self.widget)
 
         if box.clickedButton() is complete:
             self.directives.complete(directive.id)
@@ -801,7 +802,7 @@ class ApplicationController(QObject):
 
     def add_standing_rule(self) -> None:
         dialog = StandingRuleDialog(None)
-        if exec_top_level_dialog(dialog) != QDialog.DialogCode.Accepted:
+        if exec_top_level_dialog(dialog, avoid_widget=self.widget) != QDialog.DialogCode.Accepted:
             return
 
         description = dialog.description.text().strip()
@@ -849,13 +850,13 @@ class ApplicationController(QObject):
             + ("" if rule.enabled else " [desativada]")
             for rule in self.standing_rules.rules
         ]
-        selected, ok = QInputDialog.getItem(
-            self.widget,
+        selected, ok = get_item_top_level(
             "Gerenciar regras permanentes",
             "Selecione uma regra:",
             labels,
             0,
-            False,
+            editable=False,
+            avoid_widget=self.widget,
         )
         if not ok or not selected:
             return
@@ -879,7 +880,7 @@ class ApplicationController(QObject):
             QMessageBox.ButtonRole.DestructiveRole,
         )
         box.addButton(QMessageBox.StandardButton.Cancel)
-        exec_top_level_dialog(box)
+        exec_top_level_dialog(box, avoid_widget=self.widget)
 
         if box.clickedButton() is toggle:
             self.standing_rules.toggle(rule.id)
@@ -932,7 +933,7 @@ class ApplicationController(QObject):
             self.intervention_permissions.permissions,
             None,
         )
-        if exec_top_level_dialog(dialog) != QDialog.DialogCode.Accepted:
+        if exec_top_level_dialog(dialog, avoid_widget=self.widget) != QDialog.DialogCode.Accepted:
             return
 
         values = dialog.values()
@@ -1111,7 +1112,7 @@ class ApplicationController(QObject):
     def open_settings(self) -> None:
         dialog = SettingsDialog(self.config, None)
         dialog.piper_test_requested.connect(self._preview_piper_voice)
-        if exec_top_level_dialog(dialog) != QDialog.DialogCode.Accepted:
+        if exec_top_level_dialog(dialog, avoid_widget=self.widget) != QDialog.DialogCode.Accepted:
             return
 
         new_config = dialog.values()
@@ -1233,13 +1234,13 @@ class ApplicationController(QObject):
         overview = self.analytics.overview(30)
         sessions = self.analytics.sessions(100)
         dialog = HistoryDialog(overview, sessions, None)
-        exec_top_level_dialog(dialog)
+        exec_top_level_dialog(dialog, avoid_widget=self.widget)
 
     def export_csv(self) -> None:
-        destination = QFileDialog.getExistingDirectory(
-            self.widget,
+        destination = get_existing_directory_top_level(
             "Escolha a pasta para exportar os CSVs",
             str(application_root()),
+            avoid_widget=self.widget,
         )
         if not destination:
             return
@@ -1267,11 +1268,11 @@ class ApplicationController(QObject):
             application_root()
             / f"desktop-study-companion-backup-{timestamp}.zip"
         )
-        destination, _ = QFileDialog.getSaveFileName(
-            self.widget,
+        destination, _ = get_save_file_name_top_level(
             "Salvar backup",
             suggested,
             "Arquivo ZIP (*.zip)",
+            avoid_widget=self.widget,
         )
         if not destination:
             return
@@ -1309,7 +1310,7 @@ class ApplicationController(QObject):
 
     def add_daily_routine(self) -> None:
         dialog = RoutineDialog(None)
-        if exec_top_level_dialog(dialog) != QDialog.DialogCode.Accepted:
+        if exec_top_level_dialog(dialog, avoid_widget=self.widget) != QDialog.DialogCode.Accepted:
             return
 
         goal = dialog.goal.text().strip()
@@ -1367,13 +1368,13 @@ class ApplicationController(QObject):
             + ("" if routine.enabled else " [desativada]")
             for routine in self.routines.routines
         ]
-        selected, ok = QInputDialog.getItem(
-            self.widget,
+        selected, ok = get_item_top_level(
             "Gerenciar rotinas",
             "Selecione uma rotina para ativar/desativar ou remover:",
             labels,
             0,
-            False,
+            editable=False,
+            avoid_widget=self.widget,
         )
         if not ok or not selected:
             return
@@ -1393,7 +1394,7 @@ class ApplicationController(QObject):
             QMessageBox.ButtonRole.DestructiveRole,
         )
         box.addButton(QMessageBox.StandardButton.Cancel)
-        exec_top_level_dialog(box)
+        exec_top_level_dialog(box, avoid_widget=self.widget)
 
         if box.clickedButton() is toggle:
             self.routines.toggle(routine.id)
