@@ -14,6 +14,8 @@ from PySide6.QtWidgets import (
 class ChatDialog(QDialog):
     message_submitted = Signal(str)
     clear_requested = Signal()
+    push_to_talk_started = Signal()
+    push_to_talk_finished = Signal()
 
     def __init__(self, character_name: str, parent=None) -> None:
         super().__init__(parent)
@@ -31,11 +33,16 @@ class ChatDialog(QDialog):
         self.send = QPushButton("Enviar")
         self.send.clicked.connect(self._submit)
 
+        self.mic = QPushButton("Segure para falar")
+        self.mic.pressed.connect(self.push_to_talk_started.emit)
+        self.mic.released.connect(self.push_to_talk_finished.emit)
+
         self.clear = QPushButton("Limpar histórico")
         self.clear.clicked.connect(self.clear_requested.emit)
 
         input_row = QHBoxLayout()
         input_row.addWidget(self.input, 1)
+        input_row.addWidget(self.mic)
         input_row.addWidget(self.send)
 
         layout = QVBoxLayout(self)
@@ -73,9 +80,26 @@ class ChatDialog(QDialog):
     def set_busy(self, busy: bool) -> None:
         self.send.setEnabled(not busy)
         self.input.setEnabled(not busy)
+        self.mic.setEnabled(not busy)
         self.clear.setEnabled(not busy)
         if not busy:
             self.input.setFocus()
+
+    def set_recording(self, recording: bool) -> None:
+        if recording:
+            self.mic.setText("Gravando… solte para enviar")
+            self.input.setEnabled(False)
+            self.send.setEnabled(False)
+            self.clear.setEnabled(False)
+        else:
+            self.mic.setText("Segure para falar")
+            self.input.setEnabled(True)
+            self.send.setEnabled(True)
+            self.clear.setEnabled(True)
+
+    def set_transcript_draft(self, text: str) -> None:
+        self.input.setText(text)
+        self.input.setFocus()
 
     @staticmethod
     def _escape(text: str) -> str:
