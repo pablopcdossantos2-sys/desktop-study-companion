@@ -299,6 +299,12 @@ class CompanionWidget(QWidget):
         )
         help_menu.addAction(voice_tutorial)
 
+        piper_tutorial = QAction("Configurar/testar voz Piper", self)
+        piper_tutorial.triggered.connect(
+            lambda: self.tutorial_requested.emit("piper")
+        )
+        help_menu.addAction(piper_tutorial)
+
         avatar_tutorial = QAction("Diagnóstico do avatar", self)
         avatar_tutorial.triggered.connect(
             lambda: self.tutorial_requested.emit("avatar")
