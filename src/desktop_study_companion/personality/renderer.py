@@ -253,7 +253,7 @@ class PersonalityRenderer:
                 "Check-in de coach: qual é a próxima ação concreta em {goal}? Faça só ela.",
                 "Mantém o ritmo em {goal}. Consistência vale mais do que intensidade por alguns minutos.",
                 "Não precisa terminar tudo agora. Precisa continuar em {goal}.",
-                "Proteja os próximos cinco minutos. Depois você decide sobre os cinco seguintes.",
+                "Proteja os próximos cinco minutos de {goal}. Depois você decide sobre os cinco seguintes.",
             ]
             if self.personality.strictness >= 70:
                 defaults.extend(
