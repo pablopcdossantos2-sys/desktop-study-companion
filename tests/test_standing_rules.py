@@ -16,13 +16,13 @@ def test_rule_matches_process_or_window_title(tmp_path) -> None:
             cooldown_s=30,
         )
     )
-
     window = ActiveWindow("msedge.exe", "Vídeo - YouTube")
     violations = manager.check(window)
     assert violations[0].rule.id == rule.id
+    assert violations[0].action_due is True
 
 
-def test_rule_cooldown_prevents_retrigger(tmp_path) -> None:
+def test_rule_cooldown_keeps_violation_but_suppresses_action(tmp_path) -> None:
     manager = StandingRuleManager(tmp_path / "rules.json")
     rule = manager.add(
         StandingRule(
@@ -34,10 +34,15 @@ def test_rule_cooldown_prevents_retrigger(tmp_path) -> None:
     window = ActiveWindow("chrome.exe", "Reddit")
     now = datetime(2026, 10, 8, 12, 0, tzinfo=timezone.utc)
 
-    assert manager.check(window, now=now)
+    first = manager.check(window, now=now)
+    assert first and first[0].action_due is True
     manager.record_trigger(rule, now=now)
-    assert manager.check(window, now=now + timedelta(seconds=30)) == []
-    assert manager.check(window, now=now + timedelta(seconds=61))
+
+    during = manager.check(window, now=now + timedelta(seconds=30))
+    assert during and during[0].action_due is False
+
+    after = manager.check(window, now=now + timedelta(seconds=61))
+    assert after and after[0].action_due is True
 
 
 def test_rule_state_persists(tmp_path) -> None:
@@ -47,6 +52,5 @@ def test_rule_state_persists(tmp_path) -> None:
         StandingRule(description="Sem Netflix", patterns=["netflix"])
     )
     manager.record_trigger(rule)
-
     reloaded = StandingRuleManager(path)
     assert reloaded.rules[0].catch_count == 1
