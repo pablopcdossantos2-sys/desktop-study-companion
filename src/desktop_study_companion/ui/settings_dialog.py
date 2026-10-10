@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 )
 
 from desktop_study_companion.voice.audio_capture import list_input_devices
+from desktop_study_companion.voice.windows_sapi import list_sapi_voices
 
 from desktop_study_companion.config.models import (
     AccountabilityConfig,
@@ -143,7 +144,18 @@ class SettingsDialog(QDialog):
         self.voice_volume.setValue(config.voice.volume)
         self.voice_volume.setSuffix("%")
 
+        self.voice_choice = QComboBox()
+        self.voice_choice.addItem("Voz padrão do Windows", "")
+        try:
+            for voice in list_sapi_voices():
+                self.voice_choice.addItem(voice.name, voice.token_id)
+        except Exception:
+            pass
+        voice_index = self.voice_choice.findData(config.voice.voice_id)
+        self.voice_choice.setCurrentIndex(max(0, voice_index))
+
         form.addRow("", self.voice_enabled)
+        form.addRow("Voz:", self.voice_choice)
         form.addRow("Velocidade:", self.voice_rate)
         form.addRow("Volume:", self.voice_volume)
         return widget
@@ -333,6 +345,7 @@ class SettingsDialog(QDialog):
                 enabled=self.voice_enabled.isChecked(),
                 rate=self.voice_rate.value(),
                 volume=self.voice_volume.value(),
+                voice_id=str(self.voice_choice.currentData() or ""),
             ),
             speech_input=SpeechInputConfig(
                 enabled=self.stt_enabled.isChecked(),
