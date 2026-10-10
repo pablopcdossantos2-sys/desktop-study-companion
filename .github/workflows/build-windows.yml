@@ -79,6 +79,10 @@ jobs:
           --hidden-import pywintypes
           --hidden-import PySide6.QtWebEngineWidgets
           --hidden-import PySide6.QtWebEngineCore
+          --collect-all sounddevice
+          --collect-all faster_whisper
+          --collect-all ctranslate2
+          --collect-all av
           src/desktop_study_companion/app.py
 
       - name: Add editable configuration and docs
