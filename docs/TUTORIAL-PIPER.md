@@ -60,7 +60,12 @@ data\models\piper\
 
 ## 4. Como saber se o Piper realmente sintetizou
 
-A dev17 mantém o último WAV criado pelo Piper em:
+A dev17 executa a etapa nativa Piper/ONNX em um **processo auxiliar isolado**.
+Assim, se o motor nativo travar ou sofrer uma falha fatal, ele não deve derrubar
+a interface principal do Desktop Study Companion. Quando o processo auxiliar
+falha e o fallback está habilitado, a aplicação pode usar a voz Windows.
+
+A dev17 mantém o último WAV criado com sucesso pelo Piper em:
 
 ```text
 data\temp\piper-last.wav
@@ -109,14 +114,21 @@ Procure, nesta ordem:
 
 ```text
 Queued Piper utterance
-Downloading Piper voice
-Piper voice download completed
-Piper voice loaded
+Starting isolated Piper synthesis
+Piper worker: stage=download
+Piper worker: stage=load
+Piper worker: stage=synthesize
+Piper worker: stage=done
 Piper synthesis completed
 Starting native Windows Piper playback
 Native Windows Piper playback completed
+Piper worker exited abnormally
+Piper worker timed out
 Piper synthesis/playback failed
 ```
+
+Se o log mostrar `Piper worker exited abnormally`, anote também o
+`returncode`. Isso indica que a falha ficou contida no processo auxiliar.
 
 ## 6. Se o modelo não baixar
 
@@ -180,3 +192,39 @@ Se a voz continuar sem funcionar, envie:
 
 Com essas informações é possível saber se a falha está no download, no modelo,
 na síntese ou na reprodução do Windows.
+
+
+## 11. Por que a síntese passou a usar um processo separado
+
+Um log real da dev16 mostrou repetidamente o seguinte padrão:
+
+```text
+Piper voice loaded
+QDxgiVSyncService not destroyed in time
+[não aparece "Piper synthesis completed"]
+[nova inicialização do Companion]
+```
+
+Isso mostrou que a falha ocorria **depois do carregamento da voz e antes do fim
+da síntese**, portanto antes do playback.
+
+A dev17 deixa de executar essa parte nativa dentro do mesmo processo do Qt.
+O fluxo passa a ser:
+
+```text
+Desktop Study Companion
+        ↓
+processo auxiliar Piper
+        ↓
+Piper / ONNX
+        ↓
+WAV
+        ↓
+processo auxiliar termina
+        ↓
+Companion reproduz o WAV
+```
+
+Isso não garante que toda combinação de modelo/driver conseguirá sintetizar,
+mas impede que uma falha nativa dessa etapa tenha o mesmo poder de encerrar a
+interface principal.
