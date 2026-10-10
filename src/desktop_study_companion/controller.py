@@ -724,7 +724,7 @@ class ApplicationController(QObject):
             "Gerenciar compromissos",
             "Selecione um compromisso:",
             labels,
-            0,
+            current=0,
             editable=False,
             avoid_widget=self.widget,
         )
@@ -854,7 +854,7 @@ class ApplicationController(QObject):
             "Gerenciar regras permanentes",
             "Selecione uma regra:",
             labels,
-            0,
+            current=0,
             editable=False,
             avoid_widget=self.widget,
         )
@@ -1372,7 +1372,7 @@ class ApplicationController(QObject):
             "Gerenciar rotinas",
             "Selecione uma rotina para ativar/desativar ou remover:",
             labels,
-            0,
+            current=0,
             editable=False,
             avoid_widget=self.widget,
         )
