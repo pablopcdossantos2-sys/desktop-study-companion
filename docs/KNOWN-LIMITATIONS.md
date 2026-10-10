@@ -1,6 +1,6 @@
-# Limitações conhecidas da v0.1.0-dev16
+# Limitações conhecidas da v0.1.0-dev17
 
-A dev16 é um protótipo funcional para validar o ciclo completo de accountability, avatar e conversa por voz no Windows. Ela ainda não representa a experiência final de produto.
+A dev17 é um protótipo funcional para validar o ciclo completo de accountability, avatar e conversa por voz no Windows. Ela ainda não representa a experiência final de produto.
 
 ## Personagem VRM
 
@@ -12,13 +12,14 @@ A personagem **Sendagaya Shino** já é carregada como VRM 1.0 e possui:
 - expressões básicas ligadas ao estado;
 - lip-sync aproximado;
 - movimento idle discreto;
+- gestos procedurais intencionais, incluindo dança curta, mão no cabelo e pequeno salto;
 - fallback visual caso o renderer falhe.
 
 Ainda faltam:
 
 - lip-sync baseado no áudio real;
 - animações corporais/VRMA;
-- gestos específicos de cobrança/comemoração;
+- biblioteca ampla de gestos específicos de cobrança/comemoração;
 - movimentação autônoma pela área de trabalho;
 - estados de humor persistentes.
 
@@ -226,3 +227,41 @@ A dev16 envia `/no_think` também na última mensagem do usuário, além de `thi
 Se a primeira saída parecer metarraciocínio, há uma única nova tentativa usando a pergunta original e instruções mais rígidas. O conteúdo bloqueado não é reaproveitado.
 
 Para maior previsibilidade, o modelo recomendado passa a ser `qwen3:4b-instruct`.
+
+
+## Estabilidade, Piper e gestos — dev17
+
+### Encerramentos inesperados
+
+A dev17 adiciona três camadas de diagnóstico/proteção:
+
+- `data/logs/run-state.json` marca se a execução anterior encerrou de forma limpa;
+- `data/logs/desktop-study-companion-fatal.log` recebe traces do
+  `faulthandler` quando uma falha fatal é observável pelo runtime;
+- callbacks periódicos de monitoramento e proatividade agora são contidos e
+  registrados em log, em vez de deixarem uma exceção escapar do ciclo.
+
+O processo renderer do Qt WebEngine também passa a ter tratamento explícito de
+`renderProcessTerminated` com tentativa de reload.
+
+Esses mecanismos aumentam a capacidade de diagnóstico, mas uma falha de driver,
+GPU ou biblioteca nativa ainda pode encerrar o processo antes de todos os logs
+serem gravados.
+
+### Piper
+
+O usuário comum não precisa mais digitar IDs. A interface fornece Faber, Jeff,
+Cadu e Edresson em uma lista e inclui **Testar voz Piper**.
+
+O último áudio sintetizado fica em:
+
+`data/temp/piper-last.wav`
+
+Isso permite verificar manualmente se a síntese funcionou mesmo quando não há
+som automático.
+
+### Gestos
+
+Os novos movimentos continuam procedurais e não são arquivos VRMA/mocap.
+Portanto, dança, toque no cabelo e salto são aproximações articuladas pelo
+esqueleto VRM, sujeitas às limitações do modelo atual.
