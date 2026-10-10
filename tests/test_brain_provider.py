@@ -113,7 +113,7 @@ def test_ollama_native_provider_disables_thinking() -> None:
         host, port = server.server_address
         provider = OllamaNativeProvider(
             base_url=f"http://{host}:{port}/v1",
-            model="qwen-test",
+            model="qwen3-test",
             retries=0,
         )
         answer = provider.chat(
@@ -254,3 +254,16 @@ def test_openai_provider_retries_rate_limit(monkeypatch) -> None:
 
     assert calls["count"] == 2
     assert answer == "Recuperado."
+
+
+def test_non_qwen_model_does_not_receive_no_think_command() -> None:
+    provider = OllamaNativeProvider(
+        base_url="http://127.0.0.1:11434/v1",
+        model="llama3.2",
+        retries=0,
+    )
+    outgoing = provider._outgoing_messages(
+        "system",
+        [ChatMessage("user", "oi")],
+    )
+    assert all("/no_think" not in item["content"] for item in outgoing)
