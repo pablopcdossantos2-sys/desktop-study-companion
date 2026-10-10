@@ -18,6 +18,20 @@ class WindowsActiveWindowMonitor:
             raise RuntimeError("WindowsActiveWindowMonitor requires Windows.")
 
         self._user32 = ctypes.WinDLL("user32", use_last_error=True)
+        self._user32.GetForegroundWindow.restype = wintypes.HWND
+        self._user32.GetWindowTextLengthW.argtypes = [wintypes.HWND]
+        self._user32.GetWindowTextLengthW.restype = ctypes.c_int
+        self._user32.GetWindowTextW.argtypes = [
+            wintypes.HWND,
+            wintypes.LPWSTR,
+            ctypes.c_int,
+        ]
+        self._user32.GetWindowTextW.restype = ctypes.c_int
+        self._user32.GetWindowThreadProcessId.argtypes = [
+            wintypes.HWND,
+            ctypes.POINTER(wintypes.DWORD),
+        ]
+        self._user32.GetWindowThreadProcessId.restype = wintypes.DWORD
         self._last_identity: tuple[str, str] | None = None
         self._active_since = time.monotonic()
 
