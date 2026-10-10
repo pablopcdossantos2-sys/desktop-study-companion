@@ -97,3 +97,18 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
 ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+## Piper TTS
+
+Piper TTS é distribuído pelo projeto OHF-Voice/piper1-gpl sob **GNU General Public License v3.0**.
+
+Projeto oficial:
+
+`https://github.com/OHF-Voice/piper1-gpl`
+
+O pacote Python usado pela build é `piper-tts`.
+
+As vozes possuem metadados/licenças próprios. O modelo padrão sugerido pela aplicação, `pt_BR-faber-medium`, usa dataset indicado como CC0 em seu model card.
+
+Consulte a cópia da licença fornecida pelo próprio pacote Piper distribuído na build e o repositório oficial para os termos completos.

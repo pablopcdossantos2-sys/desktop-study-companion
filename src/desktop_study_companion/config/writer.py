@@ -37,10 +37,26 @@ def validate_config(config: AppConfig) -> None:
         if not 0 <= value <= 100:
             raise ValueError(f"{name} must be between 0 and 100")
 
+    if config.voice.engine not in {"piper", "sapi"}:
+        raise ValueError("voice engine must be 'piper' or 'sapi'")
     if not -10 <= config.voice.rate <= 10:
         raise ValueError("voice rate must be between -10 and 10")
     if not 0 <= config.voice.volume <= 100:
         raise ValueError("voice volume must be between 0 and 100")
+    if not config.voice.piper_voice_id.strip():
+        raise ValueError("piper voice id cannot be empty")
+    if not 0.5 <= config.voice.piper_length_scale <= 2.0:
+        raise ValueError("piper length scale must be between 0.5 and 2.0")
+    if not 0 <= config.voice.piper_noise_scale <= 2.0:
+        raise ValueError("piper noise scale must be between 0 and 2")
+    if not 0 <= config.voice.piper_noise_w_scale <= 2.0:
+        raise ValueError("piper noise_w scale must be between 0 and 2")
+
+    proactive = config.proactivity
+    if proactive.min_interval_minutes < 1:
+        raise ValueError("proactivity minimum interval must be at least 1 minute")
+    if proactive.max_interval_minutes < proactive.min_interval_minutes:
+        raise ValueError("proactivity maximum interval must be >= minimum interval")
 
     if not config.speech_input.model.strip():
         raise ValueError("speech input model cannot be empty")

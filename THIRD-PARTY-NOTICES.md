@@ -86,3 +86,18 @@ Os textos de licença usados para redistribuição estão em:
 `docs/THIRD_PARTY_LICENSES-VOICE.md`
 
 e são copiados para a build portátil.
+
+
+## Piper TTS
+
+A partir da dev15, o Desktop Study Companion pode usar **Piper TTS** como motor neural local de síntese de voz.
+
+- Projeto: OHF-Voice/piper1-gpl
+- Licença do runtime: GPL-3.0
+- Voz padrão sugerida: `pt_BR-faber-medium`
+- Repositório de vozes: `rhasspy/piper-voices`
+- O conjunto de dados indicado no model card de `faber` é CC0.
+
+O modelo de voz não é versionado neste repositório. Ele é obtido no primeiro uso e armazenado localmente em `data/models/piper`.
+
+As condições de licença do runtime e de cada modelo selecionado continuam aplicáveis.

@@ -40,6 +40,25 @@ def sanitize_assistant_text(text: str) -> str:
     return " ".join(text.split()).strip()
 
 
+def looks_like_reasoning_leak(text: str) -> bool:
+    sample = " ".join(text.strip().split()).casefold()
+    if not sample:
+        return False
+    markers = (
+        "okay, the user",
+        "the user said",
+        "let me break",
+        "i need to recall",
+        "i need to respond",
+        "the rules say",
+        "my response should",
+        "first, i need to",
+        "wait, but",
+    )
+    hits = sum(marker in sample for marker in markers)
+    return hits >= 2 or sample.startswith(("okay, the user", "the user said"))
+
+
 def _message_content_text(content) -> str:
     if isinstance(content, str):
         return content
@@ -164,6 +183,16 @@ class OpenAICompatibleProvider:
                 message = choice["message"]
                 text = _message_content_text(message.get("content"))
                 cleaned = sanitize_assistant_text(text)
+                if looks_like_reasoning_leak(cleaned):
+                    logger.error(
+                        "Blocked reasoning-like model output provider=openai-compatible model=%s",
+                        self.model,
+                    )
+                    raise BrainError(
+                        "o modelo devolveu raciocínio interno em vez da resposta final; "
+                        "o conteúdo foi bloqueado por segurança. Tente novamente ou use "
+                        "um modelo em modo não-thinking."
+                    )
                 if not cleaned:
                     reasoning_present = bool(
                         message.get("reasoning")
@@ -293,6 +322,15 @@ class OllamaNativeProvider:
                 message = data["message"]
                 text = _message_content_text(message.get("content"))
                 cleaned = sanitize_assistant_text(text)
+                if looks_like_reasoning_leak(cleaned):
+                    logger.error(
+                        "Blocked reasoning-like Ollama output model=%s",
+                        self.model,
+                    )
+                    raise BrainError(
+                        "o modelo local devolveu raciocínio interno; a resposta "
+                        "foi bloqueada. Atualize o Ollama ou tente novamente."
+                    )
                 if not cleaned:
                     logger.warning(
                         "Ollama returned no final content model=%s "

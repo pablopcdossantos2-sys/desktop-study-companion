@@ -1491,3 +1491,72 @@ STT worker failed
 ```
 
 O resumo de diagnóstico também informa as versões instaladas de PySide6, faster-whisper e PyAV.
+
+
+## 58. Voz neural Piper
+
+A partir da dev15, a voz recomendada é **Piper neural local**.
+
+Abra:
+
+```text
+Configurações
+→ Voz
+→ Motor
+→ Piper neural local (recomendado)
+```
+
+O modelo padrão é:
+
+```text
+pt_BR-faber-medium
+```
+
+Na primeira fala, o programa pode precisar de internet para baixar o modelo.
+
+Depois disso ele fica armazenado em:
+
+```text
+data\models\piper\
+```
+
+e pode ser usado localmente.
+
+Se houver algum problema, mantenha marcada a opção:
+
+```text
+Usar voz do Windows se o Piper falhar
+```
+
+## 59. Fazer a personagem falar sozinha de vez em quando
+
+Abra:
+
+```text
+Configurações
+→ Proatividade
+```
+
+Mantenha ativados:
+
+- Permitir iniciativas espontâneas da personagem;
+- Falar frases motivacionais periodicamente.
+
+Você pode alterar os intervalos mínimo e máximo.
+
+## 60. Gestos espontâneos
+
+Abra:
+
+```text
+Configurações
+→ Avatar
+```
+
+Ative:
+
+```text
+Fazer gestos espontâneos quando estiver ociosa
+```
+
+A personagem passará a alternar pequenos movimentos em intervalos aleatórios.

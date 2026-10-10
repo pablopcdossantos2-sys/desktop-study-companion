@@ -35,6 +35,13 @@ let nextBlinkAt = performance.now() + 2500;
 let avatarBaseX = 0;
 let avatarBaseY = 0;
 let lastFit = null;
+let behavior = {
+  spontaneousGestures: true,
+  gestureMinSeconds: 12,
+  gestureMaxSeconds: 30,
+};
+let activeGesture = null;
+let nextGestureAt = performance.now() + 15000;
 const modelCenter = new THREE.Vector3(0, 1, 0);
 const modelSize = new THREE.Vector3(1, 2, 1);
 const lookTarget = new THREE.Object3D();
@@ -132,6 +139,100 @@ function setupIdleRig() {
   vrm.update(0);
 }
 
+
+function randomGestureDelayMs() {
+  const min = Math.max(3, Number(behavior.gestureMinSeconds) || 12);
+  const max = Math.max(min, Number(behavior.gestureMaxSeconds) || 30);
+  return (min + Math.random() * (max - min)) * 1000;
+}
+
+function scheduleNextGesture(now = performance.now()) {
+  nextGestureAt = now + randomGestureDelayMs();
+}
+
+function startGesture(name = 'auto', now = performance.now()) {
+  if (!vrm) return;
+
+  const choices = ['lookAround', 'stretch', 'wave', 'ponder'];
+  const selected = name === 'auto'
+    ? choices[Math.floor(Math.random() * choices.length)]
+    : name;
+
+  const durations = {
+    lookAround: 4.2,
+    stretch: 3.8,
+    wave: 3.4,
+    ponder: 4.6,
+  };
+
+  activeGesture = {
+    name: choices.includes(selected) ? selected : 'lookAround',
+    startedAt: now * 0.001,
+    duration: durations[selected] ?? 4.0,
+  };
+  console.info('[avatar-gesture]', activeGesture.name);
+}
+
+function gesturePose(t) {
+  const result = {
+    leftUpperZ: 0,
+    rightUpperZ: 0,
+    leftLowerZ: 0,
+    rightLowerZ: 0,
+    leftLowerX: 0,
+    rightLowerX: 0,
+    headX: 0,
+    headY: 0,
+    headZ: 0,
+    neckY: 0,
+    chestX: 0,
+    chestY: 0,
+    chestZ: 0,
+    leftShoulderZ: 0,
+    rightShoulderZ: 0,
+  };
+
+  if (!activeGesture) return result;
+
+  const p = (t - activeGesture.startedAt) / activeGesture.duration;
+  if (p >= 1) {
+    activeGesture = null;
+    scheduleNextGesture();
+    return result;
+  }
+
+  const clamped = Math.max(0, Math.min(1, p));
+  const envelope = Math.sin(Math.PI * clamped);
+  const wave = Math.sin(clamped * Math.PI * 6);
+
+  if (activeGesture.name === 'lookAround') {
+    result.headY = envelope * 0.22 * Math.sin(clamped * Math.PI * 2);
+    result.neckY = envelope * 0.08 * Math.sin(clamped * Math.PI * 2);
+    result.headZ = envelope * 0.025;
+  } else if (activeGesture.name === 'stretch') {
+    result.leftUpperZ = envelope * 0.72;
+    result.rightUpperZ = -envelope * 0.72;
+    result.leftLowerZ = envelope * 0.10;
+    result.rightLowerZ = -envelope * 0.10;
+    result.chestX = -envelope * 0.035;
+    result.headX = envelope * 0.025;
+  } else if (activeGesture.name === 'wave') {
+    result.rightUpperZ = -envelope * 0.70;
+    result.rightLowerX = envelope * 0.55;
+    result.rightLowerZ = envelope * (0.30 + wave * 0.16);
+    result.headY = -envelope * 0.08;
+  } else if (activeGesture.name === 'ponder') {
+    result.leftUpperZ = envelope * 0.22;
+    result.leftLowerX = -envelope * 0.46;
+    result.leftLowerZ = -envelope * 0.20;
+    result.headY = envelope * 0.10;
+    result.headZ = -envelope * 0.035;
+    result.chestY = -envelope * 0.035;
+  }
+
+  return result;
+}
+
 function applyIdlePose(t) {
   if (!vrm) return;
 
@@ -144,6 +245,7 @@ function applyIdlePose(t) {
       : currentExpression === 'angry' ? 0.35
         : currentExpression === 'surprised' ? 0.8
           : 0;
+  const gesture = gesturePose(t);
 
   // Source VRM arrives close to a T-pose. Rotate the upper arms down into a
   // relaxed standing pose. The small oscillations make the shoulders and
@@ -152,26 +254,26 @@ function applyIdlePose(t) {
     'leftUpperArm',
     0.035 + breath * 0.008,
     -0.025,
-    -1.30 + slow * 0.025 - talkEnergy * 0.035,
+    -1.30 + slow * 0.025 - talkEnergy * 0.035 + gesture.leftUpperZ,
   );
   rotateBone(
     'rightUpperArm',
     0.035 - breath * 0.008,
     0.025,
-    1.30 - slow * 0.025 + talkEnergy * 0.035,
+    1.30 - slow * 0.025 + talkEnergy * 0.035 + gesture.rightUpperZ,
   );
 
   rotateBone(
     'leftLowerArm',
-    -0.08 + talkEnergy * 0.035,
+    -0.08 + talkEnergy * 0.035 + gesture.leftLowerX,
     0.02,
-    -0.10 + slow2 * 0.018,
+    -0.10 + slow2 * 0.018 + gesture.leftLowerZ,
   );
   rotateBone(
     'rightLowerArm',
-    -0.08 + talkEnergy * 0.035,
+    -0.08 + talkEnergy * 0.035 + gesture.rightLowerX,
     -0.02,
-    0.10 - slow2 * 0.018,
+    0.10 - slow2 * 0.018 + gesture.rightLowerZ,
   );
 
   rotateBone(
@@ -189,11 +291,13 @@ function applyIdlePose(t) {
 
   rotateBone('hips', 0, slow * 0.008, slow2 * 0.014);
   rotateBone('spine', breath * 0.006, 0, -slow2 * 0.006);
+  rotateBone('leftShoulder', 0, 0, gesture.leftShoulderZ);
+  rotateBone('rightShoulder', 0, 0, gesture.rightShoulderZ);
   rotateBone(
     'chest',
-    0.014 + breath * 0.012 + talkEnergy * 0.006,
-    slow * 0.006,
-    slow2 * 0.009,
+    0.014 + breath * 0.012 + talkEnergy * 0.006 + gesture.chestX,
+    slow * 0.006 + gesture.chestY,
+    slow2 * 0.009 + gesture.chestZ,
   );
   rotateBone(
     'upperChest',
@@ -204,14 +308,14 @@ function applyIdlePose(t) {
   rotateBone(
     'neck',
     -0.01 + breath * 0.004,
-    slow * 0.014,
+    slow * 0.014 + gesture.neckY,
     slow2 * 0.008,
   );
   rotateBone(
     'head',
-    breath * 0.004,
-    slow * 0.012,
-    slow2 * (0.010 + moodEnergy * 0.004),
+    breath * 0.004 + gesture.headX,
+    slow * 0.012 + gesture.headY,
+    slow2 * (0.010 + moodEnergy * 0.004) + gesture.headZ,
   );
 
   const bodyScale = Math.max(1, modelSize.y);
@@ -282,6 +386,17 @@ window.companionAvatar = {
   setSpeaking(value) {
     speaking = !!value;
   },
+  configureBehavior(options = {}) {
+    behavior = {
+      ...behavior,
+      ...options,
+    };
+    scheduleNextGesture();
+    console.info('[avatar-behavior]', JSON.stringify(behavior));
+  },
+  playGesture(name = 'auto') {
+    startGesture(String(name || 'auto'));
+  },
   setLook(x, y) {
     const dx = Number(x);
     const dy = Number(y);
@@ -304,6 +419,8 @@ window.companionAvatar = {
       error: document.body.dataset.error || '',
       userAgent: navigator.userAgent,
       webgl: renderer.capabilities?.isWebGL2 ? 'WebGL2' : 'WebGL1',
+      behavior,
+      activeGesture: activeGesture?.name || '',
     };
   },
 };
@@ -333,6 +450,7 @@ loader.load(
       avatarBaseY = vrm.scene.position.y;
 
       setupIdleRig();
+      scheduleNextGesture();
 
       if (vrm.lookAt) vrm.lookAt.target = lookTarget;
 
@@ -370,6 +488,15 @@ function animate(now) {
   const dt = clock.getDelta();
 
   if (vrm) {
+    if (
+      behavior.spontaneousGestures
+      && !speaking
+      && !activeGesture
+      && now >= nextGestureAt
+    ) {
+      startGesture('auto', now);
+    }
+
     const manager = vrm.expressionManager;
     if (manager) {
       if (now >= nextBlinkAt) {

@@ -194,6 +194,26 @@ class AvatarWidget(QWebEngineView):
             f"window.companionAvatar?.setSpeaking({str(bool(speaking)).lower()});"
         )
 
+    def configure_behavior(
+        self,
+        *,
+        spontaneous_gestures: bool,
+        gesture_min_seconds: int,
+        gesture_max_seconds: int,
+    ) -> None:
+        payload = json.dumps(
+            {
+                "spontaneousGestures": bool(spontaneous_gestures),
+                "gestureMinSeconds": int(gesture_min_seconds),
+                "gestureMaxSeconds": int(gesture_max_seconds),
+            }
+        )
+        self.js(f"window.companionAvatar?.configureBehavior({payload});")
+
+    def play_gesture(self, name: str = "auto") -> None:
+        safe = name.replace("'", "")
+        self.js(f"window.companionAvatar?.playGesture('{safe}');")
+
     def talk_for_text(self, text: str) -> None:
         self.set_speaking(True)
         duration_ms = max(900, min(12000, int(len(text) / 13 * 1000)))

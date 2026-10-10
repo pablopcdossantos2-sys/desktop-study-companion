@@ -28,6 +28,7 @@ from desktop_study_companion.config.models import (
     BrainConfig,
     MonitorConfig,
     PersonalityConfig,
+    ProactivityConfig,
     SpeechInputConfig,
     VoiceConfig,
 )
@@ -60,6 +61,7 @@ class SettingsDialog(QDialog):
         tabs.addTab(self._activity_tab(config), "Atividade")
         tabs.addTab(self._accountability_tab(config), "Cobrança")
         tabs.addTab(self._personality_tab(config), "Personalidade")
+        tabs.addTab(self._proactivity_tab(config), "Proatividade")
         tabs.addTab(self._voice_tab(config), "Voz")
         tabs.addTab(self._speech_input_tab(config), "Microfone")
         tabs.addTab(self._brain_tab(config), "Cérebro")
@@ -131,20 +133,74 @@ class SettingsDialog(QDialog):
         form.addRow("Iniciativa:", self.initiative)
         return widget
 
+    def _proactivity_tab(self, config: AppConfig) -> QWidget:
+        widget = QWidget()
+        form = QFormLayout(widget)
+        p = config.proactivity
+
+        self.proactive_enabled = QCheckBox(
+            "Permitir iniciativas espontâneas da personagem"
+        )
+        self.proactive_enabled.setChecked(p.enabled)
+
+        self.proactive_motivation = QCheckBox(
+            "Falar frases motivacionais periodicamente"
+        )
+        self.proactive_motivation.setChecked(p.motivational_messages)
+
+        self.proactive_min = QSpinBox()
+        self.proactive_min.setRange(1, 240)
+        self.proactive_min.setValue(p.min_interval_minutes)
+        self.proactive_min.setSuffix(" min")
+
+        self.proactive_max = QSpinBox()
+        self.proactive_max.setRange(1, 480)
+        self.proactive_max.setValue(p.max_interval_minutes)
+        self.proactive_max.setSuffix(" min")
+
+        form.addRow("", self.proactive_enabled)
+        form.addRow("", self.proactive_motivation)
+        form.addRow("Intervalo mínimo:", self.proactive_min)
+        form.addRow("Intervalo máximo:", self.proactive_max)
+        return widget
+
     def _voice_tab(self, config: AppConfig) -> QWidget:
         widget = QWidget()
         form = QFormLayout(widget)
+        v = config.voice
+        self._piper_noise_scale = v.piper_noise_scale
+        self._piper_noise_w_scale = v.piper_noise_w_scale
 
-        self.voice_enabled = QCheckBox("Ativar voz do Windows")
-        self.voice_enabled.setChecked(config.voice.enabled)
+        self.voice_enabled = QCheckBox("Ativar fala da personagem")
+        self.voice_enabled.setChecked(v.enabled)
+
+        self.voice_engine = QComboBox()
+        self.voice_engine.addItem("Piper neural local (recomendado)", "piper")
+        self.voice_engine.addItem("Windows SAPI (compatibilidade)", "sapi")
+        engine_index = self.voice_engine.findData(v.engine)
+        self.voice_engine.setCurrentIndex(max(0, engine_index))
+
+        self.piper_voice_id = QLineEdit(v.piper_voice_id)
+        self.piper_voice_id.setPlaceholderText("pt_BR-faber-medium")
+
+        self.piper_speed = QDoubleSpinBox()
+        self.piper_speed.setRange(0.5, 2.0)
+        self.piper_speed.setSingleStep(0.05)
+        self.piper_speed.setDecimals(2)
+        self.piper_speed.setValue(v.piper_length_scale)
+
+        self.piper_fallback = QCheckBox(
+            "Usar voz do Windows se o Piper falhar"
+        )
+        self.piper_fallback.setChecked(v.fallback_to_sapi)
 
         self.voice_rate = QSpinBox()
         self.voice_rate.setRange(-10, 10)
-        self.voice_rate.setValue(config.voice.rate)
+        self.voice_rate.setValue(v.rate)
 
         self.voice_volume = QSpinBox()
         self.voice_volume.setRange(0, 100)
-        self.voice_volume.setValue(config.voice.volume)
+        self.voice_volume.setValue(v.volume)
         self.voice_volume.setSuffix("%")
 
         self.voice_choice = QComboBox()
@@ -154,16 +210,18 @@ class SettingsDialog(QDialog):
                 self.voice_choice.addItem(voice.name, voice.token_id)
         except Exception:
             pass
-        voice_index = self.voice_choice.findData(config.voice.voice_id)
+        voice_index = self.voice_choice.findData(v.voice_id)
         self.voice_choice.setCurrentIndex(max(0, voice_index))
 
         form.addRow("", self.voice_enabled)
-        form.addRow("Voz:", self.voice_choice)
-        form.addRow("Velocidade:", self.voice_rate)
+        form.addRow("Motor:", self.voice_engine)
+        form.addRow("Voz Piper:", self.piper_voice_id)
+        form.addRow("Velocidade Piper:", self.piper_speed)
+        form.addRow("", self.piper_fallback)
+        form.addRow("Voz Windows (fallback):", self.voice_choice)
+        form.addRow("Velocidade Windows:", self.voice_rate)
         form.addRow("Volume:", self.voice_volume)
         return widget
-
-
 
 
     def _speech_input_tab(self, config: AppConfig) -> QWidget:
@@ -294,11 +352,29 @@ class SettingsDialog(QDialog):
         self.avatar_lip_sync = QCheckBox("Animar boca durante a fala")
         self.avatar_lip_sync.setChecked(config.avatar.lip_sync)
 
+        self.avatar_gestures = QCheckBox(
+            "Fazer gestos espontâneos quando estiver ociosa"
+        )
+        self.avatar_gestures.setChecked(config.avatar.spontaneous_gestures)
+
+        self.avatar_gesture_min = QSpinBox()
+        self.avatar_gesture_min.setRange(3, 300)
+        self.avatar_gesture_min.setValue(config.avatar.gesture_min_seconds)
+        self.avatar_gesture_min.setSuffix(" s")
+
+        self.avatar_gesture_max = QSpinBox()
+        self.avatar_gesture_max.setRange(3, 600)
+        self.avatar_gesture_max.setValue(config.avatar.gesture_max_seconds)
+        self.avatar_gesture_max.setSuffix(" s")
+
         form.addRow("", self.avatar_enabled)
         form.addRow("Largura:", self.avatar_width)
         form.addRow("Altura:", self.avatar_height)
         form.addRow("", self.avatar_look)
         form.addRow("", self.avatar_lip_sync)
+        form.addRow("", self.avatar_gestures)
+        form.addRow("Gesto espontâneo: mínimo", self.avatar_gesture_min)
+        form.addRow("Gesto espontâneo: máximo", self.avatar_gesture_max)
         return widget
 
     def _seconds_spin(self, value: int) -> QSpinBox:
@@ -344,11 +420,24 @@ class SettingsDialog(QDialog):
                 humor=self.humor.value(),
                 initiative=self.initiative.value(),
             ),
+            proactivity=ProactivityConfig(
+                enabled=self.proactive_enabled.isChecked(),
+                motivational_messages=self.proactive_motivation.isChecked(),
+                min_interval_minutes=self.proactive_min.value(),
+                max_interval_minutes=self.proactive_max.value(),
+            ),
             voice=VoiceConfig(
                 enabled=self.voice_enabled.isChecked(),
+                engine=str(self.voice_engine.currentData() or "piper"),
                 rate=self.voice_rate.value(),
                 volume=self.voice_volume.value(),
                 voice_id=str(self.voice_choice.currentData() or ""),
+                piper_voice_id=self.piper_voice_id.text().strip()
+                or "pt_BR-faber-medium",
+                piper_length_scale=self.piper_speed.value(),
+                piper_noise_scale=self._piper_noise_scale,
+                piper_noise_w_scale=self._piper_noise_w_scale,
+                fallback_to_sapi=self.piper_fallback.isChecked(),
             ),
             speech_input=SpeechInputConfig(
                 enabled=self.stt_enabled.isChecked(),
@@ -380,5 +469,8 @@ class SettingsDialog(QDialog):
                 height=self.avatar_height.value(),
                 look_at_cursor=self.avatar_look.isChecked(),
                 lip_sync=self.avatar_lip_sync.isChecked(),
+                spontaneous_gestures=self.avatar_gestures.isChecked(),
+                gesture_min_seconds=self.avatar_gesture_min.value(),
+                gesture_max_seconds=self.avatar_gesture_max.value(),
             ),
         )

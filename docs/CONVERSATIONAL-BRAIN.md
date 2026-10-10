@@ -158,3 +158,18 @@ Se o servidor estiver desligado, URL incorreta, modelo ausente ou ocorrer timeou
 - planejamento assistido;
 - personalidade mais rica e estados de humor;
 - streaming opcional das respostas.
+
+
+## Proteção contra raciocínio exposto
+
+A conversa deve exibir somente a resposta final destinada ao usuário.
+
+Na dev15:
+
+- Ollama local usa `/api/chat`;
+- `think` é enviado como `false`;
+- o prompt inclui `/no_think`;
+- o system prompt proíbe metarraciocínio;
+- saídas com padrões fortes de raciocínio interno são bloqueadas.
+
+O detector não tenta reconstruir nem expor o raciocínio. Ele apenas impede que conteúdo claramente metalinguístico seja tratado como fala final.

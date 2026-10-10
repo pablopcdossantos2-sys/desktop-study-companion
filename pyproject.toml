@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "desktop-study-companion"
-version = "0.1.0-dev14"
+version = "0.1.0-dev15"
 description = "Desktop companion for study accountability and focus."
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
@@ -18,7 +18,8 @@ dependencies = [
   "numpy>=1.26,<3",
   "sounddevice>=0.5.6,<0.6",
   "faster-whisper>=1.2.1,<2",
-  "av>=14,<19"
+  "av>=14,<19",
+  "piper-tts>=1.8,<2"
 ]
 
 [project.optional-dependencies]

@@ -44,6 +44,7 @@ Critério de conclusão:
 ## v0.2 — Voz
 
 - [x] TTS local inicial usando Windows SAPI.
+- [x] TTS neural local usando Piper com fallback SAPI;
 - [x] seletor de vozes instaladas no Windows;
 - [x] STT push-to-talk local com faster-whisper;
 - [x] interrupção da fala;
@@ -89,7 +90,7 @@ Critério de conclusão:
 - [x] rotinas persistentes básicas, adaptadas do bonziPONY;
 - [x] lembretes proativos por horário/intervalo;
 - [ ] heartbeat;
-- [ ] comentário espontâneo contextual;
+- [x] comentário/frase motivacional espontânea por intervalo configurável;
 - [ ] início automático opcional.
 
 ## v0.5.1 — Accountability persistente
@@ -169,7 +170,8 @@ Sempre opt-in.
 - [x] idle corporal procedural básico;
 - [ ] animações corporais/VRMA;
 - [x] pose de descanso para substituir T-pose;
-- [ ] gestos específicos;
+- [x] microgestos espontâneos procedurais;
+- [ ] gestos específicos ligados a eventos;
 - [ ] estados de humor persistentes;
 - [ ] importação de outros avatares VRM pela interface.
 

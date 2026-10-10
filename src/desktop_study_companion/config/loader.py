@@ -16,6 +16,7 @@ from .models import (
     BrainConfig,
     MonitorConfig,
     PersonalityConfig,
+    ProactivityConfig,
     SpeechInputConfig,
     VoiceConfig,
 )
@@ -45,6 +46,7 @@ def load_config(path: str | Path | None = None) -> AppConfig:
         activity=ActivityConfig(**data.get("activity", {})),
         accountability=AccountabilityConfig(**data.get("accountability", {})),
         personality=PersonalityConfig(**data.get("personality", {})),
+        proactivity=ProactivityConfig(**data.get("proactivity", {})),
         voice=VoiceConfig(**data.get("voice", {})),
         speech_input=SpeechInputConfig(**data.get("speech_input", {})),
         brain=BrainConfig(**data.get("brain", {})),

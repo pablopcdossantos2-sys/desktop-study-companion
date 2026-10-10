@@ -348,3 +348,55 @@ Brain response
 Brain chat worker failed
 Ollama returned no final content
 ```
+
+
+## Uso diário: não é necessário executar ollama run
+
+Depois que o Ollama e o modelo estiverem instalados, você **não precisa** executar:
+
+```powershell
+ollama run qwen3:4b
+```
+
+toda vez que abrir o Desktop Study Companion.
+
+Esse comando é útil para testar o modelo manualmente no terminal.
+
+No uso normal:
+
+```text
+Desktop Study Companion
+        ↓
+API local do Ollama
+        ↓
+qwen3:4b instalado no computador
+```
+
+O Companion envia as mensagens diretamente para o Ollama em segundo plano.
+
+Você pode confirmar que o modelo está instalado com:
+
+```powershell
+ollama list
+```
+
+## Raciocínio interno / thinking
+
+A dev15 usa duas proteções para Qwen3:
+
+1. envia `think: false` pela API nativa do Ollama;
+2. inclui `/no_think` no prompt.
+
+O objetivo é receber apenas a resposta final da personagem.
+
+Se um backend ainda devolver texto semelhante a:
+
+```text
+Okay, the user...
+I need to...
+The rules say...
+```
+
+o Companion bloqueia esse conteúdo antes de mostrá-lo ou enviá-lo para a voz.
+
+Isso evita que raciocínio interno seja confundido com a fala da personagem.

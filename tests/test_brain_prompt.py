@@ -23,3 +23,5 @@ def test_brain_prompt_denies_desktop_access_and_uses_context() -> None:
     assert "não pode alterar janelas" in prompt
     assert "75%" in prompt
     assert "Revisar" in prompt
+    assert "/no_think" in prompt
+    assert "SOMENTE com a mensagem final" in prompt

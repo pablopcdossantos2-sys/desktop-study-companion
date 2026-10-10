@@ -83,6 +83,7 @@ jobs:
           --collect-all faster_whisper
           --collect-all ctranslate2
           --collect-all av
+          --collect-all piper
           src/desktop_study_companion/app.py
 
       - name: Add editable configuration and docs
@@ -108,6 +109,7 @@ jobs:
           Copy-Item "docs/CONVERSATIONAL-BRAIN.md" "dist/DesktopStudyCompanion/docs/CONVERSATIONAL-BRAIN.md"
           Copy-Item "docs/TUTORIAL-CEREBRO-LOCAL-OLLAMA.md" "dist/DesktopStudyCompanion/docs/TUTORIAL-CEREBRO-LOCAL-OLLAMA.md"
           Copy-Item "docs/VOICE-CONVERSATION.md" "dist/DesktopStudyCompanion/docs/VOICE-CONVERSATION.md"
+          Copy-Item "docs/PROACTIVITY.md" "dist/DesktopStudyCompanion/docs/PROACTIVITY.md"
           Copy-Item "docs/DIAGNOSTICS.md" "dist/DesktopStudyCompanion/docs/DIAGNOSTICS.md"
           Copy-Item "docs/THIRD_PARTY_LICENSES-VOICE.md" "dist/DesktopStudyCompanion/THIRD_PARTY_LICENSES-VOICE.md"
 

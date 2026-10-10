@@ -1,4 +1,4 @@
-# Limitações conhecidas da v0.1.0-dev14
+# Limitações conhecidas da v0.1.0-dev15
 
 A dev14 é um protótipo funcional para validar o ciclo completo de accountability, avatar e conversa por voz no Windows. Ela ainda não representa a experiência final de produto.
 
@@ -196,3 +196,14 @@ O endpoint configurado na interface pode continuar sendo:
 `http://127.0.0.1:11434/v1`
 
 A seleção da API nativa é automática.
+
+
+## Voz, proatividade e gestos — dev15
+
+- Piper neural local foi adicionado como motor de TTS recomendado.
+- O modelo de voz é baixado no primeiro uso e aumenta o espaço ocupado em disco em cerca de dezenas de MB.
+- SAPI continua disponível como fallback.
+- A qualidade final da voz depende do modelo Piper selecionado.
+- Os gestos espontâneos são procedurais; ainda não são animações VRMA completas.
+- Mensagens motivacionais usam frases locais e intervalos configuráveis.
+- O bloqueio de raciocínio reduz vazamentos conhecidos, mas backends de terceiros podem ter formatos de resposta inesperados.

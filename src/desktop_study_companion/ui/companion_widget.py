@@ -91,6 +91,9 @@ class CompanionWidget(QWidget):
                 avatar = AvatarWidget(renderer, model, self)
                 avatar.setMinimumHeight(380)
                 avatar.avatar_failed.connect(self._avatar_failed)
+                avatar.avatar_ready.connect(
+                    lambda a=avatar: self._configure_avatar_behavior(a)
+                )
                 return avatar
             except Exception:
                 logger.exception("Failed to create AvatarWidget")
@@ -116,6 +119,16 @@ class CompanionWidget(QWidget):
         self.say(
             "Avatar 3D indisponível; usando fallback. "
             "Abra Diagnóstico > Abrir pasta de logs."
+        )
+
+    def _configure_avatar_behavior(self, avatar=None) -> None:
+        target = avatar or self.avatar
+        if not isinstance(target, AvatarWidget):
+            return
+        target.configure_behavior(
+            spontaneous_gestures=self.avatar_config.spontaneous_gestures,
+            gesture_min_seconds=self.avatar_config.gesture_min_seconds,
+            gesture_max_seconds=self.avatar_config.gesture_max_seconds,
         )
 
     def set_avatar_expression(self, name: str, weight: float = 1.0) -> None:
@@ -154,6 +167,8 @@ class CompanionWidget(QWidget):
             self._replace_avatar_widget(self._create_avatar())
         elif not config.enabled and has_vrm:
             self._replace_avatar_widget(self._fallback_avatar())
+        elif has_vrm:
+            self._configure_avatar_behavior()
 
     def paintEvent(self, event) -> None:  # noqa: N802
         painter = QPainter(self)

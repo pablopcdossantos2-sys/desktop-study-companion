@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import random
+
 from desktop_study_companion.accountability.models import InterventionKind
 
 from .models import Personality
@@ -71,3 +73,34 @@ class PersonalityRenderer:
         if strict:
             return f"Esta é a ocorrência número {catch_count}. Pare e respeite a regra: {description}."
         return f"Você já acionou esta regra {catch_count} vezes: {description}."
+
+
+    def motivation_message(self, goal: str | None = None) -> str:
+        warm = self.personality.warmth >= 55
+        strict = self.personality.strictness >= 70
+        active = bool(goal and goal.strip())
+
+        if active:
+            messages = [
+                f"Continua comigo. Seu foco agora é {goal}. Um passo de cada vez.",
+                f"Você não precisa terminar tudo agora. Só precisa continuar em {goal}.",
+                f"Vamos manter o ritmo. Volta para {goal} e fecha mais um pequeno bloco.",
+                f"Você já começou. Proteja esse impulso e siga em {goal}.",
+            ]
+            if strict:
+                messages.append(
+                    f"Sem renegociar com a distração agora. O combinado é {goal}."
+                )
+        else:
+            messages = [
+                "Só passando para lembrar: um bloco curto de estudo já conta.",
+                "Se estiver adiando alguma coisa, escolha a menor próxima ação e começa por ela.",
+                "Seu progresso não precisa ser dramático. Precisa ser consistente.",
+                "Que tal aproveitar os próximos minutos para avançar um pouco no que importa?",
+            ]
+            if warm:
+                messages.append(
+                    "Estou por aqui. Quando quiser começar um bloco de foco, a gente faz isso junto."
+                )
+
+        return random.choice(messages)

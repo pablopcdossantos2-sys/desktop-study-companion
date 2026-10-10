@@ -45,16 +45,25 @@
   },
   "voice": {
     "enabled": true,
+    "engine": "piper",
     "rate": 0,
     "volume": 90,
-    "voice_id": ""
+    "voice_id": "",
+    "piper_voice_id": "pt_BR-faber-medium",
+    "piper_length_scale": 1,
+    "piper_noise_scale": 0.667,
+    "piper_noise_w_scale": 0.8,
+    "fallback_to_sapi": true
   },
   "avatar": {
     "enabled": true,
     "width": 360,
     "height": 540,
     "look_at_cursor": true,
-    "lip_sync": true
+    "lip_sync": true,
+    "spontaneous_gestures": true,
+    "gesture_min_seconds": 12,
+    "gesture_max_seconds": 30
   },
   "brain": {
     "enabled": false,
@@ -75,5 +84,11 @@
     "microphone_device": -1,
     "max_record_seconds": 30,
     "auto_send": true
+  },
+  "proactivity": {
+    "enabled": true,
+    "motivational_messages": true,
+    "min_interval_minutes": 8,
+    "max_interval_minutes": 16
   }
 }

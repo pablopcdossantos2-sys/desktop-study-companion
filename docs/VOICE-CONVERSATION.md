@@ -21,7 +21,7 @@ BrainService / LLM
         ↓
 resposta
         ↓
-Windows SAPI + avatar
+Piper neural local (ou SAPI fallback) + avatar
 ```
 
 O reconhecimento de voz vem **desativado por padrão**.
@@ -168,16 +168,38 @@ CUDA só deve ser usada quando o computador possuir ambiente NVIDIA compatível.
 
 ## Voz da personagem
 
-A aba **Voz** agora lista as vozes SAPI instaladas no Windows.
+A partir da dev15 existem dois motores:
 
-O usuário pode selecionar:
+### Piper neural local — recomendado
 
-- voz padrão do Windows;
-- uma voz instalada específica;
-- velocidade;
-- volume.
+É o padrão da aplicação.
 
-Se a voz selecionada deixar de existir, o SAPI permanece com a voz padrão disponível.
+A primeira fala pode baixar o modelo configurado. O padrão é:
+
+```text
+pt_BR-faber-medium
+```
+
+Os arquivos ficam em:
+
+```text
+data\models\piper\
+```
+
+Depois do download, a síntese funciona localmente.
+
+A interface permite escolher o identificador do modelo e ajustar a velocidade.
+O volume também é aplicado ao Piper.
+
+### Windows SAPI — compatibilidade
+
+Continua disponível para:
+
+- computadores sem o runtime neural;
+- preferência do usuário;
+- fallback automático quando o Piper falhar.
+
+A aba **Voz** continua listando as vozes SAPI instaladas.
 
 ## Interrupção
 
@@ -229,3 +251,27 @@ Os logs agora registram início, sucesso e traceback de falhas do STT. Procure p
 desktop_study_companion.voice.stt
 desktop_study_companion.voice.stt_worker
 ```
+
+
+## Naturalidade da fala na dev15
+
+O SAPI permanece útil como fallback, mas sua prosódia pode soar robótica.
+
+A dev15 adiciona Piper TTS, um motor neural local. O runtime suporta Windows e vozes em português do Brasil. O modelo padrão é baixado somente no primeiro uso.
+
+O Piper é executado em thread separada para não bloquear a interface. O áudio é enviado diretamente ao dispositivo de saída via sounddevice.
+
+## Raciocínio interno nunca deve ser falado
+
+A fala recebe somente a resposta final aprovada pelo BrainService.
+
+A dev15 reforça:
+
+- `think: false` para Ollama nativo;
+- `/no_think` no prompt para Qwen3;
+- bloqueio heurístico de saídas que pareçam metarraciocínio, como:
+  - `Okay, the user...`;
+  - `I need to...`;
+  - `the rules say...`.
+
+Se um backend insistir em retornar esse conteúdo como resposta, ele é bloqueado e não chega ao TTS.

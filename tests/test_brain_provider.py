@@ -7,6 +7,7 @@ from desktop_study_companion.brain.provider import (
     OllamaNativeProvider,
     OpenAICompatibleProvider,
     is_local_ollama_base_url,
+    looks_like_reasoning_leak,
     sanitize_assistant_text,
 )
 
@@ -125,3 +126,15 @@ def test_ollama_native_provider_disables_thinking() -> None:
     assert captured["json"]["think"] is False
     assert "tools" not in captured["json"]
     assert answer == "Vamos estudar."
+
+
+
+def test_reasoning_leak_detector_blocks_meta_reasoning() -> None:
+    leaked = (
+        "Okay, the user asked for the time. I need to recall the rules. "
+        "The rules say I cannot access the computer."
+    )
+    assert looks_like_reasoning_leak(leaked)
+    assert not looks_like_reasoning_leak(
+        "Sim, estou te ouvindo. Vamos organizar seu estudo."
+    )

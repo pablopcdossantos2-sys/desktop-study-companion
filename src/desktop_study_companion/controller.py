@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import random
 import time
 from pathlib import Path
 
@@ -90,7 +91,7 @@ from desktop_study_companion.voice.audio_capture import (
 )
 from desktop_study_companion.voice.faster_whisper_stt import FasterWhisperSTT
 from desktop_study_companion.voice.stt_worker import SttWorker
-from desktop_study_companion.voice.windows_sapi import WindowsSapiTTS
+from desktop_study_companion.voice.factory import create_tts_engine
 from desktop_study_companion import __version__
 
 
@@ -135,15 +136,7 @@ class ApplicationController(QObject):
             ),
             name=config.personality.name,
         )
-        self.voice = (
-            WindowsSapiTTS(
-                rate=config.voice.rate,
-                volume=config.voice.volume,
-                voice_token_id=config.voice.voice_id,
-            )
-            if config.voice.enabled
-            else None
-        )
+        self.voice = create_tts_engine(config.voice, self.data_dir)
         self.memory = SQLiteMemoryStore(self.data_dir / "companion.db")
         self.analytics = StudyAnalytics(self.memory.path)
         self.brain = BrainService(config, self.memory, self.analytics)
@@ -159,6 +152,9 @@ class ApplicationController(QObject):
         self._ptt_timer = QTimer(self)
         self._ptt_timer.setSingleShot(True)
         self._ptt_timer.timeout.connect(self._stop_push_to_talk)
+        self._motivation_timer = QTimer(self)
+        self._motivation_timer.setSingleShot(True)
+        self._motivation_timer.timeout.connect(self._proactive_motivation)
         self.widget = CompanionWidget(
             config.personality.name,
             config.avatar,
@@ -213,6 +209,7 @@ class ApplicationController(QObject):
     def start(self) -> None:
         self.widget.show()
         self.timer.start()
+        self._schedule_next_motivation()
 
     def open_logs_directory(self) -> None:
         try:
@@ -277,6 +274,37 @@ class ApplicationController(QObject):
         self.widget.animate_avatar_speech(text)
         if voice and self.voice is not None:
             self.voice.speak(text)
+
+    def _schedule_next_motivation(self) -> None:
+        self._motivation_timer.stop()
+        p = self.config.proactivity
+        if not p.enabled or not p.motivational_messages:
+            return
+        minutes = random.randint(
+            max(1, p.min_interval_minutes),
+            max(p.min_interval_minutes, p.max_interval_minutes),
+        )
+        self._motivation_timer.start(minutes * 60 * 1000)
+
+    def _proactive_motivation(self) -> None:
+        try:
+            if (
+                self._paused
+                or self.recorder.recording
+                or bool(self._brain_workers)
+                or (self.voice is not None and self.voice.is_speaking)
+            ):
+                return
+
+            goal = None
+            if self.sessions.active and self.sessions.session is not None:
+                goal = self.sessions.session.goal
+            self._say(
+                self.personality.motivation_message(goal),
+                avatar_state="happy",
+            )
+        finally:
+            self._schedule_next_motivation()
 
     # ------------------------------------------------------------------
     # Conversational brain
@@ -1063,14 +1091,10 @@ class ApplicationController(QObject):
         if self.voice is not None:
             self.voice.close()
             self.voice = None
-        if new_config.voice.enabled:
-            self.voice = WindowsSapiTTS(
-                rate=new_config.voice.rate,
-                volume=new_config.voice.volume,
-                voice_token_id=new_config.voice.voice_id,
-            )
+        self.voice = create_tts_engine(new_config.voice, self.data_dir)
 
         self.timer.setInterval(new_config.monitor.poll_interval_ms)
+        self._schedule_next_motivation()
 
     # ------------------------------------------------------------------
     # History, analytics and backups

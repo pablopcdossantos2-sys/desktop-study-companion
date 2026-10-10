@@ -36,11 +36,25 @@ class PersonalityConfig:
 
 
 @dataclass(slots=True)
+class ProactivityConfig:
+    enabled: bool = True
+    motivational_messages: bool = True
+    min_interval_minutes: int = 8
+    max_interval_minutes: int = 16
+
+
+@dataclass(slots=True)
 class VoiceConfig:
     enabled: bool = True
+    engine: str = "piper"
     rate: int = 0
     volume: int = 90
     voice_id: str = ""
+    piper_voice_id: str = "pt_BR-faber-medium"
+    piper_length_scale: float = 1.0
+    piper_noise_scale: float = 0.667
+    piper_noise_w_scale: float = 0.8
+    fallback_to_sapi: bool = True
 
 
 @dataclass(slots=True)
@@ -74,6 +88,9 @@ class AvatarConfig:
     height: int = 540
     look_at_cursor: bool = True
     lip_sync: bool = True
+    spontaneous_gestures: bool = True
+    gesture_min_seconds: int = 12
+    gesture_max_seconds: int = 30
 
 
 @dataclass(slots=True)
@@ -82,6 +99,7 @@ class AppConfig:
     activity: ActivityConfig = field(default_factory=ActivityConfig)
     accountability: AccountabilityConfig = field(default_factory=AccountabilityConfig)
     personality: PersonalityConfig = field(default_factory=PersonalityConfig)
+    proactivity: ProactivityConfig = field(default_factory=ProactivityConfig)
     voice: VoiceConfig = field(default_factory=VoiceConfig)
     speech_input: SpeechInputConfig = field(default_factory=SpeechInputConfig)
     brain: BrainConfig = field(default_factory=BrainConfig)
