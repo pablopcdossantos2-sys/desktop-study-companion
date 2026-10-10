@@ -253,6 +253,11 @@ serem gravados.
 O usuário comum não precisa mais digitar IDs. A interface fornece Faber, Jeff,
 Cadu e Edresson em uma lista e inclui **Testar voz Piper**.
 
+A síntese Piper/ONNX roda em processo separado para conter crashes nativos.
+Falha ou timeout desse processo é registrado e não deve encerrar a interface
+principal. Esse isolamento reduz o impacto de falhas nativas, mas não garante
+compatibilidade de toda voz/modelo com toda máquina.
+
 O último áudio sintetizado fica em:
 
 `data/temp/piper-last.wav`
