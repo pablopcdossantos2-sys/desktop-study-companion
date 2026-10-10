@@ -1,22 +1,14 @@
+"""Persistent standing rules adapted from bonziPONY's StandingRule concept."""
+
 from __future__ import annotations
 
-"""Persistent standing rules adapted from bonziPONY's StandingRule concept.
-
-bonziPONY uses permanent rules with generated detection patterns, response
-modes, a catch counter, last-trigger time and cooldown. This implementation
-keeps the same useful state model but matches process/window metadata locally.
-
-Upstream reference:
-https://github.com/maresmaremares/bonziPONY/blob/master/core/agent_loop.py
-"""
-
-import json
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
 from desktop_study_companion.activity.models import ActiveWindow
+from desktop_study_companion.safe_json import atomic_write_json, load_json_list
 
 
 @dataclass(slots=True)
@@ -33,7 +25,7 @@ class StandingRule:
     def __post_init__(self) -> None:
         if not self.id:
             self.id = str(uuid4())[:8]
-        self.patterns = [p.strip() for p in self.patterns if p.strip()]
+        self.patterns = [p.strip() for p in self.patterns if isinstance(p, str) and p.strip()]
         self.cooldown_s = max(0.0, float(self.cooldown_s))
 
     def to_dict(self) -> dict:
@@ -41,10 +33,13 @@ class StandingRule:
 
     @classmethod
     def from_dict(cls, data: dict) -> "StandingRule":
+        patterns = data.get("patterns", [])
+        if not isinstance(patterns, list):
+            raise TypeError("patterns must be a list")
         return cls(
             id=data.get("id", ""),
             description=data.get("description", ""),
-            patterns=list(data.get("patterns", [])),
+            patterns=patterns,
             response=data.get("response", "nag"),
             catch_count=data.get("catch_count", 0),
             last_triggered_at=data.get("last_triggered_at"),
@@ -58,6 +53,7 @@ class RuleViolation:
     rule: StandingRule
     matched_pattern: str
     window: ActiveWindow
+    action_due: bool
 
 
 class StandingRuleManager:
@@ -68,24 +64,10 @@ class StandingRuleManager:
         self.load()
 
     def load(self) -> None:
-        if not self.path.exists():
-            self.rules = []
-            return
-        try:
-            raw = json.loads(self.path.read_text(encoding="utf-8"))
-            self.rules = [StandingRule.from_dict(item) for item in raw]
-        except (OSError, json.JSONDecodeError, TypeError):
-            self.rules = []
+        self.rules = load_json_list(self.path, StandingRule.from_dict)
 
     def save(self) -> None:
-        self.path.write_text(
-            json.dumps(
-                [rule.to_dict() for rule in self.rules],
-                ensure_ascii=False,
-                indent=2,
-            ),
-            encoding="utf-8",
-        )
+        atomic_write_json(self.path, [rule.to_dict() for rule in self.rules])
 
     def add(self, rule: StandingRule) -> StandingRule:
         if not rule.description.strip():
@@ -118,12 +100,7 @@ class StandingRuleManager:
                 return True
         return False
 
-    def check(
-        self,
-        window: ActiveWindow,
-        *,
-        now: datetime | None = None,
-    ) -> list[RuleViolation]:
+    def check(self, window: ActiveWindow, *, now: datetime | None = None) -> list[RuleViolation]:
         now = now or datetime.now().astimezone()
         haystack = f"{window.process_name} {window.title}".casefold()
         violations: list[RuleViolation] = []
@@ -132,13 +109,13 @@ class StandingRuleManager:
             if not rule.enabled:
                 continue
 
+            action_due = True
             if rule.last_triggered_at:
                 try:
                     last = datetime.fromisoformat(rule.last_triggered_at)
-                    if (now - last).total_seconds() < rule.cooldown_s:
-                        continue
+                    action_due = (now - last).total_seconds() >= rule.cooldown_s
                 except ValueError:
-                    pass
+                    action_due = True
 
             for pattern in rule.patterns:
                 if pattern.casefold() in haystack:
@@ -147,18 +124,14 @@ class StandingRuleManager:
                             rule=rule,
                             matched_pattern=pattern,
                             window=window,
+                            action_due=action_due,
                         )
                     )
                     break
 
         return violations
 
-    def record_trigger(
-        self,
-        rule: StandingRule,
-        *,
-        now: datetime | None = None,
-    ) -> None:
+    def record_trigger(self, rule: StandingRule, *, now: datetime | None = None) -> None:
         now = now or datetime.now().astimezone()
         rule.catch_count += 1
         rule.last_triggered_at = now.isoformat()

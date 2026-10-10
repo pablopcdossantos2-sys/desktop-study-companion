@@ -24,8 +24,8 @@ class StudySession:
     state: StudyState = StudyState.PLANNED
     started_at: datetime | None = None
     ended_at: datetime | None = None
-    focused_seconds: int = 0
-    distracted_seconds: int = 0
+    focused_seconds: float = 0.0
+    distracted_seconds: float = 0.0
 
     def start(self) -> None:
         self.started_at = datetime.now().astimezone()

@@ -1,20 +1,11 @@
+"""Persistent routine scheduler adapted from bonziPONY core/routines.py."""
+
 from __future__ import annotations
 
-"""Persistent routine scheduler adapted from bonziPONY core/routines.py.
-
-The upstream implementation supports recurring directives such as daily,
-weekly, interval, wake and sleep schedules. This project keeps the scheduling
-core but decouples it from any LLM/agent loop.
-
-Upstream:
-https://github.com/maresmaremares/bonziPONY/blob/master/core/routines.py
-
-Adapted with permission from the bonziPONY creator.
-"""
-
-import json
 from datetime import datetime
 from pathlib import Path
+
+from desktop_study_companion.safe_json import atomic_write_json, load_json_list
 
 from .models import Routine
 
@@ -27,24 +18,10 @@ class RoutineManager:
         self.load()
 
     def load(self) -> None:
-        if not self.path.exists():
-            self.routines = []
-            return
-        try:
-            raw = json.loads(self.path.read_text(encoding="utf-8"))
-            self.routines = [Routine.from_dict(item) for item in raw]
-        except (OSError, json.JSONDecodeError, TypeError):
-            self.routines = []
+        self.routines = load_json_list(self.path, Routine.from_dict)
 
     def save(self) -> None:
-        self.path.write_text(
-            json.dumps(
-                [routine.to_dict() for routine in self.routines],
-                ensure_ascii=False,
-                indent=2,
-            ),
-            encoding="utf-8",
-        )
+        atomic_write_json(self.path, [routine.to_dict() for routine in self.routines])
 
     def add(self, routine: Routine) -> Routine:
         self.routines.append(routine)
@@ -92,35 +69,29 @@ class RoutineManager:
                 continue
 
             fired = False
-
             if routine.schedule == "on_wake":
                 fired = wake_event and routine.last_fired_date != today
-
             elif routine.schedule == "daily":
-                if (
+                fired = bool(
                     routine.time
                     and routine.time <= now_hhmm
                     and routine.last_fired_date != today
-                ):
-                    fired = True
-
+                )
             elif routine.schedule == "weekly":
-                if (
-                    routine.day == now_day
+                fired = bool(
+                    routine.day
+                    and routine.day.casefold() == now_day
                     and routine.time
                     and routine.time <= now_hhmm
                     and routine.last_fired_date != today
-                ):
-                    fired = True
-
+                )
             elif routine.schedule == "interval" and routine.interval_hours:
                 if not routine.last_fired_ts:
                     fired = True
                 else:
                     try:
                         last = datetime.fromisoformat(routine.last_fired_ts)
-                        elapsed_hours = (now - last).total_seconds() / 3600
-                        fired = elapsed_hours >= routine.interval_hours
+                        fired = (now - last).total_seconds() / 3600 >= routine.interval_hours
                     except ValueError:
                         fired = True
 
@@ -131,15 +102,13 @@ class RoutineManager:
 
         if due:
             self.save()
-
         return due
 
     def describe(self, routine: Routine) -> str:
         if routine.schedule == "daily":
             return f"Todos os dias às {routine.time or '?'}"
         if routine.schedule == "weekly":
-            day = (routine.day or "?").title()
-            return f"{day} às {routine.time or '?'}"
+            return f"{(routine.day or '?').title()} às {routine.time or '?'}"
         if routine.schedule == "interval":
             return f"A cada {routine.interval_hours:g} h"
         if routine.schedule == "on_wake":

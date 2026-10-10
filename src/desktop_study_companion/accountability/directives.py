@@ -1,20 +1,13 @@
+"""Persistent directives adapted from bonziPONY's AgentLoop directive model."""
+
 from __future__ import annotations
 
-"""Persistent directives adapted from bonziPONY's AgentLoop directive model.
-
-The upstream project tracks urgency, next nag time, source, delayed state,
-nag count and last nag style/text. This module preserves those concepts while
-separating them from any LLM or desktop-control code.
-
-Upstream reference:
-https://github.com/maresmaremares/bonziPONY/blob/master/core/agent_loop.py
-"""
-
-import json
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
+
+from desktop_study_companion.safe_json import atomic_write_json, load_json_list
 
 from .nagging import NagDecision, NaggingPolicy
 
@@ -63,11 +56,7 @@ class Directive:
 
 
 class DirectiveManager:
-    def __init__(
-        self,
-        path: str | Path,
-        policy: NaggingPolicy | None = None,
-    ) -> None:
+    def __init__(self, path: str | Path, policy: NaggingPolicy | None = None) -> None:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.policy = policy or NaggingPolicy()
@@ -75,23 +64,12 @@ class DirectiveManager:
         self.load()
 
     def load(self) -> None:
-        if not self.path.exists():
-            self.directives = []
-            return
-        try:
-            raw = json.loads(self.path.read_text(encoding="utf-8"))
-            self.directives = [Directive.from_dict(item) for item in raw]
-        except (OSError, json.JSONDecodeError, TypeError):
-            self.directives = []
+        self.directives = load_json_list(self.path, Directive.from_dict)
 
     def save(self) -> None:
-        self.path.write_text(
-            json.dumps(
-                [directive.to_dict() for directive in self.directives],
-                ensure_ascii=False,
-                indent=2,
-            ),
-            encoding="utf-8",
+        atomic_write_json(
+            self.path,
+            [directive.to_dict() for directive in self.directives],
         )
 
     @property
@@ -166,7 +144,6 @@ class DirectiveManager:
         directive.next_nag_at = (
             now + timedelta(seconds=decision.delay_seconds)
         ).isoformat()
-        directive.delayed = False
         self.save()
         return decision
 
@@ -177,7 +154,7 @@ class DirectiveManager:
         minutes: int = 5,
         now: datetime | None = None,
     ) -> bool:
-        """Allow one negotiated delay, mirroring bonziPONY's delayed flag."""
+        """Allow exactly one negotiated delay for each directive."""
         now = now or datetime.now().astimezone()
         for directive in self.directives:
             if directive.id != directive_id or not directive.active:

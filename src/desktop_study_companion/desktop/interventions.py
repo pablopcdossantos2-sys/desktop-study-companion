@@ -17,7 +17,6 @@ list. No invasive action is enabled by default.
 
 import json
 import platform
-import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Protocol
@@ -50,6 +49,16 @@ _DEFAULT_PROTECTED_PROCESSES = {
     "conhost.exe",
     "python.exe",
     "pythonw.exe",
+    "anki.exe",
+    "code.exe",
+    "devenv.exe",
+    "excel.exe",
+    "notepad.exe",
+    "notepad++.exe",
+    "obsidian.exe",
+    "onenote.exe",
+    "powerpnt.exe",
+    "winword.exe",
 }
 
 
@@ -178,7 +187,8 @@ class WindowsWindowBackend:
             import win32gui
 
             win32gui.SetForegroundWindow(int(hwnd))
-            time.sleep(0.12)
+            if int(win32gui.GetForegroundWindow()) != int(hwnd):
+                return False
             win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
             win32api.keybd_event(ord("W"), 0, 0, 0)
             win32api.keybd_event(ord("W"), 0, win32con.KEYEVENTF_KEYUP, 0)
