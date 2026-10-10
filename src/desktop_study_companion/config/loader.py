@@ -236,16 +236,14 @@ def load_config_with_recovery(
 
         security_issue = brain_transport_security_issue(config)
         if security_issue:
-            config.brain.enabled = False
-            if candidate in recoverable:
-                recovery_state = ConfigRecoveryState(
-                    preserve_before_write=candidate,
-                    reason="brain_transport",
-                )
+            recovery_state = ConfigRecoveryState(
+                preserve_before_write=recovery_state.preserve_before_write,
+                reason="brain_transport",
+            )
             notices.append(
                 security_issue
-                + " A configuração original será preservada antes da "
-                "próxima gravação."
+                + " A preferência original foi mantida; somente o uso "
+                "inseguro ficará bloqueado em runtime."
             )
             logger.warning(security_issue)
 
