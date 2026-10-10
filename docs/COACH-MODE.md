@@ -163,3 +163,12 @@ Exemplos que o sistema deve evitar:
 
 A firmeza deve servir para ajudar o usuário a executar uma decisão consciente,
 não para produzir culpa ou coerção.
+
+
+## Marcos atrasados — dev23
+
+Os marcos de 25%, 50% e 75% representam o ponto atual da sessão, não uma fila
+de notificações históricas. Se o usuário retornar ao foco depois de já ter
+ultrapassado vários marcos, a personagem anuncia somente o **maior marco
+atingido** e marca os anteriores como consumidos. Isso evita receber três
+falas desatualizadas em sequência ao voltar de uma distração longa.

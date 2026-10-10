@@ -224,3 +224,18 @@ Essas janelas:
 
 Isso evita o estado em que uma popup fica escondida atrás do avatar e impede o
 usuário de alcançar os controles necessários para fechá-la.
+
+
+## Diálogos — proteção adicional da dev23
+
+A personagem continua utilizável enquanto um diálogo está aberto, mas agora
+existe apenas **um diálogo síncrono gerenciado por vez**. Se o usuário tentar
+abrir Configurações, Nova sessão, Gerenciar regras ou outra janela síncrona
+enquanto uma delas já está aberta, a aplicação traz a janela existente para a
+frente em vez de criar outro `QEventLoop` aninhado.
+
+A criação de sessões ainda faz uma segunda checagem de sessão ativa depois do
+fechamento do diálogo, como proteção adicional contra mudanças de estado.
+
+Avisos de recuperação de configuração exibidos na inicialização também usam a
+mesma infraestrutura de posicionamento longe do avatar.
