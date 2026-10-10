@@ -64,6 +64,14 @@ jobs:
           npm install
           npm run build
 
+      - name: Upload generated avatar lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: avatar-package-lock
+          path: avatar_web/package-lock.json
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Run source compile check
         run: python -m compileall -q src
 
