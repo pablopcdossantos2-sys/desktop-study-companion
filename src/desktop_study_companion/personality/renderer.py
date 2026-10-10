@@ -255,6 +255,13 @@ class PersonalityRenderer:
                 "Não precisa terminar tudo agora. Precisa continuar em {goal}.",
                 "Proteja os próximos cinco minutos. Depois você decide sobre os cinco seguintes.",
             ]
+            if self.personality.strictness >= 70:
+                defaults.extend(
+                    [
+                        "O combinado é {goal}. Não abre uma nova negociação mental agora; continua.",
+                        "Você já decidiu estudar {goal}. Executa a decisão antes de avaliar se está com vontade.",
+                    ]
+                )
             if focused_minutes >= 10:
                 defaults.extend(
                     [
@@ -283,6 +290,13 @@ class PersonalityRenderer:
                 "Uma sessão imperfeita ainda é uma sessão. Que tal iniciar um bloco agora?",
                 "Seu futuro eu não precisa de um grande discurso. Precisa que você comece.",
             ]
+            if self.personality.strictness >= 75:
+                defaults.extend(
+                    [
+                        "Você abriu a companion por um motivo. Escolhe a matéria e inicia o bloco.",
+                        "Planejar estudar não é estudar. Define o objetivo e começa um bloco agora.",
+                    ]
+                )
             if self.personality.warmth >= 55:
                 defaults.append(
                     "Eu fico com você no bloco. Escolha o objetivo, inicia a sessão e vamos por partes."
