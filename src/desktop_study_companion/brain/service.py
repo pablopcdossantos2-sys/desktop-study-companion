@@ -11,6 +11,9 @@ from desktop_study_companion.brain.provider import (
     is_local_ollama_base_url,
 )
 from desktop_study_companion.config.models import AppConfig
+from desktop_study_companion.config.writer import (
+    brain_transport_security_issue,
+)
 from desktop_study_companion.memory.analytics import StudyAnalytics
 from desktop_study_companion.memory.sqlite_store import SQLiteMemoryStore
 
@@ -33,9 +36,13 @@ class BrainService:
             brain.enabled
             and brain.base_url.strip()
             and brain.model.strip()
+            and brain_transport_security_issue(self.config) is None
         )
 
     def _provider(self):
+        issue = brain_transport_security_issue(self.config)
+        if issue:
+            raise BrainError(issue)
         brain = self.config.brain
 
         if is_local_ollama_base_url(brain.base_url):
