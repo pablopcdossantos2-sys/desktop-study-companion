@@ -261,9 +261,15 @@ A dev15 adiciona Piper TTS, um motor neural local. O runtime suporta Windows e v
 
 O Piper é executado em thread separada para não bloquear a interface.
 
-Na dev17, a síntese usa `PiperVoice.synthesize_wav` e grava o resultado em
-`data\\temp\\piper-last.wav`. Em seguida, esse arquivo é reproduzido pela
+Na dev17, a síntese Piper/ONNX é executada em um **processo auxiliar isolado**.
+Esse processo usa `PiperVoice.synthesize_wav` e devolve um WAV ao processo
+principal. O último resultado bem-sucedido fica em
+`data\\temp\\piper-last.wav`. Em seguida, o arquivo é reproduzido pela
 API nativa de áudio do Windows (`winsound.PlaySound` em modo de arquivo).
+
+A separação em processo é deliberada: se uma biblioteca nativa usada pelo Piper
+falhar durante a síntese, o Companion principal deve continuar executando e
+registrar o código de saída do worker.
 
 A mudança para playback por arquivo foi feita porque alguns testes reais
 continuaram sem áudio audível mesmo quando o modelo era carregado e um WAV
