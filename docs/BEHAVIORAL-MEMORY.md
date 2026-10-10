@@ -106,7 +106,7 @@ O backup contém:
 
 - snapshot consistente de `companion.db`;
 - arquivos JSON persistentes existentes em `data\`;
-- `config/default.json`, quando disponível;
+- `data/config.json`, quando disponível (configuração efetiva do usuário);
 - `backup-metadata.json` com data e versão do programa.
 
 O snapshot SQLite é feito pela API de backup do próprio SQLite, para evitar copiar um banco parcialmente gravado.
