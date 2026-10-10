@@ -27,7 +27,8 @@ class FasterWhisperSTT:
         download_root: str | Path | None = None,
     ) -> None:
         self.model_name = model_name.strip()
-        self.language = language.strip()
+        raw_language = language.strip()
+        self.language = "" if raw_language.casefold() == "auto" else raw_language
         self.device = device.strip()
         self.compute_type = compute_type.strip()
         self.download_root = (
