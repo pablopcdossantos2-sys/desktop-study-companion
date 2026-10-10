@@ -63,7 +63,7 @@ Critério de conclusão:
 - [x] estrutura para iniciativa;
 - [ ] exemplos de fala;
 - [ ] limites de linguagem;
-- [ ] geração contextual por LLM.
+- [x] geração contextual por LLM em conversa opcional.
 
 ## v0.4 — Memória
 
@@ -141,8 +141,12 @@ Sempre opt-in.
 
 ## v0.8 — Inteligência contextual
 
-- [ ] integração LLM;
-- [ ] ferramentas;
+- [x] integração LLM OpenAI-compatible opcional;
+- [x] backend local Ollama suportado sem dependência de SDK;
+- [x] conversa assíncrona sem bloquear UI/monitoramento;
+- [x] histórico local de conversa em SQLite;
+- [x] separação explícita entre LLM e permissões de desktop;
+- [ ] ferramentas controladas para o LLM;
 - [ ] resumo de sessão;
 - [ ] avaliação de padrões;
 - [ ] planejamento;
