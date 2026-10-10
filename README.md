@@ -33,6 +33,7 @@ O núcleo foi deliberadamente separado em módulos pequenos:
 src/desktop_study_companion/
 ├── accountability/   # regras, severidade e intervenções
 ├── activity/         # contexto do computador e janela ativa
+├── brain/            # conversa LLM isolada das permissões de desktop
 ├── config/           # configuração tipada
 ├── memory/           # persistência local
 ├── personality/      # perfil comportamental
@@ -44,7 +45,7 @@ src/desktop_study_companion/
 
 A intenção é evitar um núcleo monolítico e permitir que voz, LLM, memória, avatar e políticas de cobrança possam evoluir ou ser substituídos independentemente.
 
-Veja [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). O funcionamento de sessões, rotinas, compromissos, regras permanentes e escalada está detalhado em [docs/ACCOUNTABILITY.md](docs/ACCOUNTABILITY.md). As intervenções opcionais no Windows estão documentadas em [docs/DESKTOP-INTERVENTIONS.md](docs/DESKTOP-INTERVENTIONS.md). A memória comportamental local e os indicadores estão descritos em [docs/BEHAVIORAL-MEMORY.md](docs/BEHAVIORAL-MEMORY.md). O avatar e o renderer VRM estão documentados em [docs/AVATAR-VRM.md](docs/AVATAR-VRM.md).
+Veja [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). O funcionamento de sessões, rotinas, compromissos, regras permanentes e escalada está detalhado em [docs/ACCOUNTABILITY.md](docs/ACCOUNTABILITY.md). As intervenções opcionais no Windows estão documentadas em [docs/DESKTOP-INTERVENTIONS.md](docs/DESKTOP-INTERVENTIONS.md). A memória comportamental local e os indicadores estão descritos em [docs/BEHAVIORAL-MEMORY.md](docs/BEHAVIORAL-MEMORY.md). O avatar e o renderer VRM estão documentados em [docs/AVATAR-VRM.md](docs/AVATAR-VRM.md). A conversa com LLM e sua separação da camada de controle estão descritas em [docs/CONVERSATIONAL-BRAIN.md](docs/CONVERSATIONAL-BRAIN.md). Para usar um modelo local gratuitamente no Windows, consulte [docs/TUTORIAL-CEREBRO-LOCAL-OLLAMA.md](docs/TUTORIAL-CEREBRO-LOCAL-OLLAMA.md).
 
 ## Escopo da v0.1
 
@@ -92,8 +93,8 @@ desktop-study-companion
 
 ## Estado
 
-**v0.1.0-dev8 — MVP com avatar VRM 1.0 integrado e configurável em validação no Windows.**
+**v0.1.0-dev9 — MVP com avatar VRM e cérebro conversacional opcional em validação no Windows.**
 
-Já estão implementados monitor de janela ativa, sessões de estudo, compromissos persistentes, regras permanentes, rotinas proativas, escalada fala → minimizar → fechar, lockdown limitado e reversível, memória comportamental local, histórico/insights, configuração pela interface, exportação CSV, backup ZIP, build portátil do Windows, TTS e o avatar VRM 1.0 Sendagaya Shino com expressões, piscada, look-at e lip-sync aproximado. Todas as ações de desktop permanecem opt-in. STT e LLM ainda não fazem parte desta versão.
+Já estão implementados monitor de janela ativa, sessões de estudo, compromissos persistentes, regras permanentes, rotinas proativas, escalada fala → minimizar → fechar, lockdown limitado e reversível, memória comportamental local, histórico/insights, configuração pela interface, exportação CSV, backup ZIP, build portátil do Windows, TTS, avatar VRM 1.0 Sendagaya Shino e um cérebro conversacional opcional compatível com endpoints OpenAI-style, incluindo Ollama local. O LLM não recebe ferramentas nem permissões de desktop; intervenções permanecem em uma camada determinística separada e opt-in. STT ainda não faz parte desta versão.
 
 A reutilização direta de componentes do bonziPONY está autorizada pelo criador do projeto, com obrigação de atribuição. A integração será feita seletivamente para preservar a arquitetura modular deste repositório.
