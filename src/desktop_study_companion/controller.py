@@ -300,9 +300,9 @@ class ApplicationController(QObject):
         p = self.config.proactivity
         if not p.enabled or not p.motivational_messages:
             return
-        minutes = random.randint(
-            max(1, p.min_interval_minutes),
-            max(p.min_interval_minutes, p.max_interval_minutes),
+        minutes = self.personality.proactive_interval_minutes(
+            p.min_interval_minutes,
+            p.max_interval_minutes,
         )
         self._motivation_timer.start(minutes * 60 * 1000)
 
