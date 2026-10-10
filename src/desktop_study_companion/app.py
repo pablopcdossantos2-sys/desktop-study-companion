@@ -24,7 +24,10 @@ from desktop_study_companion.config.loader import load_config
 from desktop_study_companion.diagnostics import (
     configure_logging,
     install_exception_hooks,
+    install_native_fault_handler,
     install_qt_message_logging,
+    mark_run_clean,
+    mark_run_started,
 )
 from desktop_study_companion.controller import ApplicationController
 
@@ -32,12 +35,15 @@ from desktop_study_companion.controller import ApplicationController
 def main() -> int:
     configure_logging()
     install_exception_hooks()
+    install_native_fault_handler()
     install_qt_message_logging()
+    previous_unclean = mark_run_started()
     logger = logging.getLogger("desktop_study_companion.app")
 
     app = QApplication(sys.argv)
     app.setApplicationName("Desktop Study Companion")
     app.setQuitOnLastWindowClosed(False)
+    app.aboutToQuit.connect(mark_run_clean)
 
     if platform.system() != "Windows":
         QMessageBox.critical(
@@ -46,6 +52,7 @@ def main() -> int:
             "A v0.1 é destinada ao Windows 10/11. "
             "O monitor de janela ativa ainda não possui implementação para este sistema.",
         )
+        mark_run_clean()
         return 2
 
     try:
@@ -55,7 +62,15 @@ def main() -> int:
         # Keep a strong reference for the whole Qt event loop.
         app._desktop_study_controller = controller  # type: ignore[attr-defined]
         controller.start()
-        return app.exec()
+        if previous_unclean:
+            logger.warning(
+                "The previous execution ended without a clean shutdown marker. "
+                "See desktop-study-companion-fatal.log and the rotating log."
+            )
+        exit_code = app.exec()
+        logger.info("Qt event loop exited code=%s", exit_code)
+        mark_run_clean()
+        return exit_code
     except Exception as exc:
         logger.exception("Fatal application startup/runtime error")
         QMessageBox.critical(
@@ -63,6 +78,7 @@ def main() -> int:
             "Falha ao iniciar",
             f"O Desktop Study Companion não conseguiu iniciar:\n\n{exc}",
         )
+        mark_run_clean()
         return 1
 
 
