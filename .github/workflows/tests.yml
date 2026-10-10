@@ -49,10 +49,17 @@ jobs:
               "desktop_study_companion/_resources/config/default.json",
               "desktop_study_companion/_resources/docs/TUTORIAL-INSTALACAO-WINDOWS.md",
               "desktop_study_companion/_resources/assets/avatar/avatar-manifest.json",
+              "desktop_study_companion/_resources/avatar/renderer/index.html",
           }
           missing = sorted(required - names)
-          if missing:
-              raise SystemExit("Wheel is missing runtime resources: " + ", ".join(missing))
+          js_prefix = "desktop_study_companion/_resources/avatar/renderer/assets/"
+          has_renderer_js = any(
+              name.startswith(js_prefix) and name.endswith(".js")
+              for name in names
+          )
+          if missing or not has_renderer_js:
+              detail = ", ".join(missing) if missing else "renderer JavaScript bundle"
+              raise SystemExit("Wheel is missing runtime resources: " + detail)
           print("Wheel runtime resources verified.")
           '@ | python -
 
@@ -77,3 +84,7 @@ jobs:
       - name: Build avatar renderer
         working-directory: avatar_web
         run: npm run build
+
+      - name: Verify packaged avatar renderer is current
+        shell: pwsh
+        run: git diff --no-index --exit-code -- "avatar_web/dist" "src/desktop_study_companion/_resources/avatar/renderer"

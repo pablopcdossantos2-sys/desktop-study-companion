@@ -35,3 +35,11 @@ def test_installed_wheel_uses_local_app_data_not_site_packages(
     assert runtime_paths.data_directory() == (
         tmp_path / "LocalAppData" / "DesktopStudyCompanion"
     )
+
+
+def test_packaged_avatar_renderer_is_available_in_source_tree() -> None:
+    package_root = Path(runtime_paths.__file__).resolve().parent
+    renderer = package_root / "_resources" / "avatar" / "renderer"
+
+    assert (renderer / "index.html").is_file()
+    assert any((renderer / "assets").glob("*.js"))

@@ -1,8 +1,5 @@
 name: build-windows-portable
 
-permissions:
-  contents: write
-
 concurrency:
   group: build-windows-${{ github.ref }}
   cancel-in-progress: true
@@ -67,22 +64,9 @@ jobs:
           npm ci
           npm run build
 
-      - name: Refresh packaged avatar renderer once
+      - name: Verify packaged avatar renderer is current
         shell: pwsh
-        run: |
-          $target = "src/desktop_study_companion/_resources/avatar/renderer"
-          if (Test-Path $target) {
-            Remove-Item $target -Recurse -Force
-          }
-          New-Item -ItemType Directory -Force -Path $target | Out-Null
-          Copy-Item "avatar_web/dist/*" $target -Recurse -Force
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add $target
-          if (-not (git diff --cached --quiet)) {
-            git commit -m "chore: package compiled avatar renderer"
-            git push origin HEAD:main
-          }
+        run: git diff --no-index --exit-code -- "avatar_web/dist" "src/desktop_study_companion/_resources/avatar/renderer"
 
       - name: Run source compile check
         run: python -m compileall -q src
