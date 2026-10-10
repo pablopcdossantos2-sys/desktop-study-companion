@@ -1,104 +1,141 @@
-# Limitações conhecidas da v0.1
+# Limitações conhecidas da v0.1.0-dev10
 
-A v0.1 é um MVP para validar o ciclo de accountability no Windows. Ela ainda não representa a experiência final planejada.
+A dev10 é um protótipo funcional para validar o ciclo completo de accountability, avatar e conversa por voz no Windows. Ela ainda não representa a experiência final de produto.
 
-## Personagem
+## Personagem VRM
 
-A interface atual usa um widget flutuante simples e um ícone provisório. Ainda não há:
+A personagem **Sendagaya Shino** já é carregada como VRM 1.0 e possui:
 
-- avatar Live2D/VRM;
-- animações;
-- expressões;
-- lip-sync;
-- movimentação autônoma pela área de trabalho.
+- transparência;
+- piscada automática;
+- look-at seguindo o cursor;
+- expressões básicas ligadas ao estado;
+- lip-sync aproximado;
+- movimento idle discreto;
+- fallback visual caso o renderer falhe.
 
-## Inteligência
+Ainda faltam:
 
-As mensagens atuais são geradas por regras de personalidade. Ainda não há LLM conectado.
+- lip-sync baseado no áudio real;
+- animações corporais/VRMA;
+- gestos específicos de cobrança/comemoração;
+- movimentação autônoma pela área de trabalho;
+- estados de humor persistentes.
 
-Isso é intencional: detecção, segurança e política de intervenção devem funcionar antes de acrescentarmos geração de linguagem.
+## Cérebro conversacional
+
+O cérebro com LLM é opcional e vem desativado por padrão.
+
+Limitações atuais:
+
+- não há streaming de tokens;
+- não há ferramentas concedidas ao LLM;
+- o LLM não cria nem altera Standing Rules, Directives ou permissões;
+- não há memória semântica de longo prazo;
+- não há resumo automático de sessão por LLM;
+- endpoints específicos de provedores fora de `/v1/chat/completions` não são usados.
+
+Essa separação entre LLM e intervenções de desktop é deliberada.
+
+Se um endpoint remoto for configurado, mensagens e contexto incluído no prompt passam a estar sujeitos à política de privacidade do provedor. Ollama local é a rota recomendada para testes locais.
+
+## Voz e push-to-talk
+
+A dev10 já possui:
+
+- TTS SAPI;
+- seleção de voz instalada;
+- volume/velocidade;
+- interrupção da fala;
+- seleção de microfone;
+- push-to-talk;
+- STT local com faster-whisper;
+- envio automático ou revisão da transcrição.
+
+Limitações:
+
+- o modelo Whisper é baixado no primeiro uso;
+- não há wake word;
+- não há escuta contínua;
+- não há streaming parcial da transcrição;
+- não há detecção automática do fim da fala;
+- CUDA depende de ambiente NVIDIA compatível;
+- CPU + INT8 é o modo padrão suportado;
+- o lip-sync visual não usa o áudio real do SAPI.
 
 ## Monitoramento
 
-A v0.1 utiliza somente metadados locais:
+A classificação usa somente metadados locais:
 
 - processo em primeiro plano;
 - título da janela.
 
-Ela não captura screenshots para classificar distrações.
+Não há captura automática de screenshots para classificar distrações.
 
 Consequências:
 
-- um site pode não ser reconhecido se o título da aba não contiver uma palavra configurada;
+- sites podem não ser reconhecidos se o título não contiver uma palavra configurada;
 - títulos genéricos podem exigir novas palavras-chave;
-- aplicativos desconhecidos ficam na categoria `UNKNOWN`.
+- atividade desconhecida permanece `UNKNOWN`.
 
 ## Navegadores
 
-A classificação procura palavras tanto no nome do processo quanto no título da janela. Isso permite diferenciar, por exemplo, uma aba do YouTube de uma página de estudo aberta no mesmo Chrome/Edge, mas depende do título fornecido pelo navegador.
+A classificação por aba depende do título exposto pelo navegador.
 
-## Voz
-
-O TTS inicial usa o Windows SAPI e, portanto:
-
-- depende das vozes instaladas no Windows;
-- ainda não há seletor de voz na interface;
-- ainda não há reconhecimento de fala;
-- ainda não há lip-sync.
-
-A voz pode ser desativada em `config/default.json`.
+Quando uma intervenção de fechamento é autorizada, navegadores conhecidos usam `Ctrl+W` para tentar fechar apenas a aba ativa; outros aplicativos podem exigir fechamento da janela.
 
 ## Métricas
 
-Tempo produtivo só é contado quando a janela corresponde a uma regra `productive_keywords`.
+Tempo produtivo só é contado quando a atividade corresponde às regras produtivas.
 
-Atividade `NEUTRAL` ou `UNKNOWN` não aumenta o tempo produtivo nem o tempo de distração.
+Atividade `NEUTRAL` ou `UNKNOWN` não aumenta tempo produtivo nem tempo de distração.
 
-## Banco de dados
+Os insights comportamentais atuais são heurísticos/determinísticos e exigem amostra mínima antes de exibir algumas conclusões.
 
-Os dados são armazenados localmente em `data/companion.db`.
+## Banco de dados e memória
 
-Nesta versão ainda não existe:
+Os dados ficam em `data/companion.db`.
 
-- interface para consultar histórico;
-- exportação;
-- backup automático;
-- migração formal de esquema entre releases.
+Já existem histórico, analytics, exportação CSV e backup ZIP, porém ainda não há:
 
-## Intervenções
+- migrações formais de esquema entre releases;
+- restauração guiada pela interface;
+- política configurável de retenção/esquecimento;
+- memória semântica de fatos pessoais.
 
-A v0.1 apenas fala e exibe mensagens.
+## Intervenções no desktop
 
-Ela **não**:
+Minimizar, fechar e lockdown limitado já existem, mas são **opt-in**.
 
-- minimiza;
-- fecha;
-- bloqueia;
-- impede o uso
+Limitações atuais:
 
-de qualquer programa.
+- o sistema não bloqueia mouse/teclado;
+- não bloqueia a estação de trabalho;
+- não impede que o usuário desative as intervenções;
+- o lockdown é propositalmente limitado e reversível;
+- ações dependem das APIs/janelas do Windows e ainda precisam ser validadas em máquina real.
 
-Essas ações serão implementadas apenas como recursos explicitamente opt-in.
+## Distribuição
 
+Existe build portátil via GitHub Actions.
 
-## Cérebro conversacional (dev9)
+Ainda faltam:
 
-- O cérebro conversacional é opcional e vem desativado por padrão.
-- A integração atual é apenas texto → LLM → texto/TTS.
-- Ainda não há streaming de tokens.
-- O push-to-talk local existe na dev10, mas ainda não há wake word ou escuta contínua.
-- O LLM não recebe ferramentas nem acesso às permissões de intervenção no desktop; essa separação é deliberada.
-- A compatibilidade esperada é com servidores que implementem `/v1/chat/completions`; extensões específicas de cada provedor não são usadas nesta fase.
-- Quando um endpoint remoto é configurado, mensagens e contexto comportamental enviados no prompt deixam o computador e passam a estar sujeitos à política do provedor.
-- O Ollama local é a rota recomendada para testes sem API paga.
+- instalador Windows convencional;
+- assinatura de código;
+- atualização automática;
+- onboarding completo;
+- validação em diferentes GPUs, microfones e configurações de áudio.
 
+## Validação necessária em PC real
 
-## Voz local (dev10)
+O CI valida código, dependências e empacotamento, mas não substitui testes reais de:
 
-- STT usa faster-whisper local e requer download do modelo na primeira utilização.
-- A build não inclui pesos Whisper para evitar aumentar ainda mais o ZIP.
-- Não há streaming parcial da transcrição.
-- Não há wake word.
-- Não há detecção automática de fim de fala; o modo principal é pressionar/soltar.
-- CUDA é opcional e depende de ambiente NVIDIA compatível; CPU + INT8 é o padrão suportado.
-- O lip-sync visual ainda é aproximado pela duração do texto e não pelo áudio real.
+- janela ativa;
+- transparência/Qt WebEngine;
+- VRM/WebGL;
+- vozes SAPI;
+- microfone/PortAudio;
+- download e desempenho do Whisper;
+- Ollama;
+- intervenções reais de janela.

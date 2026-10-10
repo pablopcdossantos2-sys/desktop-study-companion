@@ -27,6 +27,7 @@ from desktop_study_companion.config.models import (
     BrainConfig,
     MonitorConfig,
     PersonalityConfig,
+    SpeechInputConfig,
     VoiceConfig,
 )
 

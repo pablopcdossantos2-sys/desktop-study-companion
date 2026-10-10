@@ -99,7 +99,7 @@ A primeira instalação baixa o PySide6 e pode exibir várias mensagens no termi
 
 ## 5. Como saber se funcionou
 
-Quando a aplicação iniciar, deverá aparecer um pequeno elemento flutuante na área de trabalho com um ícone de livro e um balão de fala.
+Quando a aplicação iniciar, deverá aparecer a personagem 3D Sendagaya Shino em uma janela transparente, com o balão de fala acima dela. Se o renderer 3D falhar, o programa usa temporariamente um ícone de livro como fallback.
 
 Ele fica acima das outras janelas.
 
@@ -809,7 +809,7 @@ Não é mais necessário editar `config/default.json` para as configurações pr
 1. Clique com o botão direito no personagem.
 2. Escolha **Configurações**.
 
-A janela possui quatro áreas.
+A janela possui sete áreas: Atividade, Cobrança, Personalidade, Voz, Microfone, Cérebro e Avatar.
 
 ### Atividade
 
@@ -848,8 +848,31 @@ Permite alterar:
 Permite:
 
 - ligar/desligar TTS;
+- escolher uma voz SAPI instalada no Windows;
 - alterar velocidade;
 - alterar volume.
+
+### Microfone
+
+Permite:
+
+- ativar/desativar push-to-talk local;
+- escolher modelo Whisper;
+- definir idioma;
+- escolher CPU/auto/CUDA;
+- escolher o microfone;
+- definir o tempo máximo de gravação;
+- decidir se a transcrição é enviada automaticamente.
+
+### Cérebro
+
+Permite:
+
+- ativar/desativar conversa com LLM;
+- configurar endpoint OpenAI-compatible;
+- escolher modelo;
+- definir variável de ambiente da chave;
+- controlar temperatura, tokens, timeout e histórico enviado.
 
 ### Avatar
 
@@ -901,6 +924,7 @@ Serão criados:
 study_sessions.csv
 activity_events.csv
 interventions.csv
+conversation_messages.csv
 ```
 
 Esses arquivos podem ser abertos no Excel, LibreOffice Calc ou importados no Google Sheets.
