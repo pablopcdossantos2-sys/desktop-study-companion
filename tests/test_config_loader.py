@@ -14,6 +14,16 @@ def test_load_config_including_voice(tmp_path) -> None:
                     "distraction_keywords": ["youtube"],
                 },
                 "voice": {"enabled": False, "rate": 2, "volume": 75},
+                "speech_input": {
+                    "enabled": True,
+                    "model": "tiny",
+                    "language": "pt",
+                    "device": "cpu",
+                    "compute_type": "int8",
+                    "microphone_device": 4,
+                    "max_record_seconds": 20,
+                    "auto_send": False
+                },
                 "brain": {
                     "enabled": True,
                     "base_url": "http://127.0.0.1:11434/v1",
@@ -40,6 +50,11 @@ def test_load_config_including_voice(tmp_path) -> None:
     assert config.voice.enabled is False
     assert config.voice.rate == 2
     assert config.voice.volume == 75
+    assert config.speech_input.enabled is True
+    assert config.speech_input.model == "tiny"
+    assert config.speech_input.microphone_device == 4
+    assert config.speech_input.max_record_seconds == 20
+    assert config.speech_input.auto_send is False
     assert config.brain.enabled is True
     assert config.brain.model == "demo"
     assert config.brain.history_messages == 8
