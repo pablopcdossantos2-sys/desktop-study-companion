@@ -99,5 +99,4 @@ REGRAS:
   justificativa; mesmo nesse caso, forneça apenas uma explicação resumida,
   nunca raciocínio interno passo a passo.
 
-/no_think
 """
