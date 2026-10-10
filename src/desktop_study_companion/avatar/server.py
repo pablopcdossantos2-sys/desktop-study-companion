@@ -5,6 +5,7 @@ import mimetypes
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 logger = logging.getLogger("desktop_study_companion.avatar.server")
 
@@ -17,7 +18,7 @@ class AvatarAssetServer:
         self.thread: threading.Thread | None = None
 
     def start(self) -> str:
-        renderer_dir = self.renderer_dir
+        renderer_dir = self.renderer_dir.resolve()
         model_path = self.model_path
 
         class Handler(BaseHTTPRequestHandler):
@@ -29,9 +30,9 @@ class AvatarAssetServer:
                 if self.path == "/model.vrm":
                     target = model_path
                 else:
-                    rel = self.path.split("?", 1)[0].lstrip("/") or "index.html"
+                    rel = unquote(urlsplit(self.path).path).lstrip("/") or "index.html"
                     target = (renderer_dir / rel).resolve()
-                    if not str(target).startswith(str(renderer_dir.resolve())):
+                    if not target.is_relative_to(renderer_dir):
                         self.send_error(403)
                         return
                 if not target.exists() or not target.is_file():

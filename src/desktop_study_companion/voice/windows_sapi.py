@@ -8,6 +8,7 @@ from dataclasses import dataclass
 @dataclass(frozen=True, slots=True)
 class _SpeechItem:
     text: str
+    generation: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,9 +51,11 @@ class WindowsSapiTTS:
         self.rate = max(-10, min(10, rate))
         self.volume = max(0, min(100, volume))
         self.voice_token_id = voice_token_id.strip()
-        self._queue: queue.Queue[_SpeechItem | None] = queue.Queue()
+        self._queue: queue.Queue[_SpeechItem | None] = queue.Queue(maxsize=8)
         self._closed = False
         self._interrupt = threading.Event()
+        self._generation_lock = threading.Lock()
+        self._generation = 0
         self._speaking = threading.Event()
         self._thread = threading.Thread(
             target=self._worker,
@@ -65,7 +68,21 @@ class WindowsSapiTTS:
         text = text.strip()
         if not text or self._closed:
             return
-        self._queue.put(_SpeechItem(text))
+        with self._generation_lock:
+            item = _SpeechItem(text, self._generation)
+        try:
+            self._queue.put_nowait(item)
+        except queue.Full:
+            try:
+                dropped = self._queue.get_nowait()
+                if dropped is not None:
+                    self._queue.task_done()
+            except queue.Empty:
+                pass
+            try:
+                self._queue.put_nowait(item)
+            except queue.Full:
+                pass
 
     def _worker(self) -> None:
         # COM must be initialized inside the thread that uses the SAPI object.
@@ -90,8 +107,11 @@ class WindowsSapiTTS:
                 if item is None:
                     return
                 try:
-                    self._speaking.set()
-                    self._interrupt.clear()
+                    with self._generation_lock:
+                        if item.generation != self._generation:
+                            continue
+                        self._interrupt.clear()
+                        self._speaking.set()
                     speaker.Speak(item.text, 1)
                     while not speaker.WaitUntilDone(50):
                         if self._interrupt.is_set():
@@ -99,7 +119,9 @@ class WindowsSapiTTS:
                             break
                 finally:
                     self._speaking.clear()
-                    self._interrupt.clear()
+                    with self._generation_lock:
+                        if item.generation == self._generation:
+                            self._interrupt.clear()
                     self._queue.task_done()
         finally:
             pythoncom.CoUninitialize()
@@ -111,7 +133,9 @@ class WindowsSapiTTS:
     def stop(self) -> None:
         if self._closed:
             return
-        self._interrupt.set()
+        with self._generation_lock:
+            self._generation += 1
+            self._interrupt.set()
         while True:
             try:
                 item = self._queue.get_nowait()

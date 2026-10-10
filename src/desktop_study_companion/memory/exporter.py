@@ -20,6 +20,12 @@ _TABLES = (
 )
 
 
+def _csv_safe(value):
+    if isinstance(value, str) and value.startswith(("=", "+", "-", "@")):
+        return "'" + value
+    return value
+
+
 def export_csv_directory(
     db_path: str | Path,
     destination_dir: str | Path,
@@ -47,7 +53,7 @@ def export_csv_directory(
                 writer = csv.writer(handle)
                 writer.writerow(columns)
                 for row in rows:
-                    writer.writerow([row[column] for column in columns])
+                    writer.writerow([_csv_safe(row[column]) for column in columns])
             created.append(path)
 
     return created

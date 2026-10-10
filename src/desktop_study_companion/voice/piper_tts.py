@@ -15,6 +15,7 @@ logger = logging.getLogger("desktop_study_companion.voice.piper")
 @dataclass(frozen=True, slots=True)
 class _SpeechItem:
     text: str
+    generation: int
 
 
 class PiperNeuralTTS:
@@ -46,9 +47,11 @@ class PiperNeuralTTS:
         self.noise_w_scale = float(noise_w_scale)
         self.fallback = fallback
 
-        self._queue: queue.Queue[_SpeechItem | None] = queue.Queue()
+        self._queue: queue.Queue[_SpeechItem | None] = queue.Queue(maxsize=8)
         self._closed = False
         self._interrupt = threading.Event()
+        self._generation_lock = threading.Lock()
+        self._generation = 0
         self._speaking = threading.Event()
         self._thread = threading.Thread(
             target=self._worker,
@@ -66,7 +69,21 @@ class PiperNeuralTTS:
             self.model_id,
             len(text),
         )
-        self._queue.put(_SpeechItem(text))
+        with self._generation_lock:
+            item = _SpeechItem(text, self._generation)
+        try:
+            self._queue.put_nowait(item)
+        except queue.Full:
+            try:
+                dropped = self._queue.get_nowait()
+                if dropped is not None:
+                    self._queue.task_done()
+            except queue.Empty:
+                pass
+            try:
+                self._queue.put_nowait(item)
+            except queue.Full:
+                logger.warning("Dropping Piper utterance because queue is full")
 
     def _data_dir(self) -> Path:
         # model_dir is data/models/piper.
@@ -254,8 +271,11 @@ class PiperNeuralTTS:
             if item is None:
                 return
             try:
-                self._speaking.set()
-                self._interrupt.clear()
+                with self._generation_lock:
+                    if item.generation != self._generation:
+                        continue
+                    self._interrupt.clear()
+                    self._speaking.set()
                 try:
                     self._speak_item(item.text)
                 except Exception:
@@ -264,11 +284,19 @@ class PiperNeuralTTS:
                         self.model_id,
                         self.fallback is not None,
                     )
-                    if self.fallback is not None and not self._interrupt.is_set():
+                    with self._generation_lock:
+                        current = item.generation == self._generation
+                    if (
+                        self.fallback is not None
+                        and current
+                        and not self._interrupt.is_set()
+                    ):
                         self.fallback.speak(item.text)
             finally:
                 self._speaking.clear()
-                self._interrupt.clear()
+                with self._generation_lock:
+                    if item.generation == self._generation:
+                        self._interrupt.clear()
                 self._queue.task_done()
 
     @property
@@ -282,7 +310,9 @@ class PiperNeuralTTS:
     def stop(self) -> None:
         if self._closed:
             return
-        self._interrupt.set()
+        with self._generation_lock:
+            self._generation += 1
+            self._interrupt.set()
         self._stop_native_playback()
         if self.fallback is not None:
             self.fallback.stop()

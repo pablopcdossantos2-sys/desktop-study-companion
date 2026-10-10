@@ -37,7 +37,16 @@ def sanitize_assistant_text(text: str) -> str:
     if "<think>" in lower and "</think>" not in lower:
         text = text[: lower.rfind("<think>")]
     text = _CONTROL_TAG_RE.sub("", text)
-    return " ".join(text.split()).strip()
+    lines = [" ".join(line.split()) for line in text.splitlines()]
+    compact: list[str] = []
+    previous_blank = False
+    for line in lines:
+        blank = not line
+        if blank and previous_blank:
+            continue
+        compact.append(line)
+        previous_blank = blank
+    return "\n".join(compact).strip()
 
 
 def looks_like_reasoning_leak(text: str) -> bool:
@@ -127,6 +136,16 @@ class OpenAICompatibleProvider:
             raise ValueError("brain base_url cannot be empty")
         if not self.model:
             raise ValueError("brain model cannot be empty")
+        parsed = urlparse(self.base_url)
+        host = (parsed.hostname or "").casefold()
+        if (
+            self.api_key
+            and parsed.scheme == "http"
+            and host not in {"127.0.0.1", "localhost", "::1"}
+        ):
+            raise ValueError(
+                "refusing to send a Bearer API key over remote HTTP; use HTTPS"
+            )
 
     @property
     def endpoint(self) -> str:
@@ -222,8 +241,22 @@ class OpenAICompatibleProvider:
                 return cleaned
             except BrainError:
                 raise
+            except urllib.error.HTTPError as exc:
+                if 400 <= int(getattr(exc, "code", 0)) < 500:
+                    try:
+                        detail = exc.read().decode("utf-8", errors="replace").strip()
+                    except Exception:
+                        detail = ""
+                    raise BrainError(
+                        f"falha HTTP {exc.code} ao consultar o cérebro"
+                        + (f": {detail[:500]}" if detail else "")
+                    ) from exc
+                last_error = exc
+                if attempt < self.retries:
+                    time.sleep(0.5 * (attempt + 1))
+                    continue
+                break
             except (
-                urllib.error.HTTPError,
                 urllib.error.URLError,
                 TimeoutError,
                 OSError,
@@ -450,8 +483,22 @@ class OllamaNativeProvider:
                 )
             except BrainError:
                 raise
+            except urllib.error.HTTPError as exc:
+                if 400 <= int(getattr(exc, "code", 0)) < 500:
+                    try:
+                        detail = exc.read().decode("utf-8", errors="replace").strip()
+                    except Exception:
+                        detail = ""
+                    raise BrainError(
+                        f"falha HTTP {exc.code} ao consultar o Ollama"
+                        + (f": {detail[:500]}" if detail else "")
+                    ) from exc
+                last_error = exc
+                if attempt < self.retries:
+                    time.sleep(0.5 * (attempt + 1))
+                    continue
+                break
             except (
-                urllib.error.HTTPError,
                 urllib.error.URLError,
                 TimeoutError,
                 OSError,
