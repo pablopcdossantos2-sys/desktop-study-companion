@@ -87,6 +87,17 @@ def validate_config(config: AppConfig) -> None:
         raise ValueError("proactivity minimum interval must be at least 1 minute")
     if proactive.max_interval_minutes < proactive.min_interval_minutes:
         raise ValueError("proactivity maximum interval must be >= minimum interval")
+    for phrase_group in (
+        proactive.activation_phrases,
+        proactive.focus_phrases,
+        proactive.recovery_phrases,
+        proactive.celebration_phrases,
+        proactive.reset_phrases,
+    ):
+        if len(phrase_group) > 50:
+            raise ValueError("each coach phrase group supports at most 50 phrases")
+        if any(len(text) > 500 for text in phrase_group):
+            raise ValueError("coach phrases must be at most 500 characters")
 
     if config.speech_input.enabled and not config.speech_input.model.strip():
         raise ValueError("speech input model cannot be empty when enabled")

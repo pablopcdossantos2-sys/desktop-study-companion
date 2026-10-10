@@ -39,25 +39,42 @@ def _section(cls, raw):
     return cls(**{key: value for key, value in raw.items() if key in allowed})
 
 
-def _clean_activity(config: ActivityConfig) -> ActivityConfig:
-    def clean(values) -> list[str]:
-        if not isinstance(values, list):
-            return []
-        seen: set[str] = set()
-        result: list[str] = []
-        for value in values:
-            if not isinstance(value, str):
-                continue
-            text = value.strip()
-            folded = text.casefold()
-            if text and folded not in seen:
-                result.append(text)
-                seen.add(folded)
-        return result
+def _clean_string_list(values) -> list[str]:
+    if not isinstance(values, list):
+        return []
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values:
+        if not isinstance(value, str):
+            continue
+        text = value.strip()
+        folded = text.casefold()
+        if text and folded not in seen:
+            result.append(text)
+            seen.add(folded)
+    return result
 
-    config.productive_keywords = clean(config.productive_keywords)
-    config.neutral_keywords = clean(config.neutral_keywords)
-    config.distraction_keywords = clean(config.distraction_keywords)
+
+def _clean_activity(config: ActivityConfig) -> ActivityConfig:
+    config.productive_keywords = _clean_string_list(
+        config.productive_keywords
+    )
+    config.neutral_keywords = _clean_string_list(config.neutral_keywords)
+    config.distraction_keywords = _clean_string_list(
+        config.distraction_keywords
+    )
+    return config
+
+
+def _clean_proactivity(config: ProactivityConfig) -> ProactivityConfig:
+    for name in (
+        "activation_phrases",
+        "focus_phrases",
+        "recovery_phrases",
+        "celebration_phrases",
+        "reset_phrases",
+    ):
+        setattr(config, name, _clean_string_list(getattr(config, name)))
     return config
 
 
@@ -91,7 +108,9 @@ def _read_config(config_path: Path) -> AppConfig:
         activity=_clean_activity(_section(ActivityConfig, data.get("activity"))),
         accountability=_section(AccountabilityConfig, data.get("accountability")),
         personality=_section(PersonalityConfig, data.get("personality")),
-        proactivity=_section(ProactivityConfig, data.get("proactivity")),
+        proactivity=_clean_proactivity(
+            _section(ProactivityConfig, data.get("proactivity"))
+        ),
         voice=_section(VoiceConfig, data.get("voice")),
         speech_input=_section(SpeechInputConfig, data.get("speech_input")),
         brain=_section(BrainConfig, data.get("brain")),

@@ -39,8 +39,14 @@ class PersonalityConfig:
 class ProactivityConfig:
     enabled: bool = True
     motivational_messages: bool = True
-    min_interval_minutes: int = 8
-    max_interval_minutes: int = 16
+    coach_mode: bool = True
+    min_interval_minutes: int = 6
+    max_interval_minutes: int = 12
+    activation_phrases: list[str] = field(default_factory=list)
+    focus_phrases: list[str] = field(default_factory=list)
+    recovery_phrases: list[str] = field(default_factory=list)
+    celebration_phrases: list[str] = field(default_factory=list)
+    reset_phrases: list[str] = field(default_factory=list)
 
 
 @dataclass(slots=True)

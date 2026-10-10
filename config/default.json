@@ -88,7 +88,13 @@
   "proactivity": {
     "enabled": true,
     "motivational_messages": true,
-    "min_interval_minutes": 8,
-    "max_interval_minutes": 16
+    "coach_mode": true,
+    "min_interval_minutes": 6,
+    "max_interval_minutes": 12,
+    "activation_phrases": [],
+    "focus_phrases": [],
+    "recovery_phrases": [],
+    "celebration_phrases": [],
+    "reset_phrases": []
   }
 }
