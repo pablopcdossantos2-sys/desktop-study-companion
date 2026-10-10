@@ -71,6 +71,21 @@ def avatar_model_path() -> Path:
 
 
 def avatar_renderer_directory() -> Path:
+    if getattr(sys, "frozen", False):
+        return application_root() / "avatar" / "renderer"
+
+    source_root = _source_checkout_root()
+    if source_root is not None:
+        live_build = source_root / "avatar_web" / "dist"
+        if (live_build / "index.html").is_file():
+            return live_build
+        return (
+            Path(__file__).resolve().parent
+            / "_resources"
+            / "avatar"
+            / "renderer"
+        )
+
     return application_root() / "avatar" / "renderer"
 
 
