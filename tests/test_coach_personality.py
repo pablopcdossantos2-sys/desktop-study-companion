@@ -119,3 +119,12 @@ def test_initiative_biases_proactive_interval_toward_shorter_end(
     assert captured["high"] == 12
     assert captured["mode"] < 7
     assert 6 <= chosen <= 12
+
+
+def test_session_milestone_reanchors_current_goal() -> None:
+    renderer = PersonalityRenderer(Personality(), name="Luna")
+
+    for percent in (25, 50, 75):
+        message = renderer.milestone_message("Cálculo", percent)
+        assert "Cálculo" in message
+        assert message.strip()
