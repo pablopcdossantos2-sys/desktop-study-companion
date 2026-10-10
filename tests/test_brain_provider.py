@@ -1,5 +1,7 @@
 import json
 import threading
+
+import desktop_study_companion.brain.provider as brain_provider
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from desktop_study_companion.brain.provider import (
@@ -202,3 +204,53 @@ def test_ollama_provider_recovers_from_reasoning_like_first_response() -> None:
     assert "/no_think" in captured[0]["messages"][-1]["content"]
     assert "Não descreva análise" in captured[1]["messages"][-1]["content"]
     assert answer == "Sim, estou te ouvindo. Como posso ajudar?"
+
+
+def test_openai_provider_retries_rate_limit(monkeypatch) -> None:
+    calls = {"count": 0}
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self):  # noqa: N802
+            calls["count"] += 1
+            length = int(self.headers["Content-Length"])
+            self.rfile.read(length)
+            if calls["count"] == 1:
+                self.send_response(429)
+                self.send_header("Retry-After", "1")
+                self.end_headers()
+                return
+
+            body = json.dumps(
+                {"choices": [{"message": {"content": "Recuperado."}}]}
+            ).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *_args):
+            return
+
+    monkeypatch.setattr(brain_provider.time, "sleep", lambda _seconds: None)
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
+    try:
+        host, port = server.server_address
+        provider = OpenAICompatibleProvider(
+            base_url=f"http://{host}:{port}/v1",
+            model="test-model",
+            retries=1,
+        )
+        answer = provider.chat(
+            system_prompt="system",
+            messages=[ChatMessage("user", "oi")],
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+
+    assert calls["count"] == 2
+    assert answer == "Recuperado."
