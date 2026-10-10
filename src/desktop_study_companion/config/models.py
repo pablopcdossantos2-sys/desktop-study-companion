@@ -43,6 +43,18 @@ class VoiceConfig:
 
 
 @dataclass(slots=True)
+class BrainConfig:
+    enabled: bool = False
+    base_url: str = "http://127.0.0.1:11434/v1"
+    model: str = ""
+    api_key_env: str = "DESKTOP_STUDY_COMPANION_LLM_API_KEY"
+    temperature: float = 0.7
+    max_tokens: int = 500
+    timeout_seconds: int = 45
+    history_messages: int = 12
+
+
+@dataclass(slots=True)
 class AvatarConfig:
     enabled: bool = True
     width: int = 360
@@ -58,4 +70,5 @@ class AppConfig:
     accountability: AccountabilityConfig = field(default_factory=AccountabilityConfig)
     personality: PersonalityConfig = field(default_factory=PersonalityConfig)
     voice: VoiceConfig = field(default_factory=VoiceConfig)
+    brain: BrainConfig = field(default_factory=BrainConfig)
     avatar: AvatarConfig = field(default_factory=AvatarConfig)
