@@ -105,7 +105,7 @@ Portanto, use um endpoint remoto somente quando aceitar a política de privacida
 
 ## Chaves
 
-O arquivo `config/default.json` não armazena o segredo da API.
+Nem `data/config.json` nem `config/default.json` armazenam o segredo da API. O arquivo do usuário registra apenas o nome da variável de ambiente que contém a chave.
 
 Ele armazena somente o nome de uma variável de ambiente, por padrão:
 
