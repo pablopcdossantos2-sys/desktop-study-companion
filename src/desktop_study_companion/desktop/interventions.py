@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Permission-gated desktop interventions adapted from bonziPONY.
 
 Relevant upstream behavior:
@@ -15,13 +13,23 @@ This adaptation adds a stricter opt-in permission layer and protected-process
 list. No invasive action is enabled by default.
 """
 
+from __future__ import annotations
+
 import json
+import logging
 import platform
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Protocol
 
+from desktop_study_companion.activity.matching import KNOWN_PRODUCTIVE_PROCESSES
 from desktop_study_companion.activity.models import ActiveWindow
+from desktop_study_companion.safe_json import (
+    atomic_write_json,
+    quarantine_invalid_json,
+)
+
+logger = logging.getLogger("desktop_study_companion.desktop.interventions")
 
 
 _BROWSER_PROCESSES = {
@@ -39,7 +47,7 @@ _BROWSER_PROCESSES = {
     "vivaldi.exe",
 }
 
-_DEFAULT_PROTECTED_PROCESSES = {
+_SYSTEM_PROTECTED_PROCESSES = {
     "desktop-study-companion.exe",
     "explorer.exe",
     "taskmgr.exe",
@@ -49,17 +57,11 @@ _DEFAULT_PROTECTED_PROCESSES = {
     "conhost.exe",
     "python.exe",
     "pythonw.exe",
-    "anki.exe",
-    "code.exe",
-    "devenv.exe",
-    "excel.exe",
-    "notepad.exe",
-    "notepad++.exe",
-    "obsidian.exe",
-    "onenote.exe",
-    "powerpnt.exe",
-    "winword.exe",
 }
+
+_DEFAULT_PROTECTED_PROCESSES = (
+    _SYSTEM_PROTECTED_PROCESSES | set(KNOWN_PRODUCTIVE_PROCESSES)
+)
 
 
 @dataclass(slots=True)
@@ -79,6 +81,17 @@ class InterventionPermissions:
 
     @classmethod
     def from_dict(cls, data: dict) -> "InterventionPermissions":
+        raw_protected = data.get(
+            "protected_processes",
+            sorted(_DEFAULT_PROTECTED_PROCESSES),
+        )
+        if not isinstance(raw_protected, list):
+            raise TypeError("protected_processes must be a list")
+        protected = [
+            value.strip()
+            for value in raw_protected
+            if isinstance(value, str) and value.strip()
+        ]
         return cls(
             enabled=bool(data.get("enabled", False)),
             allow_minimize=bool(data.get("allow_minimize", False)),
@@ -87,13 +100,11 @@ class InterventionPermissions:
                 data.get("allow_session_escalation", False)
             ),
             allow_lockdown=bool(data.get("allow_lockdown", False)),
-            lockdown_minutes=max(1, min(60, int(data.get("lockdown_minutes", 5)))),
-            protected_processes=list(
-                data.get(
-                    "protected_processes",
-                    sorted(_DEFAULT_PROTECTED_PROCESSES),
-                )
+            lockdown_minutes=max(
+                1,
+                min(60, int(data.get("lockdown_minutes", 5))),
             ),
+            protected_processes=protected,
         )
 
 
@@ -110,19 +121,19 @@ class InterventionPermissionStore:
             return
         try:
             data = json.loads(self.path.read_text(encoding="utf-8"))
+            if not isinstance(data, dict):
+                raise TypeError("permission file must be an object")
             self.permissions = InterventionPermissions.from_dict(data)
         except (OSError, json.JSONDecodeError, TypeError, ValueError):
+            logger.exception(
+                "Invalid intervention permission file path=%s",
+                self.path,
+            )
+            quarantine_invalid_json(self.path)
             self.permissions = InterventionPermissions()
 
     def save(self) -> None:
-        self.path.write_text(
-            json.dumps(
-                self.permissions.to_dict(),
-                ensure_ascii=False,
-                indent=2,
-            ),
-            encoding="utf-8",
-        )
+        atomic_write_json(self.path, self.permissions.to_dict())
 
     def emergency_disable(self) -> None:
         self.permissions.enabled = False
@@ -186,12 +197,18 @@ class WindowsWindowBackend:
             import win32con
             import win32gui
 
-            win32gui.SetForegroundWindow(int(hwnd))
+            if int(win32gui.GetForegroundWindow()) != int(hwnd):
+                win32gui.SetForegroundWindow(int(hwnd))
             if int(win32gui.GetForegroundWindow()) != int(hwnd):
                 return False
             win32api.keybd_event(win32con.VK_CONTROL, 0, 0, 0)
             win32api.keybd_event(ord("W"), 0, 0, 0)
-            win32api.keybd_event(ord("W"), 0, win32con.KEYEVENTF_KEYUP, 0)
+            win32api.keybd_event(
+                ord("W"),
+                0,
+                win32con.KEYEVENTF_KEYUP,
+                0,
+            )
             win32api.keybd_event(
                 win32con.VK_CONTROL,
                 0,
@@ -228,11 +245,19 @@ class DesktopInterventionController:
         }
         return process in protected
 
-    def perform(self, response: str, window: ActiveWindow) -> InterventionResult:
+    def perform(
+        self,
+        response: str,
+        window: ActiveWindow,
+    ) -> InterventionResult:
         response = (response or "nag").casefold().strip()
 
         if response == "nag":
-            return InterventionResult("nag", False, "rule requests nag only")
+            return InterventionResult(
+                "nag",
+                False,
+                "rule requests nag only",
+            )
 
         permissions = self.permissions
         if not permissions.enabled:
@@ -284,14 +309,18 @@ class DesktopInterventionController:
                 return InterventionResult(
                     response,
                     ok,
-                    "browser tab closed" if ok else "browser tab close failed",
+                    "browser tab closed"
+                    if ok
+                    else "browser tab close failed",
                 )
 
             ok = self.backend.close_window(window.hwnd)
             return InterventionResult(
                 response,
                 ok,
-                "window close requested" if ok else "window close failed",
+                "window close requested"
+                if ok
+                else "window close failed",
             )
 
         return InterventionResult(

@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
+from desktop_study_companion.activity.matching import keyword_matches
 from desktop_study_companion.activity.models import ActiveWindow
 from desktop_study_companion.safe_json import atomic_write_json, load_json_list
 
@@ -25,7 +26,11 @@ class StandingRule:
     def __post_init__(self) -> None:
         if not self.id:
             self.id = str(uuid4())[:8]
-        self.patterns = [p.strip() for p in self.patterns if isinstance(p, str) and p.strip()]
+        self.patterns = [
+            p.strip()
+            for p in self.patterns
+            if isinstance(p, str) and p.strip()
+        ]
         self.cooldown_s = max(0.0, float(self.cooldown_s))
 
     def to_dict(self) -> dict:
@@ -100,9 +105,13 @@ class StandingRuleManager:
                 return True
         return False
 
-    def check(self, window: ActiveWindow, *, now: datetime | None = None) -> list[RuleViolation]:
+    def check(
+        self,
+        window: ActiveWindow,
+        *,
+        now: datetime | None = None,
+    ) -> list[RuleViolation]:
         now = now or datetime.now().astimezone()
-        haystack = f"{window.process_name} {window.title}".casefold()
         violations: list[RuleViolation] = []
 
         for rule in self.rules:
@@ -113,12 +122,20 @@ class StandingRuleManager:
             if rule.last_triggered_at:
                 try:
                     last = datetime.fromisoformat(rule.last_triggered_at)
-                    action_due = (now - last).total_seconds() >= rule.cooldown_s
-                except ValueError:
+                    if last.tzinfo is None and now.tzinfo is not None:
+                        last = last.astimezone()
+                    action_due = (
+                        now - last
+                    ).total_seconds() >= rule.cooldown_s
+                except (TypeError, ValueError):
                     action_due = True
 
             for pattern in rule.patterns:
-                if pattern.casefold() in haystack:
+                if keyword_matches(
+                    pattern,
+                    window.process_name,
+                    window.title,
+                ):
                     violations.append(
                         RuleViolation(
                             rule=rule,
@@ -131,7 +148,12 @@ class StandingRuleManager:
 
         return violations
 
-    def record_trigger(self, rule: StandingRule, *, now: datetime | None = None) -> None:
+    def record_trigger(
+        self,
+        rule: StandingRule,
+        *,
+        now: datetime | None = None,
+    ) -> None:
         now = now or datetime.now().astimezone()
         rule.catch_count += 1
         rule.last_triggered_at = now.isoformat()

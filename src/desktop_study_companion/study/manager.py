@@ -16,6 +16,7 @@ class StudyTick:
 
 class StudySessionManager:
     NEUTRAL_GRACE_SECONDS = 3.0
+    COMPLETION_GRACE_RATIO = 0.90
 
     def __init__(self) -> None:
         self.session: StudySession | None = None
@@ -39,14 +40,21 @@ class StudySessionManager:
             raise ValueError("planned_minutes must be greater than zero")
         if self.active:
             raise RuntimeError("a study session is already active")
-        self.session = StudySession(goal=goal.strip() or "Estudar", planned_minutes=planned_minutes)
+        self.session = StudySession(
+            goal=goal.strip() or "Estudar",
+            planned_minutes=planned_minutes,
+        )
         self.session.start()
         self._elapsed_seconds = 0.0
         self._distraction_streak_seconds = 0.0
         self._neutral_gap_seconds = 0.0
         return self.session
 
-    def tick(self, kind: ActivityKind, seconds: float) -> StudyTick | None:
+    def tick(
+        self,
+        kind: ActivityKind,
+        seconds: float,
+    ) -> StudyTick | None:
         if not self.active or self.session is None:
             return None
         seconds = max(0.0, float(seconds))
@@ -73,13 +81,21 @@ class StudySessionManager:
         if self._elapsed_seconds >= self.session.planned_minutes * 60:
             self.session.complete()
 
-        return StudyTick(self.session.state, self._distraction_streak_seconds, self._elapsed_seconds)
+        return StudyTick(
+            self.session.state,
+            self._distraction_streak_seconds,
+            self._elapsed_seconds,
+        )
 
     def finish(self) -> StudySession:
         if self.session is None:
             raise RuntimeError("there is no session to finish")
         if self.active:
-            if self._elapsed_seconds >= self.session.planned_minutes * 60:
+            planned_seconds = self.session.planned_minutes * 60
+            completion_threshold = (
+                planned_seconds * self.COMPLETION_GRACE_RATIO
+            )
+            if self._elapsed_seconds >= completion_threshold:
                 self.session.complete()
             else:
                 self.session.abandon()
