@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import os
-import random
 import time
 
 from PySide6.QtCore import QObject, QThreadPool, QTimer
