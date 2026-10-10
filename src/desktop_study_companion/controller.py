@@ -38,6 +38,10 @@ from desktop_study_companion.activity.windows_monitor import (
 )
 from desktop_study_companion.brain.service import BrainService
 from desktop_study_companion.brain.worker import BrainChatWorker
+from desktop_study_companion.config.loader import (
+    ConfigRecoveryState,
+    preserve_recovery_source_before_write,
+)
 from desktop_study_companion.config.models import AppConfig
 from desktop_study_companion.config.writer import (
     brain_transport_security_issue,
@@ -107,10 +111,19 @@ class ApplicationController(QObject):
     SESSION_SAVE_INTERVAL_SECONDS = 10.0
     WAKE_GAP_SECONDS = RoutineManager.WAKE_GAP_MINUTES * 60.0
 
-    def __init__(self, app: QApplication, config: AppConfig) -> None:
+    def __init__(
+        self,
+        app: QApplication,
+        config: AppConfig,
+        *,
+        config_recovery_state: ConfigRecoveryState | None = None,
+    ) -> None:
         super().__init__()
         self.app = app
         self.config = config
+        self._config_recovery_state = (
+            config_recovery_state or ConfigRecoveryState()
+        )
         self.monitor = WindowsActiveWindowMonitor()
         self.classifier = ActivityClassifier(
             productive_keywords=set(config.activity.productive_keywords),
@@ -1139,13 +1152,20 @@ class ApplicationController(QObject):
             return
 
         new_config = dialog.values()
+        config_path = external_config_path()
+        backup = None
         try:
-            save_config(new_config, external_config_path())
+            backup = preserve_recovery_source_before_write(
+                self._config_recovery_state,
+                config_path,
+            )
+            save_config(new_config, config_path)
         except Exception as exc:
             show_message_top_level(
                 QMessageBox.Icon.Critical,
-                "Configuração inválida",
-                f"Não foi possível salvar as configurações:\n\n{exc}",
+                "Configuração não salva",
+                "Não foi possível preservar e salvar as configurações:"
+                f"\n\n{exc}\n\nO arquivo original não foi sobrescrito.",
                 avoid_widget=self.widget,
             )
             return
@@ -1153,12 +1173,26 @@ class ApplicationController(QObject):
         security_issue = brain_transport_security_issue(new_config)
         if security_issue:
             new_config.brain.enabled = False
+            self._config_recovery_state = ConfigRecoveryState(
+                preserve_before_write=config_path,
+                reason="brain_transport",
+            )
             show_message_top_level(
                 QMessageBox.Icon.Warning,
                 "Cérebro desativado por segurança",
                 security_issue
-                + "\n\nAs demais configurações foram preservadas e aplicadas.",
+                + "\n\nAs demais configurações foram preservadas e aplicadas. "
+                "Antes de uma futura gravação, o arquivo atual será "
+                "preservado em .bak.",
                 avoid_widget=self.widget,
+            )
+        else:
+            self._config_recovery_state = ConfigRecoveryState()
+
+        if backup is not None:
+            logger.info(
+                "Preserved configuration before recovery overwrite backup=%s",
+                backup,
             )
 
         self._apply_runtime_config(new_config)

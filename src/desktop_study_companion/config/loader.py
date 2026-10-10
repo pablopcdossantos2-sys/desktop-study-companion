@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import time
-from dataclasses import fields
+from dataclasses import dataclass, fields
 from pathlib import Path
 
 from desktop_study_companion.runtime_paths import (
@@ -11,7 +11,10 @@ from desktop_study_companion.runtime_paths import (
     external_config_path,
     source_default_config_path,
 )
-from desktop_study_companion.safe_json import quarantine_invalid_json
+from desktop_study_companion.safe_json import (
+    backup_json_snapshot,
+    quarantine_invalid_json,
+)
 
 from .models import (
     AccountabilityConfig,
@@ -28,6 +31,38 @@ from .models import (
 from .writer import brain_transport_security_issue, validate_config
 
 logger = logging.getLogger("desktop_study_companion.config.loader")
+
+
+@dataclass(frozen=True, slots=True)
+class ConfigRecoveryState:
+    preserve_before_write: Path | None = None
+    reason: str = ""
+
+
+def preserve_recovery_source_before_write(
+    state: ConfigRecoveryState | None,
+    target: str | Path,
+) -> Path | None:
+    if state is None or state.preserve_before_write is None:
+        return None
+
+    source = state.preserve_before_write
+    target_path = Path(target)
+    try:
+        same_target = source.resolve() == target_path.resolve()
+    except OSError:
+        same_target = source.absolute() == target_path.absolute()
+
+    if not same_target or not source.exists():
+        return None
+
+    backup = backup_json_snapshot(source)
+    if backup is None:
+        raise OSError(
+            "não foi possível preservar a configuração original antes "
+            "da gravação"
+        )
+    return backup
 
 
 def _section(cls, raw):
@@ -151,10 +186,13 @@ def _candidate_paths(path: str | Path | None) -> tuple[list[Path], set[Path]]:
 
 def load_config_with_recovery(
     path: str | Path | None = None,
-) -> tuple[AppConfig, str | None]:
+    *,
+    include_state: bool = False,
+):
     candidates, recoverable = _candidate_paths(path)
     failures: list[str] = []
     notices: list[str] = []
+    recovery_state = ConfigRecoveryState()
 
     for candidate in candidates:
         if not candidate.exists():
@@ -168,10 +206,15 @@ def load_config_with_recovery(
                 candidate,
             )
             if candidate in recoverable:
+                recovery_state = ConfigRecoveryState(
+                    preserve_before_write=candidate,
+                    reason="unreadable",
+                )
                 notices.append(
                     f"Não foi possível ler temporariamente {candidate}. "
                     "O arquivo foi mantido intacto e uma configuração de "
-                    "fallback foi carregada."
+                    "fallback foi carregada. Antes de uma futura gravação, "
+                    "o conteúdo original será preservado em um snapshot .bak."
                 )
             continue
         except (json.JSONDecodeError, TypeError, ValueError) as exc:
@@ -194,10 +237,21 @@ def load_config_with_recovery(
         security_issue = brain_transport_security_issue(config)
         if security_issue:
             config.brain.enabled = False
-            notices.append(security_issue)
+            if candidate in recoverable:
+                recovery_state = ConfigRecoveryState(
+                    preserve_before_write=candidate,
+                    reason="brain_transport",
+                )
+            notices.append(
+                security_issue
+                + " A configuração original será preservada antes da "
+                "próxima gravação."
+            )
             logger.warning(security_issue)
 
         notice = " ".join(notices).strip() or None
+        if include_state:
+            return config, notice, recovery_state
         return config, notice
 
     detail = "; ".join(failures) if failures else "nenhum arquivo encontrado"

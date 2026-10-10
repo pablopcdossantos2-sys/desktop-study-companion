@@ -81,8 +81,14 @@ def main() -> int:
 
     try:
         logger.info("Loading configuration")
-        config, recovery_notice = load_config_with_recovery()
-        controller = ApplicationController(app, config)
+        config, recovery_notice, recovery_state = load_config_with_recovery(
+            include_state=True
+        )
+        controller = ApplicationController(
+            app,
+            config,
+            config_recovery_state=recovery_state,
+        )
         # Keep a strong reference for the whole Qt event loop.
         app._desktop_study_controller = controller  # type: ignore[attr-defined]
         controller.start()
