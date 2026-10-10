@@ -1,5 +1,6 @@
 from desktop_study_companion.accountability.models import InterventionKind
 from desktop_study_companion.personality.models import Personality
+import desktop_study_companion.personality.renderer as renderer_module
 from desktop_study_companion.personality.renderer import PersonalityRenderer
 
 
@@ -93,3 +94,28 @@ def test_insistent_intervention_is_direct_without_humiliation() -> None:
                 "sessão",
             )
         )
+
+
+def test_initiative_biases_proactive_interval_toward_shorter_end(
+    monkeypatch,
+) -> None:
+    captured = {}
+
+    def fake_triangular(low, high, mode):
+        captured["low"] = low
+        captured["high"] = high
+        captured["mode"] = mode
+        return mode
+
+    monkeypatch.setattr(renderer_module.random, "triangular", fake_triangular)
+    renderer = PersonalityRenderer(
+        Personality(initiative=90),
+        name="Luna",
+    )
+
+    chosen = renderer.proactive_interval_minutes(6, 12)
+
+    assert captured["low"] == 6
+    assert captured["high"] == 12
+    assert captured["mode"] < 7
+    assert 6 <= chosen <= 12
