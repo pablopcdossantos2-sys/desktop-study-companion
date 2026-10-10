@@ -50,6 +50,13 @@ class SQLiteMemoryStore:
                 reason TEXT NOT NULL,
                 payload_json TEXT NOT NULL DEFAULT '{}'
             );
+
+            CREATE TABLE IF NOT EXISTS conversation_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
+                content TEXT NOT NULL
+            );
             """
         )
         self.connection.commit()
@@ -121,6 +128,49 @@ class SQLiteMemoryStore:
             ),
         )
         self.connection.commit()
+
+    def save_conversation_message(self, role: str, content: str) -> None:
+        role = role.strip().casefold()
+        if role not in {"user", "assistant"}:
+            raise ValueError("conversation role must be user or assistant")
+        content = content.strip()
+        if not content:
+            return
+        with sqlite3.connect(self.path) as connection:
+            connection.execute(
+                """
+                INSERT INTO conversation_messages (role, content)
+                VALUES (?, ?)
+                """,
+                (role, content),
+            )
+            connection.commit()
+
+    def load_conversation_messages(
+        self,
+        limit: int = 20,
+    ) -> list[tuple[str, str]]:
+        limit = max(1, int(limit))
+        with sqlite3.connect(self.path) as connection:
+            rows = connection.execute(
+                """
+                SELECT role, content
+                FROM (
+                    SELECT id, role, content
+                    FROM conversation_messages
+                    ORDER BY id DESC
+                    LIMIT ?
+                )
+                ORDER BY id ASC
+                """,
+                (limit,),
+            ).fetchall()
+        return [(str(role), str(content)) for role, content in rows]
+
+    def clear_conversation_messages(self) -> None:
+        with sqlite3.connect(self.path) as connection:
+            connection.execute("DELETE FROM conversation_messages")
+            connection.commit()
 
     def close(self) -> None:
         self.connection.close()
