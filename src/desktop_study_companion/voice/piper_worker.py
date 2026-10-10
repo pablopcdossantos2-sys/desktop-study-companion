@@ -10,8 +10,9 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--model-id", required=True)
     parser.add_argument("--model-dir", required=True)
-    parser.add_argument("--text-file", required=True)
-    parser.add_argument("--output", required=True)
+    parser.add_argument("--text-file")
+    parser.add_argument("--output")
+    parser.add_argument("--prepare-only", action="store_true")
     parser.add_argument("--volume", type=int, default=90)
     parser.add_argument("--length-scale", type=float, default=1.0)
     parser.add_argument("--noise-scale", type=float, default=0.667)
@@ -19,8 +20,7 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def synthesize(args: argparse.Namespace) -> Path:
-    from piper import PiperVoice, SynthesisConfig
+def ensure_model(args: argparse.Namespace) -> tuple[Path, Path]:
     from piper.download_voices import download_voice
 
     model_dir = Path(args.model_dir)
@@ -29,8 +29,23 @@ def synthesize(args: argparse.Namespace) -> Path:
     config_path = model_dir / f"{args.model_id}.onnx.json"
 
     if not model_path.exists() or not config_path.exists():
+        model_path.unlink(missing_ok=True)
+        config_path.unlink(missing_ok=True)
         print(f"stage=download model={args.model_id}", flush=True)
         download_voice(args.model_id, model_dir)
+
+    if not model_path.exists() or not config_path.exists():
+        raise RuntimeError("Piper voice files were not created")
+
+    return model_path, config_path
+
+
+def synthesize(args: argparse.Namespace) -> Path:
+    from piper import PiperVoice, SynthesisConfig
+
+    model_path, _config_path = ensure_model(args)
+    if not args.text_file or not args.output:
+        raise RuntimeError("Piper worker needs text-file and output")
 
     print(f"stage=load model={args.model_id}", flush=True)
     voice = PiperVoice.load(model_path)
@@ -66,6 +81,10 @@ def synthesize(args: argparse.Namespace) -> Path:
 def main(argv: list[str] | None = None) -> int:
     try:
         args = _parser().parse_args(argv)
+        if args.prepare_only:
+            ensure_model(args)
+            print(f"stage=ready model={args.model_id}", flush=True)
+            return 0
         synthesize(args)
         return 0
     except Exception as exc:
