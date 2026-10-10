@@ -40,6 +40,7 @@ class VoiceConfig:
     enabled: bool = True
     rate: int = 0
     volume: int = 90
+    voice_id: str = ""
 
 
 @dataclass(slots=True)
