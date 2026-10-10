@@ -2,7 +2,7 @@
 
 A partir da **v0.1.0-dev11**, o Desktop Study Companion mantém logs persistentes para facilitar a investigação de erros que não aparecem na interface.
 
-Na **v0.1.0-dev17**, o diagnóstico também passa a registrar encerramentos
+Desde a **v0.1.0-dev17** — e mantido na **dev19** — o diagnóstico também registra encerramentos
 anormais e falhas nativas que podem fazer o executável desaparecer sem uma
 mensagem Python visível.
 
@@ -16,7 +16,7 @@ data\logs\desktop-study-companion.log
 
 O arquivo fica dentro da própria pasta do aplicativo.
 
-Além do log principal, a dev17 mantém:
+Além do log principal, o mecanismo introduzido na dev17 e mantido na dev19 mantém:
 
 ```text
 data\logs\desktop-study-companion-fatal.log
@@ -183,7 +183,7 @@ Avatar renderer diagnostics: {...}
 sem um `avatar load timed out` posterior para a mesma instância.
 
 
-## Se o programa fechar sozinho — dev17
+## Se o programa fechar sozinho — diagnóstico introduzido na dev17 e mantido na dev19
 
 1. Abra novamente o Desktop Study Companion.
 2. Clique com o botão direito na personagem.
