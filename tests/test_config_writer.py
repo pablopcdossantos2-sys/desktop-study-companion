@@ -24,6 +24,9 @@ def test_config_round_trip(tmp_path) -> None:
     config.brain.enabled = True
     config.brain.model = "local-model"
     config.brain.base_url = "http://127.0.0.1:11434/v1"
+    config.proactivity.coach_mode = True
+    config.proactivity.activation_phrases = ["Começa {goal}."]
+    config.proactivity.focus_phrases = ["Continua {goal}."]
 
     path = save_config(config, tmp_path / "config.json")
     loaded = load_config(path)
@@ -42,6 +45,9 @@ def test_config_round_trip(tmp_path) -> None:
     assert loaded.speech_input.auto_send is False
     assert loaded.brain.enabled is True
     assert loaded.brain.model == "local-model"
+    assert loaded.proactivity.coach_mode is True
+    assert loaded.proactivity.activation_phrases == ["Começa {goal}."]
+    assert loaded.proactivity.focus_phrases == ["Continua {goal}."]
 
 
 def test_invalid_accountability_order_is_rejected() -> None:
