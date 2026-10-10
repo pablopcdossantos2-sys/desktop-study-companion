@@ -86,8 +86,19 @@ Essas ações serão implementadas apenas como recursos explicitamente opt-in.
 - O cérebro conversacional é opcional e vem desativado por padrão.
 - A integração atual é apenas texto → LLM → texto/TTS.
 - Ainda não há streaming de tokens.
-- Ainda não há STT/push-to-talk.
+- O push-to-talk local existe na dev10, mas ainda não há wake word ou escuta contínua.
 - O LLM não recebe ferramentas nem acesso às permissões de intervenção no desktop; essa separação é deliberada.
 - A compatibilidade esperada é com servidores que implementem `/v1/chat/completions`; extensões específicas de cada provedor não são usadas nesta fase.
 - Quando um endpoint remoto é configurado, mensagens e contexto comportamental enviados no prompt deixam o computador e passam a estar sujeitos à política do provedor.
 - O Ollama local é a rota recomendada para testes sem API paga.
+
+
+## Voz local (dev10)
+
+- STT usa faster-whisper local e requer download do modelo na primeira utilização.
+- A build não inclui pesos Whisper para evitar aumentar ainda mais o ZIP.
+- Não há streaming parcial da transcrição.
+- Não há wake word.
+- Não há detecção automática de fim de fala; o modo principal é pressionar/soltar.
+- CUDA é opcional e depende de ambiente NVIDIA compatível; CPU + INT8 é o padrão suportado.
+- O lip-sync visual ainda é aproximado pela duração do texto e não pelo áudio real.
