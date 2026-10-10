@@ -57,8 +57,12 @@ jobs:
           $extract = "build/piper-runtime-extract"
           $target = "build/piper-runtime"
           Invoke-WebRequest -Uri $url -OutFile $zip
+          $expectedZipHash = "f3c58906402b24f3a96d92145f58acba6d86c9b5db896d207f78dc80811efcea"
           $zipHash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
           Write-Host "PIPER_WINDOWS_AMD64_ZIP_SHA256=$zipHash"
+          if ($zipHash -ne $expectedZipHash) {
+            throw "Standalone Piper archive SHA-256 mismatch. Expected $expectedZipHash but received $zipHash."
+          }
           if (Test-Path $extract) { Remove-Item $extract -Recurse -Force }
           if (Test-Path $target) { Remove-Item $target -Recurse -Force }
           Expand-Archive -Path $zip -DestinationPath $extract -Force
