@@ -135,3 +135,29 @@ Para suporte direto do projeto, normalmente bastam:
 - as últimas linhas relacionadas ao erro;
 - o resumo de diagnóstico;
 - uma descrição do que estava visível na tela.
+
+
+## Correção confirmada pelo log real — dev13
+
+Um log real da dev11 mostrou esta sequência:
+
+```text
+avatar-load 100%
+avatar-fit ...
+avatar-ready ...
+[~40 segundos]
+avatar load timed out
+```
+
+Portanto, o VRM e o WebGL estavam prontos; o problema estava na comunicação de estado entre JavaScript e PySide6.
+
+A dev13 serializa readiness/diagnostics/health como JSON textual antes de retornar pelo `QWebEnginePage.runJavaScript()`.
+
+Após a correção, o esperado é aparecer no log:
+
+```text
+Avatar renderer reported ready
+Avatar renderer diagnostics: {...}
+```
+
+sem um `avatar load timed out` posterior para a mesma instância.

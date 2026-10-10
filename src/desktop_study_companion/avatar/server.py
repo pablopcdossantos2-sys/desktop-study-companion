@@ -22,6 +22,10 @@ class AvatarAssetServer:
 
         class Handler(BaseHTTPRequestHandler):
             def do_GET(self):  # noqa: N802
+                if self.path == "/favicon.ico":
+                    self.send_response(204)
+                    self.end_headers()
+                    return
                 if self.path == "/model.vrm":
                     target = model_path
                 else:

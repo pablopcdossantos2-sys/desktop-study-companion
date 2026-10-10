@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
 
@@ -11,6 +12,20 @@ from .page import DiagnosticWebPage
 from .server import AvatarAssetServer
 
 logger = logging.getLogger("desktop_study_companion.avatar")
+
+
+def decode_js_payload(value) -> dict:
+    """Decode a JSON control payload returned by QWebEngine."""
+    if isinstance(value, dict):
+        return value
+    if not value:
+        return {}
+    try:
+        decoded = json.loads(str(value))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        logger.warning("Could not decode JavaScript payload: %r", value)
+        return {}
+    return decoded if isinstance(decoded, dict) else {}
 
 
 class AvatarWidget(QWebEngineView):
@@ -67,14 +82,17 @@ class AvatarWidget(QWebEngineView):
     def _poll_ready(self) -> None:
         self._ready_checks += 1
         self.page().runJavaScript(
-            "({ready:document.body.dataset.ready||'',error:document.body.dataset.error||''})",
+            "JSON.stringify({"
+            "ready:document.body.dataset.ready||'',"
+            "error:document.body.dataset.error||''"
+            "})",
             self._handle_ready_state,
         )
 
     def _handle_ready_state(self, state) -> None:
         if self._ready:
             return
-        state = state or {}
+        state = decode_js_payload(state)
         if state.get("ready") == "true":
             self._ready = True
             self._ready_timer.stop()
@@ -82,7 +100,7 @@ class AvatarWidget(QWebEngineView):
             self._health_failures = 0
             self._health_timer.start()
             self.page().runJavaScript(
-                "window.companionAvatar?.diagnostics?.() ?? {}",
+                "JSON.stringify(window.companionAvatar?.diagnostics?.() ?? {})",
                 self._log_renderer_diagnostics,
             )
             self.avatar_ready.emit()
@@ -98,24 +116,27 @@ class AvatarWidget(QWebEngineView):
             reason = "avatar load timed out"
             logger.error(reason)
             self.page().runJavaScript(
-                "window.companionAvatar?.diagnostics?.() ?? {}",
+                "JSON.stringify(window.companionAvatar?.diagnostics?.() ?? {})",
                 self._log_renderer_diagnostics,
             )
             self.avatar_failed.emit(reason)
 
     def _log_renderer_diagnostics(self, diagnostics) -> None:
-        logger.info("Avatar renderer diagnostics: %r", diagnostics)
+        logger.info(
+            "Avatar renderer diagnostics: %r",
+            decode_js_payload(diagnostics),
+        )
 
     def _poll_health(self) -> None:
         if not self._ready:
             return
         self.page().runJavaScript(
-            "window.companionAvatar?.diagnostics?.() ?? {}",
+            "JSON.stringify(window.companionAvatar?.diagnostics?.() ?? {})",
             self._handle_health_state,
         )
 
     def _handle_health_state(self, diagnostics) -> None:
-        diagnostics = diagnostics or {}
+        diagnostics = decode_js_payload(diagnostics)
         ready = bool(diagnostics.get("ready"))
         webgl_lost = str(diagnostics.get("webglLost") or "").lower() == "true"
 

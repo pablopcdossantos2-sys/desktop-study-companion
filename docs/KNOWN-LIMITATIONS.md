@@ -1,4 +1,4 @@
-# Limitações conhecidas da v0.1.0-dev12
+# Limitações conhecidas da v0.1.0-dev13
 
 A dev12 é um protótipo funcional para validar o ciclo completo de accountability, avatar e conversa por voz no Windows. Ela ainda não representa a experiência final de produto.
 
@@ -154,3 +154,18 @@ O CI valida código, dependências e empacotamento, mas não substitui testes re
 - O idle procedural substitui a T-pose e cria movimento natural básico.
 - Ainda não há biblioteca completa de gestos nem VRMA.
 - O renderer possui health check e auto-reload básico, mas falhas de driver/GPU ainda podem exigir análise dos logs.
+
+
+## Bridge do avatar (dev13)
+
+O teste real da dev11 revelou que o renderer JavaScript chegava a `avatar-ready`, mas o objeto retornado por `runJavaScript()` não era convertido de forma confiável pelo binding PySide6 naquela build.
+
+A dev13 passa a retornar os payloads de controle como `JSON.stringify(...)` e decodificá-los explicitamente no Python.
+
+Isso corrige:
+
+- falso timeout após o avatar já estar carregado;
+- diagnóstico retornando string vazia;
+- health check da dev12 interpretando um renderer saudável como inválido.
+
+A requisição automática de `favicon.ico` também deixa de ser registrada como erro.
