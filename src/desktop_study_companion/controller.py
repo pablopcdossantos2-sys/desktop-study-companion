@@ -254,6 +254,10 @@ class ApplicationController(QObject):
                 "Voz e conversa por push-to-talk",
                 "VOICE-CONVERSATION.md",
             ),
+            "piper": (
+                "Configurar e diagnosticar a voz Piper",
+                "TUTORIAL-PIPER.md",
+            ),
             "avatar": (
                 "Diagnóstico do avatar",
                 "DIAGNOSTICS.md",
