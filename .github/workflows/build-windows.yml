@@ -10,6 +10,8 @@ on:
     paths:
       - "src/**"
       - "avatar_web/**"
+      - "README.md"
+      - "docs/**"
       - "config/**"
       - "assets/avatar/**"
       - "scripts/fetch-avatar.ps1"
