@@ -49,6 +49,7 @@ class CompanionWidget(QWidget):
         self.name = name
         self._drag_origin: QPoint | None = None
         self._monitoring_paused = False
+        self._context_menu: QMenu | None = None
         self.avatar_config = avatar_config or AvatarConfig()
 
         self.setWindowTitle("Desktop Study Companion")
@@ -159,13 +160,34 @@ class CompanionWidget(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         super().paintEvent(event)
 
+    def _release_context_menu(self, menu: QMenu) -> None:
+        if self._context_menu is menu:
+            self._context_menu = None
+        menu.deleteLater()
+
+    def close_context_menu(self) -> None:
+        menu = self._context_menu
+        self._context_menu = None
+        if menu is not None:
+            menu.close()
+            menu.deleteLater()
+
     def contextMenuEvent(self, event) -> None:  # noqa: N802
-        # QWebEngineView uses its own accelerated surface. A plain child QMenu
-        # can end up visually behind that surface on Windows. Use an independent
-        # always-on-top popup so the menu remains selectable above the avatar.
-        menu = QMenu()
-        menu.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
-        menu.setWindowFlag(Qt.WindowType.Tool, True)
+        # QMenu must remain a real Qt Popup. Adding Tool here caused menus to
+        # survive outside clicks and accumulate on Windows. Keep Popup semantics
+        # and only add the top-most hint needed to stay above QWebEngineView.
+        self.close_context_menu()
+        menu = QMenu(self)
+        menu.setWindowFlags(
+            Qt.WindowType.Popup
+            | Qt.WindowType.FramelessWindowHint
+            | Qt.WindowType.WindowStaysOnTopHint
+        )
+        menu.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        self._context_menu = menu
+        menu.aboutToHide.connect(
+            lambda m=menu: self._release_context_menu(m)
+        )
 
         chat = QAction("Conversar", self)
         chat.triggered.connect(self.chat_requested.emit)
@@ -284,8 +306,9 @@ class CompanionWidget(QWidget):
         quit_action.triggered.connect(self.quit_requested.emit)
         menu.addAction(quit_action)
 
+        menu.popup(event.globalPos())
         menu.raise_()
-        menu.exec(event.globalPos())
+        event.accept()
 
     def _toggle_pause(self) -> None:
         self._monitoring_paused = not self._monitoring_paused
@@ -319,5 +342,6 @@ class CompanionWidget(QWidget):
         event.accept()
 
     def shutdown_avatar(self) -> None:
+        self.close_context_menu()
         if isinstance(self.avatar, AvatarWidget):
             self.avatar.close_avatar()

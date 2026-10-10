@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.metadata
 import logging
 import platform
 import sys
@@ -58,6 +59,19 @@ def configure_logging() -> Path:
         )
     )
     root.addHandler(handler)
+
+    # Keep third-party network/download chatter from drowning out application
+    # diagnostics. Warnings and errors remain visible.
+    for noisy_logger in (
+        "httpcore",
+        "httpcore2",
+        "httpx",
+        "httpx2",
+        "filelock",
+        "huggingface_hub",
+    ):
+        logging.getLogger(noisy_logger).setLevel(logging.WARNING)
+
     _configured = True
 
     logger = logging.getLogger(_LOGGER_NAME)
@@ -68,6 +82,15 @@ def configure_logging() -> Path:
     logger.info("frozen=%s", bool(getattr(sys, "frozen", False)))
     logger.info("application_root=%s", application_root())
     logger.info("log_path=%s", path)
+    for package in ("PySide6", "faster-whisper", "av"):
+        try:
+            logger.info(
+                "dependency %s=%s",
+                package,
+                importlib.metadata.version(package),
+            )
+        except importlib.metadata.PackageNotFoundError:
+            logger.info("dependency %s=not-installed", package)
 
     return path
 
@@ -130,6 +153,14 @@ def install_qt_message_logging() -> None:
     qInstallMessageHandler(handler)
 
 
+def _package_exists(package: str) -> bool:
+    try:
+        importlib.metadata.version(package)
+    except importlib.metadata.PackageNotFoundError:
+        return False
+    return True
+
+
 def diagnostic_summary() -> str:
     model = avatar_model_path()
     renderer = avatar_renderer_directory()
@@ -151,6 +182,16 @@ def diagnostic_summary() -> str:
             f"Raiz: {application_root()}",
             f"Config: {external_config_path()}",
             f"Log atual: {current_log_path()}",
+            "Dependências: "
+            + ", ".join(
+                f"{package}="
+                + (
+                    importlib.metadata.version(package)
+                    if _package_exists(package)
+                    else "não instalado"
+                )
+                for package in ("PySide6", "faster-whisper", "av")
+            ),
             f"Avatar VRM: {describe(model)}",
             f"Renderer: {describe(renderer_index)}",
         ]

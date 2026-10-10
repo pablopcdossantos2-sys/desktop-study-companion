@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import logging
+
 from PySide6.QtCore import QObject, QRunnable, Signal, Slot
+
+logger = logging.getLogger("desktop_study_companion.brain.worker")
 
 from .service import BrainService
 
@@ -31,6 +35,7 @@ class BrainChatWorker(QRunnable):
                 self.session_context,
             )
         except Exception as exc:
+            logger.exception("Brain chat worker failed")
             self.signals.failed.emit(str(exc))
             return
         self.signals.succeeded.emit(answer)

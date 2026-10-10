@@ -1,3 +1,5 @@
+import av
+
 from desktop_study_companion.voice.faster_whisper_stt import FasterWhisperSTT
 
 
@@ -20,3 +22,9 @@ def test_transcription_joins_segments(tmp_path, monkeypatch) -> None:
     path.write_bytes(b"fake")
 
     assert provider.transcribe_file(path) == "Olá mundo"
+
+
+
+def test_pyav_major_version_is_compatible() -> None:
+    major = int(av.__version__.split(".", 1)[0])
+    assert major < 19

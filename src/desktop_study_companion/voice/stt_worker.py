@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
+
+logger = logging.getLogger("desktop_study_companion.voice.stt_worker")
 
 from PySide6.QtCore import QObject, QRunnable, Signal, Slot
 
@@ -28,6 +31,10 @@ class SttWorker(QRunnable):
         try:
             text = self.provider.transcribe_file(self.audio_path)
         except Exception as exc:
+            logger.exception(
+                "STT worker failed audio=%s",
+                self.audio_path.name,
+            )
             self.signals.failed.emit(str(exc))
         else:
             self.signals.succeeded.emit(text)

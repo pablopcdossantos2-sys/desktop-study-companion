@@ -200,3 +200,32 @@ A v0.1.0-dev10 ainda exige pressionar explicitamente o botão para falar; escuta
 - a primeira transcrição pode exigir download do modelo;
 - a qualidade depende do microfone, ruído e tamanho do modelo;
 - o lip-sync do avatar ainda segue duração aproximada, não o áudio real.
+
+
+## Erro metadata_errors — corrigido na dev14
+
+Se uma build anterior apresentava:
+
+```text
+open() got an unexpected keyword argument 'metadata_errors'
+```
+
+o problema era uma incompatibilidade de dependências:
+
+- faster-whisper 1.2.1 ainda usa o parâmetro `metadata_errors`;
+- PyAV 19 removeu esse parâmetro.
+
+A dev14 fixa explicitamente:
+
+```text
+av >= 14 e < 19
+```
+
+O usuário não precisa instalar ou alterar PyAV manualmente na versão portátil.
+
+Os logs agora registram início, sucesso e traceback de falhas do STT. Procure por:
+
+```text
+desktop_study_companion.voice.stt
+desktop_study_companion.voice.stt_worker
+```

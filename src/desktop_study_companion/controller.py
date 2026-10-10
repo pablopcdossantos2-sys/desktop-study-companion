@@ -80,6 +80,10 @@ from desktop_study_companion.ui.session_dialog import SessionDialog
 from desktop_study_companion.ui.settings_dialog import SettingsDialog
 from desktop_study_companion.ui.standing_rule_dialog import StandingRuleDialog
 from desktop_study_companion.ui.tutorial_dialog import TutorialDialog
+from desktop_study_companion.ui.windowing import (
+    exec_top_level_dialog,
+    prepare_top_level_window,
+)
 from desktop_study_companion.voice.audio_capture import (
     AudioCaptureError,
     MicrophoneRecorder,
@@ -256,9 +260,9 @@ class ApplicationController(QObject):
         dialog = TutorialDialog(
             title,
             docs_directory() / filename,
-            self.widget,
+            None,
         )
-        dialog.exec()
+        exec_top_level_dialog(dialog)
 
     def _say(
         self,
@@ -314,7 +318,7 @@ class ApplicationController(QObject):
                 QMessageBox.ButtonRole.HelpRole,
             )
             box.addButton(QMessageBox.StandardButton.Cancel)
-            box.exec()
+            exec_top_level_dialog(box)
             if box.clickedButton() is open_settings:
                 self.open_settings()
             elif box.clickedButton() is open_tutorial:
@@ -324,8 +328,9 @@ class ApplicationController(QObject):
         if self.chat_dialog is None:
             self.chat_dialog = ChatDialog(
                 self.config.personality.name,
-                self.widget,
+                None,
             )
+            prepare_top_level_window(self.chat_dialog, modal=False)
             self.chat_dialog.message_submitted.connect(
                 self._submit_chat_message
             )
@@ -348,6 +353,7 @@ class ApplicationController(QObject):
                 limit=self.config.brain.history_messages
             )
         )
+        prepare_top_level_window(self.chat_dialog, modal=False)
         self.chat_dialog.show()
         self.chat_dialog.raise_()
         self.chat_dialog.activateWindow()
@@ -387,7 +393,7 @@ class ApplicationController(QObject):
                 QMessageBox.ButtonRole.ActionRole,
             )
             box.addButton(QMessageBox.StandardButton.Cancel)
-            box.exec()
+            exec_top_level_dialog(box)
             if box.clickedButton() is tutorial:
                 self.show_tutorial("voice")
             elif box.clickedButton() is settings:
@@ -535,8 +541,8 @@ class ApplicationController(QObject):
             self._say("Já existe uma sessão em andamento.")
             return
 
-        dialog = SessionDialog(self.widget)
-        if dialog.exec() != QDialog.DialogCode.Accepted:
+        dialog = SessionDialog(None)
+        if exec_top_level_dialog(dialog) != QDialog.DialogCode.Accepted:
             return
 
         self.lockdown.clear()
@@ -573,8 +579,8 @@ class ApplicationController(QObject):
     # ------------------------------------------------------------------
 
     def add_directive(self) -> None:
-        dialog = DirectiveDialog(self.widget)
-        if dialog.exec() != QDialog.DialogCode.Accepted:
+        dialog = DirectiveDialog(None)
+        if exec_top_level_dialog(dialog) != QDialog.DialogCode.Accepted:
             return
 
         goal = dialog.goal.text().strip()
@@ -644,7 +650,7 @@ class ApplicationController(QObject):
             QMessageBox.ButtonRole.DestructiveRole,
         )
         box.addButton(QMessageBox.StandardButton.Cancel)
-        box.exec()
+        exec_top_level_dialog(box)
 
         if box.clickedButton() is complete:
             self.directives.complete(directive.id)
@@ -682,8 +688,8 @@ class ApplicationController(QObject):
     # ------------------------------------------------------------------
 
     def add_standing_rule(self) -> None:
-        dialog = StandingRuleDialog(self.widget)
-        if dialog.exec() != QDialog.DialogCode.Accepted:
+        dialog = StandingRuleDialog(None)
+        if exec_top_level_dialog(dialog) != QDialog.DialogCode.Accepted:
             return
 
         description = dialog.description.text().strip()
@@ -757,7 +763,7 @@ class ApplicationController(QObject):
             QMessageBox.ButtonRole.DestructiveRole,
         )
         box.addButton(QMessageBox.StandardButton.Cancel)
-        box.exec()
+        exec_top_level_dialog(box)
 
         if box.clickedButton() is toggle:
             self.standing_rules.toggle(rule.id)
@@ -806,9 +812,9 @@ class ApplicationController(QObject):
     def configure_interventions(self) -> None:
         dialog = InterventionSettingsDialog(
             self.intervention_permissions.permissions,
-            self.widget,
+            None,
         )
-        if dialog.exec() != QDialog.DialogCode.Accepted:
+        if exec_top_level_dialog(dialog) != QDialog.DialogCode.Accepted:
             return
 
         values = dialog.values()
@@ -985,8 +991,8 @@ class ApplicationController(QObject):
     # ------------------------------------------------------------------
 
     def open_settings(self) -> None:
-        dialog = SettingsDialog(self.config, self.widget)
-        if dialog.exec() != QDialog.DialogCode.Accepted:
+        dialog = SettingsDialog(self.config, None)
+        if exec_top_level_dialog(dialog) != QDialog.DialogCode.Accepted:
             return
 
         new_config = dialog.values()
@@ -1073,8 +1079,8 @@ class ApplicationController(QObject):
     def show_history(self) -> None:
         overview = self.analytics.overview(30)
         sessions = self.analytics.sessions(100)
-        dialog = HistoryDialog(overview, sessions, self.widget)
-        dialog.exec()
+        dialog = HistoryDialog(overview, sessions, None)
+        exec_top_level_dialog(dialog)
 
     def export_csv(self) -> None:
         destination = QFileDialog.getExistingDirectory(
@@ -1149,8 +1155,8 @@ class ApplicationController(QObject):
     # ------------------------------------------------------------------
 
     def add_daily_routine(self) -> None:
-        dialog = RoutineDialog(self.widget)
-        if dialog.exec() != QDialog.DialogCode.Accepted:
+        dialog = RoutineDialog(None)
+        if exec_top_level_dialog(dialog) != QDialog.DialogCode.Accepted:
             return
 
         goal = dialog.goal.text().strip()
@@ -1217,7 +1223,7 @@ class ApplicationController(QObject):
             QMessageBox.ButtonRole.DestructiveRole,
         )
         box.addButton(QMessageBox.StandardButton.Cancel)
-        box.exec()
+        exec_top_level_dialog(box)
 
         if box.clickedButton() is toggle:
             self.routines.toggle(routine.id)
@@ -1371,6 +1377,9 @@ class ApplicationController(QObject):
             self.recorder.cancel()
         if self.voice is not None:
             self.voice.close()
+        if self.chat_dialog is not None:
+            self.chat_dialog.close()
+            self.chat_dialog = None
         self.memory.close()
         self.widget.shutdown_avatar()
         self.app.quit()

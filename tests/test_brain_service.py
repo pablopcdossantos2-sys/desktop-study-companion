@@ -29,3 +29,24 @@ def test_brain_service_saves_successful_exchange(tmp_path, monkeypatch) -> None:
         ("assistant", "Olá. Vamos estudar."),
     ]
     memory.close()
+
+
+
+def test_brain_service_uses_native_ollama_for_default_local_endpoint(
+    tmp_path,
+) -> None:
+    from desktop_study_companion.brain.provider import OllamaNativeProvider
+
+    db = tmp_path / "companion.db"
+    memory = SQLiteMemoryStore(db)
+    config = AppConfig()
+    config.brain.enabled = True
+    config.brain.base_url = "http://127.0.0.1:11434/v1"
+    config.brain.model = "qwen3:4b"
+    service = BrainService(config, memory, StudyAnalytics(db))
+
+    provider = service._provider()
+
+    assert isinstance(provider, OllamaNativeProvider)
+    assert provider.endpoint == "http://127.0.0.1:11434/api/chat"
+    memory.close()

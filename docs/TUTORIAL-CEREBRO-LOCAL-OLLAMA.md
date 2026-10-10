@@ -266,3 +266,85 @@ Com Ollama local, o objetivo é manter o processamento da conversa no próprio c
 Se você configurar uma URL de um serviço remoto, o texto da conversa e o contexto comportamental incluído no prompt serão enviados a esse serviço.
 
 Use endpoints remotos somente quando aceitar os termos e a política de privacidade do provedor.
+
+
+## Diagnóstico rápido do cérebro — dev14
+
+Antes de testar pelo Desktop Study Companion, confirme que o Ollama e o modelo funcionam sozinhos.
+
+No PowerShell:
+
+```powershell
+ollama --version
+ollama list
+```
+
+Confirme que o nome configurado no aplicativo aparece exatamente em `ollama list`.
+
+Exemplo:
+
+```text
+qwen3:4b
+```
+
+Depois teste diretamente:
+
+```powershell
+ollama run qwen3:4b
+```
+
+Digite:
+
+```text
+Olá. Responda com uma frase curta em português.
+```
+
+Se houver resposta, digite:
+
+```text
+/bye
+```
+
+### Configuração recomendada no aplicativo
+
+```text
+Ativar cérebro: marcado
+URL base: http://127.0.0.1:11434/v1
+Modelo: qwen3:4b
+Chave/API: não necessária para Ollama local
+```
+
+A partir da dev14, você **não precisa trocar a URL para /api/chat**. O aplicativo reconhece automaticamente a porta padrão do Ollama e usa internamente a API nativa:
+
+```text
+http://127.0.0.1:11434/api/chat
+```
+
+com o modo de thinking desativado para a conversa normal da personagem.
+
+Essa mudança evita uma classe de problemas em que modelos Qwen retornam raciocínio interno, mas deixam a resposta final vazia pelo endpoint compatível com OpenAI.
+
+### Ordem recomendada de teste
+
+1. Teste `ollama run <modelo>`.
+2. Abra o Desktop Study Companion.
+3. Em **Configurações > Cérebro**, habilite o cérebro e salve.
+4. Abra **Conversar**.
+5. Envie primeiro uma mensagem por texto.
+6. Só depois teste o microfone.
+
+Se a resposta por texto falhar, consulte:
+
+```text
+Diagnóstico
+→ Abrir pasta de logs
+```
+
+e procure por:
+
+```text
+Brain request
+Brain response
+Brain chat worker failed
+Ollama returned no final content
+```

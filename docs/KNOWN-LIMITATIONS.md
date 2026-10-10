@@ -1,6 +1,6 @@
-# Limitações conhecidas da v0.1.0-dev13
+# Limitações conhecidas da v0.1.0-dev14
 
-A dev12 é um protótipo funcional para validar o ciclo completo de accountability, avatar e conversa por voz no Windows. Ela ainda não representa a experiência final de produto.
+A dev14 é um protótipo funcional para validar o ciclo completo de accountability, avatar e conversa por voz no Windows. Ela ainda não representa a experiência final de produto.
 
 ## Personagem VRM
 
@@ -169,3 +169,30 @@ Isso corrige:
 - health check da dev12 interpretando um renderer saudável como inválido.
 
 A requisição automática de `favicon.ico` também deixa de ser registrada como erro.
+
+
+## Correções de integração da dev14
+
+### Menus e janelas
+
+- O menu de contexto voltou a usar semântica `Qt.Popup`, portanto deve desaparecer ao clicar fora ou escolher uma ação.
+- Apenas um menu de contexto pode permanecer ativo por vez.
+- Menus escondidos são destruídos em seguida.
+- Configurações, sessões, compromissos, regras, permissões, histórico e tutoriais são abertos como janelas top-level application-modal, independentes da superfície WebEngine do avatar.
+- O Chat é uma janela top-level não modal e também fica acima do avatar.
+
+### STT
+
+A dev14 fixa `av>=14,<19`. Isso evita a incompatibilidade entre faster-whisper 1.2.1 e PyAV 19, que removia o argumento `metadata_errors` usado por essa versão do faster-whisper.
+
+### Ollama
+
+Quando a URL configurada usa o servidor local padrão na porta 11434, o aplicativo deixa de usar `/v1/chat/completions` internamente e usa `/api/chat` com `think: false`.
+
+Isso reduz respostas vazias de modelos Qwen que podem consumir a resposta em reasoning no endpoint OpenAI-compatible.
+
+O endpoint configurado na interface pode continuar sendo:
+
+`http://127.0.0.1:11434/v1`
+
+A seleção da API nativa é automática.

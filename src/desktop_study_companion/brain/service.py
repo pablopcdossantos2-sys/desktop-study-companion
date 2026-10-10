@@ -6,7 +6,9 @@ from desktop_study_companion.brain.prompt import build_system_prompt
 from desktop_study_companion.brain.provider import (
     BrainError,
     ChatMessage,
+    OllamaNativeProvider,
     OpenAICompatibleProvider,
+    is_local_ollama_base_url,
 )
 from desktop_study_companion.config.models import AppConfig
 from desktop_study_companion.memory.analytics import StudyAnalytics
@@ -33,8 +35,19 @@ class BrainService:
             and brain.model.strip()
         )
 
-    def _provider(self) -> OpenAICompatibleProvider:
+    def _provider(self):
         brain = self.config.brain
+
+        if is_local_ollama_base_url(brain.base_url):
+            return OllamaNativeProvider(
+                base_url=brain.base_url,
+                model=brain.model,
+                temperature=brain.temperature,
+                max_tokens=brain.max_tokens,
+                timeout_seconds=brain.timeout_seconds,
+                retries=1,
+            )
+
         api_key = ""
         if brain.api_key_env.strip():
             api_key = os.environ.get(brain.api_key_env.strip(), "")

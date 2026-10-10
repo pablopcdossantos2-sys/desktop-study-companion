@@ -1417,3 +1417,77 @@ Se ainda ocorrer desaparecimento:
 1. abra **Diagnóstico > Abrir pasta de logs**;
 2. procure por `renderer unhealthy`, `WebGL`, `context lost` ou `Restarting avatar renderer`;
 3. envie essas linhas junto com o resumo do diagnóstico.
+
+
+## 58. Roteiro de validação da dev14
+
+Para testar a dev14 sem misturar causas diferentes, use esta ordem.
+
+### Etapa A — menu e janelas
+
+1. Clique com o botão direito na personagem.
+2. Clique fora do menu sem escolher nada.
+3. Confirme que o menu desaparece.
+4. Abra novamente o menu.
+5. Escolha **Configurações**.
+6. Confirme que a janela de Configurações fica totalmente acima da personagem e pode ser clicada livremente.
+7. Feche a janela.
+8. Repita o clique direito algumas vezes e confirme que não ficam menus antigos acumulados.
+
+### Etapa B — cérebro por texto
+
+Antes do microfone, confirme no PowerShell:
+
+```powershell
+ollama --version
+ollama list
+ollama run qwen3:4b
+```
+
+Se estiver usando outro modelo, troque `qwen3:4b` pelo nome exato mostrado por `ollama list`.
+
+No aplicativo:
+
+1. Abra **Configurações > Cérebro**.
+2. Habilite o cérebro.
+3. Use `http://127.0.0.1:11434/v1`.
+4. Informe o nome exato do modelo.
+5. Salve.
+6. Abra **Conversar**.
+7. Digite uma mensagem simples.
+
+A dev14 reconhece automaticamente o Ollama local e usa a API nativa com thinking desativado.
+
+### Etapa C — voz
+
+Somente depois que a Etapa B funcionar:
+
+1. Abra **Configurações > Microfone**.
+2. Ative push-to-talk.
+3. Use inicialmente CPU + INT8 + modelo `base`.
+4. Abra **Conversar**.
+5. Segure o botão de microfone, fale e solte.
+
+A dev14 inclui PyAV abaixo da versão 19 para manter compatibilidade com faster-whisper 1.2.1.
+
+### Etapa D — se algo falhar
+
+Abra:
+
+```text
+Diagnóstico
+→ Abrir pasta de logs
+```
+
+Procure por:
+
+```text
+Brain request
+Brain response
+Brain chat worker failed
+Starting local transcription
+Local transcription failed
+STT worker failed
+```
+
+O resumo de diagnóstico também informa as versões instaladas de PySide6, faster-whisper e PyAV.

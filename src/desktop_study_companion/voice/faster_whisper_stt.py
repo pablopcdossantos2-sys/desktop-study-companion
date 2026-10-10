@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import logging
 import threading
 from pathlib import Path
+
+logger = logging.getLogger("desktop_study_companion.voice.stt")
 
 
 class SpeechRecognitionError(RuntimeError):
@@ -52,8 +55,19 @@ class FasterWhisperSTT:
                     self.download_root.mkdir(parents=True, exist_ok=True)
                     kwargs["download_root"] = str(self.download_root)
 
+                logger.info(
+                    "Loading faster-whisper model=%s device=%s compute_type=%s",
+                    self.model_name,
+                    self.device,
+                    self.compute_type,
+                )
                 self._model = WhisperModel(self.model_name, **kwargs)
+                logger.info("faster-whisper model loaded model=%s", self.model_name)
             except Exception as exc:
+                logger.exception(
+                    "Failed to load faster-whisper model=%s",
+                    self.model_name,
+                )
                 raise SpeechRecognitionError(
                     f"não foi possível carregar o modelo {self.model_name!r}: {exc}"
                 ) from exc
@@ -62,6 +76,11 @@ class FasterWhisperSTT:
 
     def transcribe_file(self, path: str | Path) -> str:
         model = self._load_model()
+        logger.info(
+            "Starting local transcription file=%s language=%s",
+            Path(path).name,
+            self.language or "auto",
+        )
         try:
             segments, _info = model.transcribe(
                 str(path),
@@ -76,12 +95,25 @@ class FasterWhisperSTT:
                 if segment.text.strip()
             ).strip()
         except Exception as exc:
+            logger.exception(
+                "Local transcription failed file=%s",
+                Path(path).name,
+            )
             raise SpeechRecognitionError(
                 f"falha na transcrição: {exc}"
             ) from exc
 
         if not text:
+            logger.warning(
+                "Local transcription produced no recognizable speech file=%s",
+                Path(path).name,
+            )
             raise SpeechRecognitionError(
                 "nenhuma fala reconhecível foi detectada"
             )
+        logger.info(
+            "Local transcription succeeded file=%s chars=%s",
+            Path(path).name,
+            len(text),
+        )
         return text
