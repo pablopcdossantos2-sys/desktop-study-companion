@@ -13,7 +13,12 @@ def test_load_config_including_voice(tmp_path) -> None:
                     "neutral_keywords": ["explorer"],
                     "distraction_keywords": ["youtube"],
                 },
-                "voice": {"enabled": False, "rate": 2, "volume": 75},
+                "voice": {
+                    "enabled": False,
+                    "rate": 2,
+                    "volume": 75,
+                    "voice_id": "voice-test"
+                },
                 "speech_input": {
                     "enabled": True,
                     "model": "tiny",
@@ -50,6 +55,7 @@ def test_load_config_including_voice(tmp_path) -> None:
     assert config.voice.enabled is False
     assert config.voice.rate == 2
     assert config.voice.volume == 75
+    assert config.voice.voice_id == "voice-test"
     assert config.speech_input.enabled is True
     assert config.speech_input.model == "tiny"
     assert config.speech_input.microphone_device == 4
