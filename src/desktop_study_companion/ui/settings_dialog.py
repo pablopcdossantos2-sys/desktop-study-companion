@@ -66,7 +66,7 @@ class SettingsDialog(QDialog):
         tabs.addTab(self._activity_tab(config), "Atividade")
         tabs.addTab(self._accountability_tab(config), "Cobrança")
         tabs.addTab(self._personality_tab(config), "Personalidade")
-        tabs.addTab(self._proactivity_tab(config), "Proatividade")
+        tabs.addTab(self._proactivity_tab(config), "Coach")
         tabs.addTab(self._voice_tab(config), "Voz")
         tabs.addTab(self._speech_input_tab(config), "Microfone")
         tabs.addTab(self._brain_tab(config), "Cérebro")
@@ -157,9 +157,14 @@ class SettingsDialog(QDialog):
         self.proactive_enabled.setChecked(p.enabled)
 
         self.proactive_motivation = QCheckBox(
-            "Falar frases motivacionais periodicamente"
+            "Falar intervenções de coach periodicamente"
         )
         self.proactive_motivation.setChecked(p.motivational_messages)
+
+        self.coach_mode = QCheckBox(
+            "Usar comportamento de coach persistente durante as sessões"
+        )
+        self.coach_mode.setChecked(p.coach_mode)
 
         self.proactive_min = QSpinBox()
         self.proactive_min.setRange(1, 240)
@@ -171,10 +176,39 @@ class SettingsDialog(QDialog):
         self.proactive_max.setValue(p.max_interval_minutes)
         self.proactive_max.setSuffix(" min")
 
+        help_text = QLabel(
+            "Você pode escrever frases próprias abaixo, uma por linha. "
+            "Se um campo ficar vazio, a personagem usa o repertório padrão. "
+            "Marcadores disponíveis: {name}, {goal}, {minutes}, "
+            "{focused_minutes}, {distracted_minutes}."
+        )
+        help_text.setWordWrap(True)
+
+        self.coach_activation = QTextEdit(_lines(p.activation_phrases))
+        self.coach_focus = QTextEdit(_lines(p.focus_phrases))
+        self.coach_recovery = QTextEdit(_lines(p.recovery_phrases))
+        self.coach_celebration = QTextEdit(_lines(p.celebration_phrases))
+        self.coach_reset = QTextEdit(_lines(p.reset_phrases))
+        for editor in (
+            self.coach_activation,
+            self.coach_focus,
+            self.coach_recovery,
+            self.coach_celebration,
+            self.coach_reset,
+        ):
+            editor.setFixedHeight(62)
+
         form.addRow("", self.proactive_enabled)
         form.addRow("", self.proactive_motivation)
+        form.addRow("", self.coach_mode)
         form.addRow("Intervalo mínimo:", self.proactive_min)
         form.addRow("Intervalo máximo:", self.proactive_max)
+        form.addRow("", help_text)
+        form.addRow("Ativação (sem sessão):", self.coach_activation)
+        form.addRow("Foco (sessão ativa):", self.coach_focus)
+        form.addRow("Retomada após distração:", self.coach_recovery)
+        form.addRow("Comemoração:", self.coach_celebration)
+        form.addRow("Recomeço/interrupção:", self.coach_reset)
         return widget
 
     def _voice_tab(self, config: AppConfig) -> QWidget:
@@ -472,8 +506,24 @@ class SettingsDialog(QDialog):
             proactivity=ProactivityConfig(
                 enabled=self.proactive_enabled.isChecked(),
                 motivational_messages=self.proactive_motivation.isChecked(),
+                coach_mode=self.coach_mode.isChecked(),
                 min_interval_minutes=self.proactive_min.value(),
                 max_interval_minutes=self.proactive_max.value(),
+                activation_phrases=_parse_lines(
+                    self.coach_activation.toPlainText()
+                ),
+                focus_phrases=_parse_lines(
+                    self.coach_focus.toPlainText()
+                ),
+                recovery_phrases=_parse_lines(
+                    self.coach_recovery.toPlainText()
+                ),
+                celebration_phrases=_parse_lines(
+                    self.coach_celebration.toPlainText()
+                ),
+                reset_phrases=_parse_lines(
+                    self.coach_reset.toPlainText()
+                ),
             ),
             voice=VoiceConfig(
                 enabled=self.voice_enabled.isChecked(),
