@@ -62,6 +62,15 @@ class SQLiteMemoryStore:
             );
             """
         )
+        self.connection.execute(
+            """
+            UPDATE study_sessions
+            SET focused_seconds = CAST(ROUND(focused_seconds) AS INTEGER),
+                distracted_seconds = CAST(ROUND(distracted_seconds) AS INTEGER)
+            WHERE typeof(focused_seconds) != 'integer'
+               OR typeof(distracted_seconds) != 'integer'
+            """
+        )
         self.connection.commit()
 
     def save_session(self, session: StudySession) -> None:
@@ -87,8 +96,8 @@ class SQLiteMemoryStore:
                 session.state.value,
                 session.started_at.isoformat() if session.started_at else None,
                 session.ended_at.isoformat() if session.ended_at else None,
-                session.focused_seconds,
-                session.distracted_seconds,
+                int(round(session.focused_seconds)),
+                int(round(session.distracted_seconds)),
             ),
         )
         self.connection.commit()
