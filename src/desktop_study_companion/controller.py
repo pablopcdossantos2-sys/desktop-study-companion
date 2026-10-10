@@ -4,7 +4,6 @@ import logging
 import os
 import random
 import time
-from pathlib import Path
 
 from PySide6.QtCore import QObject, QThreadPool, QTimer
 from PySide6.QtWidgets import (
@@ -143,6 +142,9 @@ class ApplicationController(QObject):
         )
         self.voice = create_tts_engine(config.voice, self.data_dir)
         self.memory = SQLiteMemoryStore(self.data_dir / "companion.db")
+        orphaned = self.memory.reconcile_orphaned_sessions()
+        if orphaned:
+            logger.warning("Reconciled orphaned study sessions count=%s", orphaned)
         self.analytics = StudyAnalytics(self.memory.path)
         self.brain = BrainService(config, self.memory, self.analytics)
         self.thread_pool = QThreadPool.globalInstance()
@@ -217,6 +219,7 @@ class ApplicationController(QObject):
 
     def start(self) -> None:
         self.widget.show()
+        self._poll_routines(wake_event=True)
         self.timer.start()
         self._schedule_next_motivation()
 
@@ -608,7 +611,7 @@ class ApplicationController(QObject):
         )
 
     def finish_session(self) -> None:
-        if self.sessions.session is None:
+        if not self.sessions.active:
             self._say("Não há sessão ativa.")
             return
 
@@ -617,11 +620,17 @@ class ApplicationController(QObject):
         self.memory.save_session(session)
         focused = round(session.focused_seconds / 60, 1)
         distracted = round(session.distracted_seconds / 60, 1)
+        completed = session.state.value == "completed"
+        prefix = (
+            "Sessão concluída."
+            if completed
+            else "Sessão interrompida e registrada como abandonada."
+        )
         self._say(
-            f"Sessão encerrada. Foco classificado: {focused} minutos; "
+            f"{prefix} Foco classificado: {focused} minutos; "
             f"distração: {distracted} minutos."
             + self._behavioral_insight_suffix(),
-            avatar_state="happy",
+            avatar_state="happy" if completed else "neutral",
         )
 
     # ------------------------------------------------------------------
@@ -642,15 +651,19 @@ class ApplicationController(QObject):
             )
             return
 
+        active_ids = {item.id for item in self.directives.active}
         directive = self.directives.add(
             goal,
             dialog.urgency.value(),
             delay_seconds=dialog.delay_minutes.value() * 60,
         )
-        self._say(
-            f"Compromisso registrado: {directive.goal}. "
-            "Eu vou continuar cobrando até você marcar como concluído."
-        )
+        if directive.id in active_ids:
+            self._say(f"Esse compromisso já estava registrado: {directive.goal}.")
+        else:
+            self._say(
+                f"Compromisso registrado: {directive.goal}. "
+                "Eu vou continuar cobrando até você marcar como concluído."
+            )
 
     def manage_directives(self) -> None:
         active = self.directives.active
@@ -756,6 +769,7 @@ class ApplicationController(QObject):
             )
             return
 
+        existing_ids = {item.id for item in self.standing_rules.rules}
         rule = self.standing_rules.add(
             StandingRule(
                 description=description,
@@ -764,10 +778,13 @@ class ApplicationController(QObject):
                 cooldown_s=dialog.cooldown.value(),
             )
         )
-        self._say(
-            f"Regra permanente criada: {rule.description}. "
-            "Eu vou observar as janelas ativas."
-        )
+        if rule.id in existing_ids:
+            self._say(f"Essa regra permanente já existia: {rule.description}.")
+        else:
+            self._say(
+                f"Regra permanente criada: {rule.description}. "
+                "Eu vou observar as janelas ativas."
+            )
 
     def manage_standing_rules(self) -> None:
         if not self.standing_rules.rules:
@@ -829,6 +846,8 @@ class ApplicationController(QObject):
             return False
 
         for violation in violations:
+            if not violation.action_due:
+                continue
             self.standing_rules.record_trigger(violation.rule)
             result = self.desktop_interventions.perform(
                 violation.rule.response,
@@ -1084,14 +1103,16 @@ class ApplicationController(QObject):
         )
 
     def _apply_runtime_config(self, new_config: AppConfig) -> None:
+        old_config = self.config
         self.config = new_config
         self.brain.update_config(new_config)
-        if self.recorder.recording:
-            self.recorder.cancel()
-        self.recorder.update_device(
-            new_config.speech_input.microphone_device
-        )
-        self.stt = self._create_stt_provider(new_config)
+        if old_config.speech_input != new_config.speech_input:
+            if self.recorder.recording:
+                self.recorder.cancel()
+            self.recorder.update_device(
+                new_config.speech_input.microphone_device
+            )
+            self.stt = self._create_stt_provider(new_config)
 
         self.classifier = ActivityClassifier(
             productive_keywords=set(
@@ -1306,8 +1327,8 @@ class ApplicationController(QObject):
             self.routines.remove(routine.id)
             self._say(f"Rotina removida: {routine.goal}.")
 
-    def _poll_routines(self) -> None:
-        for routine in self.routines.get_due_routines():
+    def _poll_routines(self, *, wake_event: bool = False) -> None:
+        for routine in self.routines.get_due_routines(wake_event=wake_event):
             prefix = "Hora da rotina."
             if routine.urgency >= 8:
                 prefix = "Isso é importante. Hora da rotina."
@@ -1359,6 +1380,17 @@ class ApplicationController(QObject):
         now = time.monotonic()
         elapsed = max(0.0, now - self._last_poll)
         self._last_poll = now
+        suspension_threshold = max(
+            5.0,
+            (self.config.monitor.poll_interval_ms / 1000.0) * 5.0,
+        )
+        if elapsed > suspension_threshold:
+            logger.info(
+                "Large monitoring gap ignored elapsed=%.2fs threshold=%.2fs",
+                elapsed,
+                suspension_threshold,
+            )
+            elapsed = self.config.monitor.poll_interval_ms / 1000.0
 
         if self._paused:
             return
@@ -1454,7 +1486,9 @@ class ApplicationController(QObject):
         self._shutting_down = True
         logger.info("Clean shutdown requested by user")
         try:
-            if self.sessions.session is not None:
+            if self.sessions.active:
+                self.memory.save_session(self.sessions.abandon())
+            elif self.sessions.session is not None:
                 self.memory.save_session(self.sessions.session)
             self.lockdown.clear()
             self.timer.stop()

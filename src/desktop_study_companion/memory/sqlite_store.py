@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from contextlib import closing
+from datetime import datetime
 from pathlib import Path
 
 from desktop_study_companion.accountability.models import Intervention
@@ -13,7 +15,8 @@ class SQLiteMemoryStore:
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.connection = sqlite3.connect(self.path)
+        self.connection = sqlite3.connect(self.path, timeout=5.0)
+        self.connection.execute("PRAGMA busy_timeout=5000")
         self.connection.execute("PRAGMA journal_mode=WAL")
         self._migrate()
 
@@ -136,7 +139,7 @@ class SQLiteMemoryStore:
         content = content.strip()
         if not content:
             return
-        with sqlite3.connect(self.path) as connection:
+        with closing(sqlite3.connect(self.path, timeout=5.0)) as connection:
             connection.execute(
                 """
                 INSERT INTO conversation_messages (role, content)
@@ -151,7 +154,7 @@ class SQLiteMemoryStore:
         limit: int = 20,
     ) -> list[tuple[str, str]]:
         limit = max(1, int(limit))
-        with sqlite3.connect(self.path) as connection:
+        with closing(sqlite3.connect(self.path, timeout=5.0)) as connection:
             rows = connection.execute(
                 """
                 SELECT role, content
@@ -168,9 +171,24 @@ class SQLiteMemoryStore:
         return [(str(role), str(content)) for role, content in rows]
 
     def clear_conversation_messages(self) -> None:
-        with sqlite3.connect(self.path) as connection:
+        with closing(sqlite3.connect(self.path, timeout=5.0)) as connection:
             connection.execute("DELETE FROM conversation_messages")
             connection.commit()
+
+    def reconcile_orphaned_sessions(self) -> int:
+        ended_at = datetime.now().astimezone().isoformat()
+        cursor = self.connection.execute(
+            """
+            UPDATE study_sessions
+            SET state = 'abandoned',
+                ended_at = COALESCE(ended_at, ?)
+            WHERE state IN ('planned', 'focusing', 'distracted', 'break')
+              AND ended_at IS NULL
+            """,
+            (ended_at,),
+        )
+        self.connection.commit()
+        return max(0, int(cursor.rowcount))
 
     def close(self) -> None:
         self.connection.close()

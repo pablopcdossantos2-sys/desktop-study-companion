@@ -7,9 +7,9 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QDoubleSpinBox,
     QFormLayout,
-    QGroupBox,
     QComboBox,
     QLabel,
+    QMessageBox,
     QLineEdit,
     QPushButton,
     QSpinBox,
@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 
 from desktop_study_companion.voice.audio_capture import list_input_devices
 from desktop_study_companion.voice.windows_sapi import list_sapi_voices
+from desktop_study_companion.config.writer import validate_config
 
 from desktop_study_companion.config.models import (
     AccountabilityConfig,
@@ -81,6 +82,14 @@ class SettingsDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.addWidget(tabs)
         layout.addWidget(buttons)
+
+    def accept(self) -> None:
+        try:
+            validate_config(self.values())
+        except ValueError as exc:
+            QMessageBox.warning(self, "Configuração inválida", str(exc))
+            return
+        super().accept()
 
     def _activity_tab(self, config: AppConfig) -> QWidget:
         widget = QWidget()

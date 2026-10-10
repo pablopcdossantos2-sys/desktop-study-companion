@@ -1,16 +1,16 @@
-from __future__ import annotations
-
 """Resolve stable paths in source and frozen/portable builds."""
+
+from __future__ import annotations
 
 import sys
 from pathlib import Path
 
 
 def application_root() -> Path:
-    """Directory that owns config/ and data/ for this running copy."""
+    """Directory that owns bundled resources for this running copy."""
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve().parent
-    return Path.cwd().resolve()
+    return Path(__file__).resolve().parents[2]
 
 
 def data_directory() -> Path:
@@ -20,15 +20,19 @@ def data_directory() -> Path:
 
 
 def external_config_path() -> Path:
-    return application_root() / "config" / "default.json"
+    """Writable user configuration; never overwrite the versioned default."""
+    return data_directory() / "config.json"
 
 
 def bundled_config_path() -> Path | None:
-    """PyInstaller's temporary/internal bundle path, when applicable."""
     bundle_root = getattr(sys, "_MEIPASS", None)
     if not bundle_root:
         return None
     return Path(bundle_root) / "config" / "default.json"
+
+
+def source_default_config_path() -> Path:
+    return application_root() / "config" / "default.json"
 
 
 def avatar_model_path() -> Path:

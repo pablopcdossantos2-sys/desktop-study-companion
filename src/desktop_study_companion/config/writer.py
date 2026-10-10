@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-import json
 from dataclasses import asdict
 from pathlib import Path
+from urllib.parse import urlparse
+
+from desktop_study_companion.safe_json import atomic_write_json
 
 from .models import AppConfig
 
@@ -43,7 +45,11 @@ def validate_config(config: AppConfig) -> None:
         raise ValueError("voice rate must be between -10 and 10")
     if not 0 <= config.voice.volume <= 100:
         raise ValueError("voice volume must be between 0 and 100")
-    if not config.voice.piper_voice_id.strip():
+    if (
+        config.voice.enabled
+        and config.voice.engine == "piper"
+        and not config.voice.piper_voice_id.strip()
+    ):
         raise ValueError("piper voice id cannot be empty")
     if not 0.5 <= config.voice.piper_length_scale <= 2.0:
         raise ValueError("piper length scale must be between 0.5 and 2.0")
@@ -58,10 +64,10 @@ def validate_config(config: AppConfig) -> None:
     if proactive.max_interval_minutes < proactive.min_interval_minutes:
         raise ValueError("proactivity maximum interval must be >= minimum interval")
 
-    if not config.speech_input.model.strip():
-        raise ValueError("speech input model cannot be empty")
-    if not config.speech_input.language.strip():
-        raise ValueError("speech input language cannot be empty")
+    if config.speech_input.enabled and not config.speech_input.model.strip():
+        raise ValueError("speech input model cannot be empty when enabled")
+    if config.speech_input.enabled and not config.speech_input.language.strip():
+        raise ValueError("speech input language cannot be empty when enabled")
     if config.speech_input.device not in {"cpu", "cuda", "auto"}:
         raise ValueError("speech input device must be cpu, cuda or auto")
     if not 2 <= config.speech_input.max_record_seconds <= 120:
@@ -84,6 +90,17 @@ def validate_config(config: AppConfig) -> None:
             raise ValueError("brain model is required when enabled")
         if not config.brain.base_url.startswith(("http://", "https://")):
             raise ValueError("brain base_url must start with http:// or https://")
+        parsed = urlparse(config.brain.base_url)
+        host = (parsed.hostname or "").casefold()
+        if parsed.scheme == "http" and host not in {
+            "127.0.0.1",
+            "localhost",
+            "::1",
+        }:
+            raise ValueError(
+                "remote brain connections must use HTTPS; HTTP is allowed "
+                "only for the local machine"
+            )
 
     if not 220 <= config.avatar.width <= 900:
         raise ValueError("avatar width must be between 220 and 900")
@@ -97,10 +114,4 @@ def validate_config(config: AppConfig) -> None:
 
 def save_config(config: AppConfig, path: str | Path) -> Path:
     validate_config(config)
-    target = Path(path)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(
-        json.dumps(asdict(config), ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    return target
+    return atomic_write_json(Path(path), asdict(config))

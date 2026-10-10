@@ -31,6 +31,7 @@ os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = (
     f"{_existing_chromium_flags} {_required_chromium_flags}".strip()
 )
 
+from PySide6.QtCore import QLockFile
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from desktop_study_companion.config.loader import load_config
@@ -43,6 +44,7 @@ from desktop_study_companion.diagnostics import (
     mark_run_started,
 )
 from desktop_study_companion.controller import ApplicationController
+from desktop_study_companion.runtime_paths import data_directory
 
 
 def main() -> int:
@@ -50,13 +52,11 @@ def main() -> int:
     install_exception_hooks()
     install_native_fault_handler()
     install_qt_message_logging()
-    previous_unclean = mark_run_started()
     logger = logging.getLogger("desktop_study_companion.app")
 
     app = QApplication(sys.argv)
     app.setApplicationName("Desktop Study Companion")
     app.setQuitOnLastWindowClosed(False)
-    app.aboutToQuit.connect(mark_run_clean)
 
     if platform.system() != "Windows":
         QMessageBox.critical(
@@ -65,8 +65,19 @@ def main() -> int:
             "A v0.1 é destinada ao Windows 10/11. "
             "O monitor de janela ativa ainda não possui implementação para este sistema.",
         )
-        mark_run_clean()
         return 2
+
+    lock = QLockFile(str(data_directory() / "desktop-study-companion.lock"))
+    if not lock.tryLock(100):
+        QMessageBox.information(
+            None,
+            "Desktop Study Companion já está aberto",
+            "Já existe uma instância em execução. Use a janela que já está aberta.",
+        )
+        return 0
+
+    previous_unclean = mark_run_started()
+    app.aboutToQuit.connect(mark_run_clean)
 
     try:
         logger.info("Loading configuration")
@@ -93,6 +104,8 @@ def main() -> int:
         )
         mark_run_clean()
         return 1
+    finally:
+        lock.unlock()
 
 
 if __name__ == "__main__":
