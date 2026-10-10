@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
-from PySide6.QtCore import QObject, QTimer
+from PySide6.QtCore import QObject, QThreadPool, QTimer
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
@@ -37,6 +37,8 @@ from desktop_study_companion.activity.models import (
 from desktop_study_companion.activity.windows_monitor import (
     WindowsActiveWindowMonitor,
 )
+from desktop_study_companion.brain.service import BrainService
+from desktop_study_companion.brain.worker import BrainChatWorker
 from desktop_study_companion.config.models import AppConfig
 from desktop_study_companion.config.writer import save_config
 from desktop_study_companion.desktop.interventions import (
@@ -60,6 +62,7 @@ from desktop_study_companion.runtime_paths import (
 from desktop_study_companion.routines.manager import RoutineManager
 from desktop_study_companion.routines.models import Routine
 from desktop_study_companion.study.manager import StudySessionManager
+from desktop_study_companion.ui.chat_dialog import ChatDialog
 from desktop_study_companion.ui.companion_widget import CompanionWidget
 from desktop_study_companion.ui.directive_dialog import DirectiveDialog
 from desktop_study_companion.ui.history_dialog import HistoryDialog
@@ -125,6 +128,10 @@ class ApplicationController(QObject):
         )
         self.memory = SQLiteMemoryStore(self.data_dir / "companion.db")
         self.analytics = StudyAnalytics(self.memory.path)
+        self.brain = BrainService(config, self.memory, self.analytics)
+        self.thread_pool = QThreadPool.globalInstance()
+        self._brain_workers: set[BrainChatWorker] = set()
+        self.chat_dialog: ChatDialog | None = None
         self.widget = CompanionWidget(
             config.personality.name,
             config.avatar,
@@ -148,6 +155,7 @@ class ApplicationController(QObject):
         self.timer.setInterval(config.monitor.poll_interval_ms)
         self.timer.timeout.connect(self._poll)
 
+        self.widget.chat_requested.connect(self.open_chat)
         self.widget.start_session_requested.connect(self.start_session)
         self.widget.finish_session_requested.connect(self.finish_session)
         self.widget.add_directive_requested.connect(self.add_directive)
@@ -187,6 +195,105 @@ class ApplicationController(QObject):
         self.widget.animate_avatar_speech(text)
         if voice and self.voice is not None:
             self.voice.speak(text)
+
+    # ------------------------------------------------------------------
+    # Conversational brain
+    # ------------------------------------------------------------------
+
+    def _brain_session_context(self) -> dict:
+        session = self.sessions.session
+        if session is None or not self.sessions.active:
+            return {"active": False}
+        return {
+            "active": True,
+            "goal": session.goal,
+            "state": session.state.value,
+            "planned_minutes": session.planned_minutes,
+            "focused_seconds": session.focused_seconds,
+            "distracted_seconds": session.distracted_seconds,
+        }
+
+    def open_chat(self) -> None:
+        if not self.brain.ready:
+            QMessageBox.information(
+                self.widget,
+                "Cérebro conversacional desativado",
+                "Configure e habilite o backend em Configurações > Cérebro. "
+                "O padrão local está preparado para endpoints compatíveis "
+                "com /v1/chat/completions.",
+            )
+            return
+
+        if self.chat_dialog is None:
+            self.chat_dialog = ChatDialog(
+                self.config.personality.name,
+                self.widget,
+            )
+            self.chat_dialog.message_submitted.connect(
+                self._submit_chat_message
+            )
+            self.chat_dialog.clear_requested.connect(
+                self.clear_chat_history
+            )
+
+        self.chat_dialog.character_name = self.config.personality.name
+        self.chat_dialog.setWindowTitle(
+            f"Conversar com {self.config.personality.name}"
+        )
+        self.chat_dialog.load_history(
+            self.memory.load_conversation_messages(
+                limit=self.config.brain.history_messages
+            )
+        )
+        self.chat_dialog.show()
+        self.chat_dialog.raise_()
+        self.chat_dialog.activateWindow()
+
+    def _submit_chat_message(self, text: str) -> None:
+        worker = BrainChatWorker(
+            self.brain,
+            text,
+            self._brain_session_context(),
+        )
+        self._brain_workers.add(worker)
+        worker.signals.succeeded.connect(
+            lambda answer, w=worker: self._chat_succeeded(w, answer)
+        )
+        worker.signals.failed.connect(
+            lambda error, w=worker: self._chat_failed(w, error)
+        )
+        self.thread_pool.start(worker)
+
+    def _chat_succeeded(
+        self,
+        worker: BrainChatWorker,
+        answer: str,
+    ) -> None:
+        self._brain_workers.discard(worker)
+        if self.chat_dialog is not None:
+            self.chat_dialog.append_assistant(answer)
+            self.chat_dialog.set_busy(False)
+        self._say(answer, avatar_state="happy")
+
+    def _chat_failed(
+        self,
+        worker: BrainChatWorker,
+        error: str,
+    ) -> None:
+        self._brain_workers.discard(worker)
+        if self.chat_dialog is not None:
+            self.chat_dialog.append_status(
+                "Falha ao consultar o cérebro: " + error
+            )
+            self.chat_dialog.set_busy(False)
+
+    def clear_chat_history(self) -> None:
+        self.brain.clear_history()
+        if self.chat_dialog is not None:
+            self.chat_dialog.load_history([])
+            self.chat_dialog.append_status(
+                "Histórico local desta conversa foi apagado."
+            )
 
     # ------------------------------------------------------------------
     # Study sessions
@@ -667,6 +774,7 @@ class ApplicationController(QObject):
 
     def _apply_runtime_config(self, new_config: AppConfig) -> None:
         self.config = new_config
+        self.brain.update_config(new_config)
 
         self.classifier = ActivityClassifier(
             productive_keywords=set(
