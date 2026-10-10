@@ -56,6 +56,8 @@ class PiperNeuralTTS:
         self._generation_lock = threading.Lock()
         self._generation = 0
         self._speaking = threading.Event()
+        self._last_error: str | None = None
+        self._last_success = False
         self._thread = threading.Thread(
             target=self._worker,
             name="desktop-study-companion-piper-tts",
@@ -72,6 +74,8 @@ class PiperNeuralTTS:
             self.model_id,
             len(text),
         )
+        self._last_error = None
+        self._last_success = False
         with self._generation_lock:
             item = _SpeechItem(text, self._generation)
         try:
@@ -508,7 +512,11 @@ class PiperNeuralTTS:
                     self._speaking.set()
                 try:
                     self._speak_item(item.text)
-                except Exception:
+                    self._last_error = None
+                    self._last_success = True
+                except Exception as exc:
+                    self._last_error = str(exc)
+                    self._last_success = False
                     logger.exception(
                         "Piper synthesis/playback failed model=%s; using fallback=%s",
                         self.model_id,
@@ -528,6 +536,18 @@ class PiperNeuralTTS:
                     if item.generation == self._generation:
                         self._interrupt.clear()
                 self._queue.task_done()
+
+    @property
+    def last_error(self) -> str | None:
+        return self._last_error
+
+    @property
+    def last_success(self) -> bool:
+        return self._last_success
+
+    @property
+    def is_busy(self) -> bool:
+        return self._speaking.is_set() or not self._queue.empty()
 
     @property
     def is_speaking(self) -> bool:

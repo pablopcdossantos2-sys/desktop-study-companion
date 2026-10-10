@@ -289,11 +289,27 @@ class SettingsDialog(QDialog):
         self.piper_test_button = QPushButton("Testar voz Piper")
         self.piper_test_button.clicked.connect(self._request_piper_test)
         form.addRow("", self.piper_test_button)
+        self.piper_test_status = QLabel(
+            "O resultado do teste aparecerá aqui."
+        )
+        self.piper_test_status.setWordWrap(True)
+        form.addRow("Resultado do teste:", self.piper_test_status)
         form.addRow("", self.piper_fallback)
         form.addRow("Voz Windows (fallback):", self.voice_choice)
         form.addRow("Velocidade Windows:", self.voice_rate)
         form.addRow("Volume:", self.voice_volume)
         return widget
+
+    def set_piper_test_status(
+        self,
+        text: str,
+        *,
+        error: bool = False,
+    ) -> None:
+        self.piper_test_status.setText(text)
+        self.piper_test_status.setStyleSheet(
+            "color: #a00000;" if error else ""
+        )
 
     def _request_piper_test(self) -> None:
         self.piper_test_requested.emit(

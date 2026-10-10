@@ -1145,6 +1145,10 @@ class ApplicationController(QObject):
         length_scale: float,
         volume: int,
     ) -> None:
+        dialog = self.sender()
+        if not isinstance(dialog, SettingsDialog):
+            dialog = None
+
         if self._voice_preview is not None:
             self._voice_preview.close()
         self._voice_preview = PiperNeuralTTS(
@@ -1154,13 +1158,67 @@ class ApplicationController(QObject):
             length_scale=length_scale,
             fallback=None,
         )
+        if dialog is not None:
+            dialog.set_piper_test_status(
+                "Testando. No primeiro uso, a voz pode ser baixada antes "
+                "da síntese."
+            )
         self.widget.say(
             "Testando a voz Piper selecionada. "
             "No primeiro teste, o modelo pode precisar ser baixado."
         )
-        self._voice_preview.speak(
+        engine = self._voice_preview
+        engine.speak(
             "Olá! Este é um teste da minha voz neural Piper."
         )
+        QTimer.singleShot(
+            250,
+            lambda e=engine, d=dialog: self._poll_piper_preview(e, d),
+        )
+
+    def _poll_piper_preview(
+        self,
+        engine: PiperNeuralTTS,
+        dialog: SettingsDialog | None,
+        attempts: int = 0,
+    ) -> None:
+        if engine is not self._voice_preview:
+            return
+        if engine.is_busy and attempts < 480:
+            QTimer.singleShot(
+                250,
+                lambda e=engine, d=dialog, a=attempts + 1:
+                    self._poll_piper_preview(e, d, a),
+            )
+            return
+
+        if engine.last_error:
+            message = (
+                "Falha no teste Piper. O detalhe foi registrado no log: "
+                + engine.last_error[:240]
+            )
+            if dialog is not None:
+                dialog.set_piper_test_status(message, error=True)
+            self.widget.say(
+                "O teste da voz Piper falhou. Abra Diagnóstico e os logs "
+                "para ver o detalhe."
+            )
+            return
+
+        if engine.last_success:
+            message = (
+                "Sucesso. O Piper sintetizou e reproduziu a frase de teste. "
+                "O WAV de diagnóstico foi salvo em data\\temp\\piper-last.wav."
+            )
+            if dialog is not None:
+                dialog.set_piper_test_status(message)
+            self.widget.say("Teste Piper concluído com sucesso.")
+            return
+
+        message = "O teste terminou sem produzir um resultado de áudio."
+        if dialog is not None:
+            dialog.set_piper_test_status(message, error=True)
+        self.widget.say(message)
 
     def _apply_runtime_config(self, new_config: AppConfig) -> None:
         old_config = self.config
