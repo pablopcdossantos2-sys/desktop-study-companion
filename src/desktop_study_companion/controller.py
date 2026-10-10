@@ -1210,7 +1210,15 @@ class ApplicationController(QObject):
     ) -> None:
         if engine is not self._voice_preview:
             return
-        if engine.is_busy and attempts < 480:
+
+        status = engine.synthesis_status
+        if status in {"pending", "running"}:
+            if attempts > 0 and attempts % 480 == 0 and dialog is not None:
+                dialog.set_piper_test_status(
+                    "O Piper ainda está trabalhando. O primeiro download "
+                    "de uma voz pode levar vários minutos; o teste continuará "
+                    "acompanhando o processo."
+                )
             QTimer.singleShot(
                 250,
                 lambda e=engine, d=dialog, a=attempts + 1:
@@ -1218,7 +1226,7 @@ class ApplicationController(QObject):
             )
             return
 
-        if engine.last_error:
+        if status == "failed" or engine.last_error:
             message = (
                 "Falha no teste Piper. O detalhe foi registrado no log: "
                 + engine.last_error[:240]
@@ -1232,7 +1240,7 @@ class ApplicationController(QObject):
             )
             return
 
-        if engine.last_success:
+        if status == "done" and engine.last_success:
             message = (
                 "Sucesso. O Piper sintetizou e reproduziu a frase de teste. "
                 "O WAV de diagnóstico foi salvo em data\\temp\\piper-last.wav."
@@ -1243,7 +1251,10 @@ class ApplicationController(QObject):
             self.widget.say("Teste Piper concluído com sucesso.")
             return
 
-        message = "O teste terminou sem produzir um resultado de áudio."
+        message = (
+            "O teste foi cancelado ou terminou sem iniciar a síntese. "
+            "Tente novamente; se persistir, consulte o log."
+        )
         if dialog is not None:
             dialog.piper_test_button.setEnabled(True)
             dialog.set_piper_test_status(message, error=True)

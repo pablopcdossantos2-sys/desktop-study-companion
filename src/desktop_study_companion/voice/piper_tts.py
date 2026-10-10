@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import io
 import logging
 import os
 import queue
@@ -8,11 +10,84 @@ import subprocess
 import sys
 import tempfile
 import threading
+import wave
+from array import array
 from dataclasses import dataclass
 from pathlib import Path
+from uuid import uuid4
 
 logger = logging.getLogger("desktop_study_companion.voice.piper")
 _MODEL_PREPARE_LOCK = threading.Lock()
+_NATIVE_STAGE_LOCK = threading.Lock()
+_HASH_CACHE_LOCK = threading.Lock()
+_HASH_CACHE: dict[tuple[str, int, int], str] = {}
+
+
+def _sha256_file(path: Path) -> str:
+    stat = path.stat()
+    key = (str(path.resolve()), stat.st_size, stat.st_mtime_ns)
+    with _HASH_CACHE_LOCK:
+        cached = _HASH_CACHE.get(key)
+    if cached is not None:
+        return cached
+
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    value = digest.hexdigest()
+    with _HASH_CACHE_LOCK:
+        _HASH_CACHE[key] = value
+    return value
+
+
+def _tree_fingerprint(root: Path) -> str:
+    digest = hashlib.sha256()
+    files = sorted(
+        (path for path in root.rglob("*") if path.is_file()),
+        key=lambda path: path.relative_to(root).as_posix(),
+    )
+    for path in files:
+        relative = path.relative_to(root).as_posix()
+        digest.update(relative.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(_sha256_file(path).encode("ascii"))
+        digest.update(b"\n")
+    return digest.hexdigest()
+
+
+def _scale_pcm16_wav_volume(audio: bytes, volume: int) -> bytes:
+    """Scale a 16-bit PCM WAV without changing its format."""
+    factor = max(0, min(100, int(volume))) / 100.0
+    if factor >= 1.0:
+        return audio
+
+    source = io.BytesIO(audio)
+    with wave.open(source, "rb") as reader:
+        params = reader.getparams()
+        if params.sampwidth != 2:
+            raise RuntimeError(
+                "Piper standalone WAV is not 16-bit PCM; volume cannot be applied"
+            )
+        frames = reader.readframes(params.nframes)
+
+    samples = array("h")
+    samples.frombytes(frames)
+    if sys.byteorder == "big":
+        samples.byteswap()
+
+    for index, sample in enumerate(samples):
+        scaled = int(round(sample * factor))
+        samples[index] = max(-32768, min(32767, scaled))
+
+    if sys.byteorder == "big":
+        samples.byteswap()
+
+    output = io.BytesIO()
+    with wave.open(output, "wb") as writer:
+        writer.setparams(params)
+        writer.writeframes(samples.tobytes())
+    return output.getvalue()
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,6 +105,7 @@ class PiperNeuralTTS:
     """
 
     SYNTHESIS_TIMEOUT_SECONDS = 90
+    MODEL_PREPARE_TIMEOUT_SECONDS = 600
 
     def __init__(
         self,
@@ -58,6 +134,9 @@ class PiperNeuralTTS:
         self._speaking = threading.Event()
         self._last_error: str | None = None
         self._last_success = False
+        self._status_lock = threading.Lock()
+        self._synthesis_status = "idle"
+        self._runtime_cache: tuple[str, Path] | None = None
         self._thread = threading.Thread(
             target=self._worker,
             name="desktop-study-companion-piper-tts",
@@ -76,6 +155,7 @@ class PiperNeuralTTS:
         )
         self._last_error = None
         self._last_success = False
+        self._set_synthesis_status("pending")
         with self._generation_lock:
             item = _SpeechItem(text, self._generation)
         try:
@@ -218,7 +298,7 @@ class PiperNeuralTTS:
                 text=True,
                 encoding="utf-8",
                 errors="replace",
-                timeout=self.SYNTHESIS_TIMEOUT_SECONDS,
+                timeout=self.MODEL_PREPARE_TIMEOUT_SECONDS,
                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
                 check=False,
             )
@@ -240,15 +320,76 @@ class PiperNeuralTTS:
             return model_path, config_path
 
     def _stage_portable_runtime(self, source: Path) -> Path:
-        root = self._ascii_native_root()
-        target = root / "runtime"
-        exe = target / "piper.exe"
-        data_file = target / "espeak-ng-data" / "phontab"
-        if not exe.is_file() or not data_file.is_file():
+        source = source.resolve()
+        with _NATIVE_STAGE_LOCK:
+            fingerprint = _tree_fingerprint(source)
+            cached = self._runtime_cache
+            if cached is not None and cached[0] == fingerprint:
+                target = cached[1]
+                if (
+                    (target / "piper.exe").is_file()
+                    and (target / "espeak-ng-data" / "phontab").is_file()
+                ):
+                    return target
+
+            root = self._ascii_native_root()
+            target = root / f"runtime-{fingerprint[:16]}"
             if target.exists():
+                try:
+                    if _tree_fingerprint(target) == fingerprint:
+                        self._runtime_cache = (fingerprint, target)
+                        return target
+                except OSError:
+                    logger.warning(
+                        "Unable to validate staged Piper runtime path=%s",
+                        target,
+                        exc_info=True,
+                    )
                 shutil.rmtree(target, ignore_errors=True)
-            shutil.copytree(source, target)
-        return target
+
+            staging = root / (
+                f".runtime-{fingerprint[:16]}-{uuid4().hex}.tmp"
+            )
+            try:
+                shutil.copytree(source, staging)
+                staged_fingerprint = _tree_fingerprint(staging)
+                if staged_fingerprint != fingerprint:
+                    raise RuntimeError(
+                        "a cópia temporária do runtime Piper falhou na validação"
+                    )
+                if not (staging / "piper.exe").is_file():
+                    raise RuntimeError("piper.exe ausente no runtime temporário")
+                if not (staging / "espeak-ng-data" / "phontab").is_file():
+                    raise RuntimeError(
+                        "espeak-ng-data/phontab ausente no runtime temporário"
+                    )
+                os.replace(staging, target)
+            finally:
+                if staging.exists():
+                    shutil.rmtree(staging, ignore_errors=True)
+
+            # A successful versioned copy makes older runtime directories stale.
+            for old in root.glob("runtime-*"):
+                if old != target and old.is_dir():
+                    shutil.rmtree(old, ignore_errors=True)
+
+            self._runtime_cache = (fingerprint, target)
+            return target
+
+    @staticmethod
+    def _atomic_verified_copy(source: Path, target: Path) -> None:
+        expected = _sha256_file(source)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        temp = target.with_name(f".{target.name}.{uuid4().hex}.tmp")
+        try:
+            shutil.copy2(source, temp)
+            if _sha256_file(temp) != expected:
+                raise RuntimeError(
+                    f"falha ao validar a cópia temporária de {source.name}"
+                )
+            os.replace(temp, target)
+        finally:
+            temp.unlink(missing_ok=True)
 
     def _stage_voice_for_native_runtime(
         self,
@@ -259,16 +400,21 @@ class PiperNeuralTTS:
         voice_dir.mkdir(parents=True, exist_ok=True)
         staged_model = voice_dir / model_path.name
         staged_config = voice_dir / config_path.name
-        if (
-            not staged_model.is_file()
-            or staged_model.stat().st_size != model_path.stat().st_size
-        ):
-            shutil.copy2(model_path, staged_model)
-        if (
-            not staged_config.is_file()
-            or staged_config.stat().st_size != config_path.stat().st_size
-        ):
-            shutil.copy2(config_path, staged_config)
+
+        with _NATIVE_STAGE_LOCK:
+            for source, target in (
+                (model_path, staged_model),
+                (config_path, staged_config),
+            ):
+                matches = False
+                if target.is_file():
+                    try:
+                        matches = _sha256_file(target) == _sha256_file(source)
+                    except OSError:
+                        matches = False
+                if not matches:
+                    self._atomic_verified_copy(source, target)
+
         return staged_model, staged_config
 
     def _synthesize_with_portable_runtime(
@@ -352,6 +498,7 @@ class PiperNeuralTTS:
         output.unlink(missing_ok=True)
         if len(audio) <= 44:
             raise RuntimeError("o runtime Piper gerou um WAV vazio")
+        audio = _scale_pcm16_wav_volume(audio, self.volume)
         self._diagnostic_wav_path().write_bytes(audio)
         logger.info(
             "Standalone Piper synthesis completed model=%s wav_bytes=%s",
@@ -499,6 +646,10 @@ class PiperNeuralTTS:
             return
         self._play_wav_bytes(audio)
 
+    def _set_synthesis_status(self, status: str) -> None:
+        with self._status_lock:
+            self._synthesis_status = status
+
     def _worker(self) -> None:
         while True:
             item = self._queue.get()
@@ -510,13 +661,16 @@ class PiperNeuralTTS:
                         continue
                     self._interrupt.clear()
                     self._speaking.set()
+                self._set_synthesis_status("running")
                 try:
                     self._speak_item(item.text)
                     self._last_error = None
                     self._last_success = True
+                    self._set_synthesis_status("done")
                 except Exception as exc:
                     self._last_error = str(exc)
                     self._last_success = False
+                    self._set_synthesis_status("failed")
                     logger.exception(
                         "Piper synthesis/playback failed model=%s; using fallback=%s",
                         self.model_id,
@@ -538,6 +692,11 @@ class PiperNeuralTTS:
                 self._queue.task_done()
 
     @property
+    def synthesis_status(self) -> str:
+        with self._status_lock:
+            return self._synthesis_status
+
+    @property
     def last_error(self) -> str | None:
         return self._last_error
 
@@ -547,7 +706,11 @@ class PiperNeuralTTS:
 
     @property
     def is_busy(self) -> bool:
-        return self._speaking.is_set() or not self._queue.empty()
+        return (
+            self.synthesis_status in {"pending", "running"}
+            or self._speaking.is_set()
+            or not self._queue.empty()
+        )
 
     @property
     def is_speaking(self) -> bool:
@@ -563,6 +726,7 @@ class PiperNeuralTTS:
         with self._generation_lock:
             self._generation += 1
             self._interrupt.set()
+        self._set_synthesis_status("idle")
         self._stop_native_playback()
         if self.fallback is not None:
             self.fallback.stop()
