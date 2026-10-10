@@ -64,5 +64,15 @@
     "max_tokens": 500,
     "timeout_seconds": 45,
     "history_messages": 12
+  },
+  "speech_input": {
+    "enabled": false,
+    "model": "base",
+    "language": "pt",
+    "device": "cpu",
+    "compute_type": "int8",
+    "microphone_device": -1,
+    "max_record_seconds": 30,
+    "auto_send": true
   }
 }
