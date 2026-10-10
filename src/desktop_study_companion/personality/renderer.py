@@ -320,12 +320,12 @@ class PersonalityRenderer:
         elif percent <= 50:
             defaults = [
                 "Metade do bloco. Você não precisa acelerar; só continuar em {goal}.",
-                "50% cumprido. Protege a segunda metade do mesmo jeito que protegeu a primeira.",
+                "50% cumprido em {goal}. Protege a segunda metade do mesmo jeito que protegeu a primeira.",
             ]
         else:
             defaults = [
                 "75% cumprido. Reta final: fica com {goal} até fechar o combinado.",
-                "Três quartos feitos. Não entrega os últimos minutos para a distração agora.",
+                "Três quartos de {goal} feitos. Não entrega os últimos minutos para a distração agora.",
             ]
         return self._render(self._pick(defaults), goal=goal)
 
