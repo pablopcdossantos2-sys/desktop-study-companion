@@ -6,8 +6,11 @@ A personagem não deve parecer um boneco que só reage quando o usuário fala co
 
 A partir da **v0.1.0-dev15**, existem duas camadas de comportamento espontâneo:
 
-1. **microgestos do avatar**;
+1. **gestos do avatar**;
 2. **frases motivacionais periódicas**.
+
+Na **v0.1.0-dev17**, os gestos deixam de ser apenas microvariações de pose e
+passam a incluir pequenas ações corporais reconhecíveis.
 
 Essas camadas são independentes do cérebro LLM.
 
@@ -38,12 +41,17 @@ As frases desta camada são locais e determinísticas. Elas não precisam de Oll
 
 Em **Configurações > Avatar** é possível habilitar os gestos e definir os intervalos.
 
-A dev15 inclui quatro microgestos procedurais:
+A dev17 inclui um conjunto procedural mais expressivo:
 
-- olhar ao redor;
-- alongamento discreto;
-- pequeno aceno;
+- pequena dança de dois tempos;
+- passar a mão no cabelo/lado da cabeça;
+- pequeno salto;
+- alongamento;
+- aceno;
 - postura pensativa.
+
+O renderer continua capaz de executar o gesto de olhar ao redor quando
+solicitado, mas a seleção espontânea prioriza ações visualmente reconhecíveis.
 
 Eles são combinados com:
 
@@ -53,7 +61,9 @@ Eles são combinados com:
 - look-at;
 - movimento de cabeça, tórax, ombros e mãos.
 
-O objetivo não é reproduzir uma animação cinematográfica, mas quebrar a repetição da mesma pose.
+O objetivo é quebrar a repetição da mesma pose e fazer a personagem parecer
+estar realizando pequenas ações intencionais, sem transformar o desktop em uma
+animação constante ou intrusiva.
 
 ## Relação com fala
 
