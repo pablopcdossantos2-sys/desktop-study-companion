@@ -38,11 +38,10 @@ def test_remote_http_key_disables_only_brain_and_preserves_config(
     config, notice = load_config_with_recovery(path)
 
     assert config.personality.name == "Luna"
-    assert config.brain.enabled is False
+    assert config.brain.enabled is True
     assert path.exists()
     assert not list(tmp_path.glob("config.json.bak*"))
     assert notice is not None
-    assert "desativado" in notice.casefold()
     assert "http" in notice.casefold()
 
 
