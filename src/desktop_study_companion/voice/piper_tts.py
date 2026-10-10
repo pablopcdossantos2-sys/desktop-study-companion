@@ -122,22 +122,41 @@ class PiperNeuralTTS:
         )
         return audio
 
+    def _diagnostic_wav_path(self) -> Path:
+        # model_dir is data/models/piper; keep the latest synthesized phrase in
+        # data/temp so the user can double-click it when diagnosing playback.
+        data_dir = self.model_dir.parent.parent
+        path = data_dir / "temp" / "piper-last.wav"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        return path
+
     def _play_wav_bytes(self, audio: bytes) -> None:
         import winsound
 
         if self._interrupt.is_set():
             return
 
+        wav_path = self._diagnostic_wav_path()
+        wav_path.write_bytes(audio)
         logger.info(
-            "Starting native Windows Piper playback model=%s wav_bytes=%s",
+            "Starting native Windows Piper playback model=%s wav_bytes=%s path=%s",
             self.model_id,
             len(audio),
+            wav_path,
         )
-        # PlaySound blocks here, but this class already owns a dedicated worker
-        # thread. SND_MEMORY lets Windows handle the WAV using the user's normal
-        # system output device without a separate PortAudio output stream.
-        winsound.PlaySound(audio, winsound.SND_MEMORY)
-        logger.info("Native Windows Piper playback completed model=%s", self.model_id)
+        # File-based PlaySound is deliberately used instead of SND_MEMORY.
+        # Some Windows/audio-driver combinations accepted an in-memory WAV
+        # without producing audible output. Keeping piper-last.wav also makes
+        # it possible to distinguish synthesis problems from playback problems.
+        winsound.PlaySound(
+            str(wav_path),
+            winsound.SND_FILENAME | getattr(winsound, "SND_SYNC", 0),
+        )
+        logger.info(
+            "Native Windows Piper playback completed model=%s path=%s",
+            self.model_id,
+            wav_path,
+        )
 
     def _stop_native_playback(self) -> None:
         try:
