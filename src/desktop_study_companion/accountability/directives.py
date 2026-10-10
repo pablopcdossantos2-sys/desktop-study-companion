@@ -56,7 +56,11 @@ class Directive:
 
 
 class DirectiveManager:
-    def __init__(self, path: str | Path, policy: NaggingPolicy | None = None) -> None:
+    def __init__(
+        self,
+        path: str | Path,
+        policy: NaggingPolicy | None = None,
+    ) -> None:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.policy = policy or NaggingPolicy()
@@ -106,7 +110,9 @@ class DirectiveManager:
             urgency=urgency,
             source=source,
             created_at=now.isoformat(),
-            next_nag_at=(now + timedelta(seconds=max(0, delay_seconds))).isoformat(),
+            next_nag_at=(
+                now + timedelta(seconds=max(0, delay_seconds))
+            ).isoformat(),
             delayed=False,
         )
         self.directives.append(directive)
@@ -122,10 +128,15 @@ class DirectiveManager:
                 continue
             try:
                 next_at = datetime.fromisoformat(directive.next_nag_at)
-            except ValueError:
+                compare_now = now
+                if next_at.tzinfo is None and compare_now.tzinfo is not None:
+                    next_at = next_at.astimezone()
+                elif next_at.tzinfo is not None and compare_now.tzinfo is None:
+                    compare_now = compare_now.astimezone()
+            except (TypeError, ValueError):
                 result.append(directive)
                 continue
-            if next_at <= now:
+            if next_at <= compare_now:
                 result.append(directive)
         return result
 
@@ -137,7 +148,10 @@ class DirectiveManager:
         now: datetime | None = None,
     ) -> NagDecision:
         now = now or datetime.now().astimezone()
-        decision = self.policy.decide(directive.urgency, directive.nag_count)
+        decision = self.policy.decide(
+            directive.urgency,
+            directive.nag_count,
+        )
         directive.nag_count += 1
         directive.last_nag_style = decision.style
         directive.last_nag_text = text
@@ -169,7 +183,11 @@ class DirectiveManager:
             return True
         return False
 
-    def complete(self, directive_id: str, now: datetime | None = None) -> bool:
+    def complete(
+        self,
+        directive_id: str,
+        now: datetime | None = None,
+    ) -> bool:
         now = now or datetime.now().astimezone()
         for directive in self.directives:
             if directive.id == directive_id and directive.active:
@@ -181,7 +199,9 @@ class DirectiveManager:
 
     def remove(self, directive_id: str) -> bool:
         before = len(self.directives)
-        self.directives = [d for d in self.directives if d.id != directive_id]
+        self.directives = [
+            d for d in self.directives if d.id != directive_id
+        ]
         changed = len(self.directives) != before
         if changed:
             self.save()

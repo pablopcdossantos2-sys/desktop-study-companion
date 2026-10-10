@@ -10,7 +10,20 @@ from desktop_study_companion.safe_json import atomic_write_json, load_json_list
 from .models import Routine
 
 
+_WEEKDAYS = {
+    0: {"monday", "segunda", "segunda-feira"},
+    1: {"tuesday", "terça", "terca", "terça-feira", "terca-feira"},
+    2: {"wednesday", "quarta", "quarta-feira"},
+    3: {"thursday", "quinta", "quinta-feira"},
+    4: {"friday", "sexta", "sexta-feira"},
+    5: {"saturday", "sábado", "sabado"},
+    6: {"sunday", "domingo"},
+}
+
+
 class RoutineManager:
+    SCHEDULE_GRACE_MINUTES = 15
+
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -21,17 +34,30 @@ class RoutineManager:
         self.routines = load_json_list(self.path, Routine.from_dict)
 
     def save(self) -> None:
-        atomic_write_json(self.path, [routine.to_dict() for routine in self.routines])
+        atomic_write_json(
+            self.path,
+            [routine.to_dict() for routine in self.routines],
+        )
 
     def add(self, routine: Routine) -> Routine:
         self.routines.append(routine)
         self.save()
         return routine
 
+    @staticmethod
+    def _identity(routine: Routine) -> tuple:
+        return (
+            routine.goal.casefold().strip(),
+            routine.schedule,
+            (routine.time or "").strip(),
+            (routine.day or "").casefold().strip(),
+            round(float(routine.interval_hours or 0.0), 6),
+        )
+
     def add_if_unique(self, routine: Routine) -> bool:
-        normalized = routine.goal.casefold().strip()
+        identity = self._identity(routine)
         for existing in self.routines:
-            if existing.goal.casefold().strip() == normalized:
+            if self._identity(existing) == identity:
                 return False
         self.add(routine)
         return True
@@ -52,16 +78,38 @@ class RoutineManager:
                 return True
         return False
 
+    def _time_is_due(self, value: str | None, now: datetime) -> bool:
+        if not value:
+            return False
+        try:
+            hour_text, minute_text = value.split(":", 1)
+            scheduled = now.replace(
+                hour=int(hour_text),
+                minute=int(minute_text),
+                second=0,
+                microsecond=0,
+            )
+        except (TypeError, ValueError):
+            return False
+
+        lateness = (now - scheduled).total_seconds()
+        return 0 <= lateness <= self.SCHEDULE_GRACE_MINUTES * 60
+
+    @staticmethod
+    def _day_matches(day: str | None, now: datetime) -> bool:
+        if not day:
+            return False
+        normalized = day.casefold().strip()
+        return normalized in _WEEKDAYS.get(now.weekday(), set())
+
     def get_due_routines(
         self,
         *,
         now: datetime | None = None,
         wake_event: bool = False,
     ) -> list[Routine]:
-        now = now or datetime.now()
+        now = now or datetime.now().astimezone()
         today = now.strftime("%Y-%m-%d")
-        now_hhmm = now.strftime("%H:%M")
-        now_day = now.strftime("%A").casefold()
         due: list[Routine] = []
 
         for routine in self.routines:
@@ -72,18 +120,15 @@ class RoutineManager:
             if routine.schedule == "on_wake":
                 fired = wake_event and routine.last_fired_date != today
             elif routine.schedule == "daily":
-                fired = bool(
-                    routine.time
-                    and routine.time <= now_hhmm
-                    and routine.last_fired_date != today
+                fired = (
+                    routine.last_fired_date != today
+                    and self._time_is_due(routine.time, now)
                 )
             elif routine.schedule == "weekly":
-                fired = bool(
-                    routine.day
-                    and routine.day.casefold() == now_day
-                    and routine.time
-                    and routine.time <= now_hhmm
-                    and routine.last_fired_date != today
+                fired = (
+                    routine.last_fired_date != today
+                    and self._day_matches(routine.day, now)
+                    and self._time_is_due(routine.time, now)
                 )
             elif routine.schedule == "interval" and routine.interval_hours:
                 if not routine.last_fired_ts:
@@ -91,8 +136,15 @@ class RoutineManager:
                 else:
                     try:
                         last = datetime.fromisoformat(routine.last_fired_ts)
-                        fired = (now - last).total_seconds() / 3600 >= routine.interval_hours
-                    except ValueError:
+                        compare_now = now
+                        if last.tzinfo is None and compare_now.tzinfo is not None:
+                            last = last.astimezone()
+                        elif last.tzinfo is not None and compare_now.tzinfo is None:
+                            compare_now = compare_now.astimezone()
+                        fired = (
+                            compare_now - last
+                        ).total_seconds() / 3600 >= routine.interval_hours
+                    except (TypeError, ValueError):
                         fired = True
 
             if fired:
