@@ -2,6 +2,10 @@
 
 A partir da **v0.1.0-dev11**, o Desktop Study Companion mantém logs persistentes para facilitar a investigação de erros que não aparecem na interface.
 
+Na **v0.1.0-dev17**, o diagnóstico também passa a registrar encerramentos
+anormais e falhas nativas que podem fazer o executável desaparecer sem uma
+mensagem Python visível.
+
 ## Onde ficam os logs
 
 Na versão portátil:
@@ -12,7 +16,20 @@ data\logs\desktop-study-companion.log
 
 O arquivo fica dentro da própria pasta do aplicativo.
 
-O sistema usa rotação automática:
+Além do log principal, a dev17 mantém:
+
+```text
+data\logs\desktop-study-companion-fatal.log
+data\logs\run-state.json
+```
+
+- `desktop-study-companion-fatal.log` recebe traces do `faulthandler` quando
+  Python consegue observar uma falha fatal/nativa;
+- `run-state.json` marca a execução como aberta no início e como encerrada
+  corretamente no fechamento normal. Se o processo morrer abruptamente, a
+  próxima inicialização detecta que a execução anterior não marcou saída limpa.
+
+O sistema usa rotação automática no log principal:
 
 - arquivo atual: `desktop-study-companion.log`;
 - arquivos antigos podem aparecer como `.1`, `.2` etc.;
@@ -56,6 +73,9 @@ Os logs incluem, entre outros:
 - inicialização do aplicativo;
 - exceções Python não tratadas;
 - exceções em threads;
+- exceções em ciclos periódicos de monitoramento/proatividade sem encerrar o app;
+- término do processo renderer do Qt WebEngine e tentativa automática de reload;
+- detecção de execução anterior sem encerramento limpo;
 - mensagens Qt/Qt WebEngine;
 - inicialização e parada do servidor local do avatar;
 - caminho/tamanho do arquivo VRM;
@@ -161,3 +181,29 @@ Avatar renderer diagnostics: {...}
 ```
 
 sem um `avatar load timed out` posterior para a mesma instância.
+
+
+## Se o programa fechar sozinho — dev17
+
+1. Abra novamente o Desktop Study Companion.
+2. Clique com o botão direito na personagem.
+3. Abra **Diagnóstico > Abrir pasta de logs**.
+4. Verifique primeiro `run-state.json`.
+5. Depois abra `desktop-study-companion.log`.
+6. Se existir conteúdo recente, confira também
+   `desktop-study-companion-fatal.log`.
+
+Procure no log principal por:
+
+```text
+Previous run did not record a clean exit
+Monitoring cycle failed
+Proactive motivation cycle failed
+Avatar render process terminated
+Fatal application startup/runtime error
+```
+
+Se `run-state.json` indicar `"clean_exit": false` depois de o programa ter
+sumido, isso confirma que não foi usado o comando normal **Sair**.
+
+O encerramento normal grava `"clean_exit": true`.
