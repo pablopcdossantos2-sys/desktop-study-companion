@@ -14,6 +14,12 @@ def test_load_config_including_voice(tmp_path) -> None:
                     "distraction_keywords": ["youtube"],
                 },
                 "voice": {"enabled": False, "rate": 2, "volume": 75},
+                "brain": {
+                    "enabled": True,
+                    "base_url": "http://127.0.0.1:11434/v1",
+                    "model": "demo",
+                    "history_messages": 8
+                },
                 "avatar": {
                     "enabled": True,
                     "width": 480,
@@ -34,6 +40,9 @@ def test_load_config_including_voice(tmp_path) -> None:
     assert config.voice.enabled is False
     assert config.voice.rate == 2
     assert config.voice.volume == 75
+    assert config.brain.enabled is True
+    assert config.brain.model == "demo"
+    assert config.brain.history_messages == 8
     assert config.avatar.enabled is True
     assert config.avatar.width == 480
     assert config.avatar.height == 700
