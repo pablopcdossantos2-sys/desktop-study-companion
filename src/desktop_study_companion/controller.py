@@ -186,6 +186,7 @@ class ApplicationController(QObject):
         self._last_intervention_at = 0.0
         self._last_session_save_at = 0.0
         self._last_activity_key: tuple[str, str, str] | None = None
+        self._coach_milestones_announced: set[int] = set()
         self._shutting_down = False
         self._voice_preview: PiperNeuralTTS | None = None
 
@@ -623,6 +624,7 @@ class ApplicationController(QObject):
         self._last_session_save_at = time.monotonic()
         self._last_activity_key = None
         self._last_intervention_kind = InterventionKind.NONE
+        self._coach_milestones_announced.clear()
         if self.config.proactivity.coach_mode:
             start_message = self.personality.session_start_message(
                 session.goal,
@@ -1468,6 +1470,33 @@ class ApplicationController(QObject):
             self.memory.save_session(self.sessions.session)
             self._last_session_save_at = now
 
+    def _maybe_coach_milestone(self, elapsed_seconds: float) -> None:
+        p = self.config.proactivity
+        session = self.sessions.session
+        if (
+            not p.enabled
+            or not p.coach_mode
+            or session is None
+            or not self.sessions.active
+        ):
+            return
+
+        planned_seconds = max(1.0, session.planned_minutes * 60.0)
+        for milestone in (25, 50, 75):
+            if milestone in self._coach_milestones_announced:
+                continue
+            threshold = planned_seconds * (milestone / 100.0)
+            if elapsed_seconds >= threshold:
+                self._coach_milestones_announced.add(milestone)
+                self._say(
+                    self.personality.milestone_message(
+                        session.goal,
+                        milestone,
+                    ),
+                    avatar_state="happy",
+                )
+                break
+
     def _safe_poll(self) -> None:
         try:
             self._poll()
@@ -1522,6 +1551,9 @@ class ApplicationController(QObject):
         tick = self.sessions.tick(classified.kind, elapsed)
         if tick is None:
             return
+
+        if classified.kind == ActivityKind.PRODUCTIVE:
+            self._maybe_coach_milestone(tick.elapsed_seconds)
 
         lockdown_acted = self._apply_lockdown_if_needed(classified)
         lockdown_active = self.lockdown.is_active()
