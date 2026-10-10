@@ -621,8 +621,24 @@ class ApplicationController(QObject):
         if exec_top_level_dialog(dialog, avoid_widget=self.widget) != QDialog.DialogCode.Accepted:
             return
 
+        # The companion remains usable while the dialog is open. Re-check the
+        # invariant after it closes in case session state changed meanwhile.
+        if self.sessions.active:
+            self._say("Já existe uma sessão em andamento.")
+            return
+
         self.lockdown.clear()
-        session = self.sessions.start(dialog.goal.text(), dialog.minutes.value())
+        try:
+            session = self.sessions.start(
+                dialog.goal.text(),
+                dialog.minutes.value(),
+            )
+        except RuntimeError:
+            logger.exception(
+                "Session start rejected because another session became active"
+            )
+            self._say("Já existe uma sessão em andamento.")
+            return
         self.memory.save_session(session)
         self._last_session_save_at = time.monotonic()
         self._last_activity_key = None
@@ -1557,20 +1573,30 @@ class ApplicationController(QObject):
             return
 
         planned_seconds = max(1.0, session.planned_minutes * 60.0)
-        for milestone in (25, 50, 75):
-            if milestone in self._coach_milestones_announced:
-                continue
-            threshold = planned_seconds * (milestone / 100.0)
-            if elapsed_seconds >= threshold:
-                self._coach_milestones_announced.add(milestone)
-                self._say(
-                    self.personality.milestone_message(
-                        session.goal,
-                        milestone,
-                    ),
-                    avatar_state="happy",
-                )
-                break
+        reached = [
+            milestone
+            for milestone in (25, 50, 75)
+            if elapsed_seconds
+            >= planned_seconds * (milestone / 100.0)
+        ]
+        if not reached:
+            return
+
+        latest = max(reached)
+        was_announced = latest in self._coach_milestones_announced
+        # If the user returns late, older milestones are stale. Mark every
+        # lower milestone as consumed and speak only the most current one.
+        self._coach_milestones_announced.update(reached)
+        if was_announced:
+            return
+
+        self._say(
+            self.personality.milestone_message(
+                session.goal,
+                latest,
+            ),
+            avatar_state="happy",
+        )
 
     def _safe_poll(self) -> None:
         try:

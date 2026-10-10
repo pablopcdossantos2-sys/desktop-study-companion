@@ -12,6 +12,21 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+_ACTIVE_EXEC_DIALOG: QDialog | None = None
+
+
+def _focus_dialog(
+    dialog: QDialog,
+    avoid_widget: QWidget | None = None,
+) -> None:
+    try:
+        position_away_from_companion(dialog, avoid_widget)
+        dialog.raise_()
+        dialog.activateWindow()
+    except RuntimeError:
+        # The underlying Qt object may have been destroyed during shutdown.
+        pass
+
 
 def choose_dialog_position(
     dialog_size: QSize,
@@ -139,7 +154,27 @@ def exec_top_level_dialog(
     *,
     avoid_widget: QWidget | None = None,
 ):
-    """Run a dialog synchronously without blocking the companion window."""
+    """Run one synchronous dialog at a time without blocking the companion.
+
+    The companion remains movable and its menu remains available, but a second
+    synchronous dialog request cannot create another nested QEventLoop. It
+    simply brings the already-open dialog back to the foreground.
+    """
+    global _ACTIVE_EXEC_DIALOG
+
+    existing = _ACTIVE_EXEC_DIALOG
+    if existing is not None:
+        try:
+            if existing.isVisible():
+                QTimer.singleShot(
+                    0,
+                    lambda d=existing, a=avoid_widget: _focus_dialog(d, a),
+                )
+                return int(QDialog.DialogCode.Rejected)
+        except RuntimeError:
+            pass
+        _ACTIVE_EXEC_DIALOG = None
+
     prepare_top_level_window(
         dialog,
         modal=False,
@@ -147,6 +182,7 @@ def exec_top_level_dialog(
     )
     loop = QEventLoop()
     result = [int(QDialog.DialogCode.Rejected)]
+    _ACTIVE_EXEC_DIALOG = dialog
 
     def finished(code: int) -> None:
         result[0] = int(code)
@@ -159,16 +195,15 @@ def exec_top_level_dialog(
         app.aboutToQuit.connect(dialog.reject)
 
     dialog.show()
-
-    def bring_to_front() -> None:
-        position_away_from_companion(dialog, avoid_widget)
-        dialog.raise_()
-        dialog.activateWindow()
-
-    QTimer.singleShot(0, bring_to_front)
+    QTimer.singleShot(
+        0,
+        lambda d=dialog, a=avoid_widget: _focus_dialog(d, a),
+    )
     try:
         loop.exec()
     finally:
+        if _ACTIVE_EXEC_DIALOG is dialog:
+            _ACTIVE_EXEC_DIALOG = None
         if app is not None:
             try:
                 app.aboutToQuit.disconnect(dialog.reject)
