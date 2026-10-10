@@ -92,12 +92,14 @@ e são copiados para a build portátil.
 
 A partir da dev15, o Desktop Study Companion pode usar **Piper TTS** como motor neural local de síntese de voz.
 
-- Projeto: OHF-Voice/piper1-gpl
-- Licença do runtime: GPL-3.0
+A build mantém o pacote Python **OHF-Voice/piper1-gpl** (GPL-3.0) para gerenciamento/download de vozes e compatibilidade de desenvolvimento. A partir da dev22, o executável portátil para Windows também inclui o runtime standalone legado **rhasspy/piper 2023.11.14-2**, distribuído sob licença MIT, porque o wheel Windows moderno apresentou falha nativa de localização do `espeak-ng-data` em builds empacotadas.
+
+- Runtime Python: OHF-Voice/piper1-gpl — GPL-3.0
+- Runtime standalone Windows: rhasspy/piper — MIT
 - Voz padrão sugerida: `pt_BR-faber-medium`
 - Repositório de vozes: `rhasspy/piper-voices`
 - O conjunto de dados indicado no model card de `faber` é CC0.
 
-O modelo de voz não é versionado neste repositório. Ele é obtido no primeiro uso e armazenado localmente em `data/models/piper`.
+O modelo de voz não é versionado neste repositório. Ele é obtido no primeiro uso e armazenado localmente em `data/models/piper`. Para síntese no portátil Windows, modelo e runtime são copiados temporariamente para um caminho nativo compatível antes da execução.
 
 As condições de licença do runtime e de cada modelo selecionado continuam aplicáveis.

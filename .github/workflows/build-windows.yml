@@ -49,6 +49,43 @@ jobs:
           python -m pip install ".[dev]"
           python -m pip install "pyinstaller>=6.10,<7"
 
+      - name: Fetch standalone Piper Windows runtime
+        shell: pwsh
+        run: |
+          $url = "https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_windows_amd64.zip"
+          $zip = Join-Path $env:RUNNER_TEMP "piper_windows_amd64.zip"
+          $extract = "build/piper-runtime-extract"
+          $target = "build/piper-runtime"
+          Invoke-WebRequest -Uri $url -OutFile $zip
+          if (Test-Path $extract) { Remove-Item $extract -Recurse -Force }
+          if (Test-Path $target) { Remove-Item $target -Recurse -Force }
+          Expand-Archive -Path $zip -DestinationPath $extract -Force
+          $exe = Get-ChildItem $extract -Filter "piper.exe" -Recurse | Select-Object -First 1
+          if (-not $exe) { throw "Standalone Piper piper.exe was not found." }
+          New-Item -ItemType Directory -Force -Path $target | Out-Null
+          Copy-Item (Join-Path $exe.Directory.FullName "*") $target -Recurse -Force
+          if (-not (Test-Path "$target/piper.exe")) { throw "Standalone Piper executable was not staged." }
+          if (-not (Test-Path "$target/espeak-ng-data/phontab")) { throw "Standalone Piper espeak-ng-data/phontab was not staged." }
+          Get-FileHash "$target/piper.exe" -Algorithm SHA256
+
+      - name: Smoke test standalone Piper synthesis
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "build/piper-smoke" | Out-Null
+          @'
+          from pathlib import Path
+          from piper.download_voices import download_voice
+          download_voice("pt_BR-edresson-low", Path("build/piper-smoke"))
+          '@ | python -
+          $model = "build/piper-smoke/pt_BR-edresson-low.onnx"
+          $config = "build/piper-smoke/pt_BR-edresson-low.onnx.json"
+          $output = "build/piper-smoke/smoke.wav"
+          "Teste da voz Piper." | & "build/piper-runtime/piper.exe" --model $model --config $config --espeak_data "build/piper-runtime/espeak-ng-data" --output_file $output
+          if ($LASTEXITCODE -ne 0) { throw "Standalone Piper synthesis returned exit code $LASTEXITCODE." }
+          if (-not (Test-Path $output)) { throw "Standalone Piper did not create the smoke-test WAV." }
+          if ((Get-Item $output).Length -le 44) { throw "Standalone Piper created an empty smoke-test WAV." }
+          Write-Host "Standalone Piper smoke WAV bytes=$((Get-Item $output).Length)"
+
       - name: Fetch verified CC0 avatar
         shell: pwsh
         run: ./scripts/fetch-avatar.ps1
@@ -99,11 +136,13 @@ jobs:
           New-Item -ItemType Directory -Force -Path "dist/DesktopStudyCompanion/docs" | Out-Null
           New-Item -ItemType Directory -Force -Path "dist/DesktopStudyCompanion/avatar/renderer" | Out-Null
           New-Item -ItemType Directory -Force -Path "dist/DesktopStudyCompanion/assets/avatar" | Out-Null
+          New-Item -ItemType Directory -Force -Path "dist/DesktopStudyCompanion/piper-runtime" | Out-Null
           Copy-Item "config/default.json" "dist/DesktopStudyCompanion/config/default.json"
           Copy-Item "avatar_web/dist/*" "dist/DesktopStudyCompanion/avatar/renderer/" -Recurse -Force
           Copy-Item "assets/avatar/Sendagaya_Shino.vrm" "dist/DesktopStudyCompanion/assets/avatar/Sendagaya_Shino.vrm"
           Copy-Item "assets/avatar/README.md" "dist/DesktopStudyCompanion/assets/avatar/README.md"
           Copy-Item "assets/avatar/avatar-manifest.json" "dist/DesktopStudyCompanion/assets/avatar/avatar-manifest.json"
+          Copy-Item "build/piper-runtime/*" "dist/DesktopStudyCompanion/piper-runtime/" -Recurse -Force
           Copy-Item "README.md" "dist/DesktopStudyCompanion/README.md"
           Copy-Item "THIRD-PARTY-NOTICES.md" "dist/DesktopStudyCompanion/THIRD-PARTY-NOTICES.md"
           Copy-Item "avatar_web/THIRD_PARTY_LICENSES.md" "dist/DesktopStudyCompanion/THIRD_PARTY_LICENSES-AVATAR.md"
@@ -117,6 +156,7 @@ jobs:
           Copy-Item "docs/VOICE-CONVERSATION.md" "dist/DesktopStudyCompanion/docs/VOICE-CONVERSATION.md"
           Copy-Item "docs/TUTORIAL-PIPER.md" "dist/DesktopStudyCompanion/docs/TUTORIAL-PIPER.md"
           Copy-Item "docs/PROACTIVITY.md" "dist/DesktopStudyCompanion/docs/PROACTIVITY.md"
+          Copy-Item "docs/COACH-MODE.md" "dist/DesktopStudyCompanion/docs/COACH-MODE.md"
           Copy-Item "docs/DIAGNOSTICS.md" "dist/DesktopStudyCompanion/docs/DIAGNOSTICS.md"
           Copy-Item "docs/THIRD_PARTY_LICENSES-VOICE.md" "dist/DesktopStudyCompanion/THIRD_PARTY_LICENSES-VOICE.md"
 
@@ -134,6 +174,12 @@ jobs:
           }
           if (-not (Test-Path "dist/DesktopStudyCompanion/assets/avatar/Sendagaya_Shino.vrm")) {
             throw "Sendagaya_Shino.vrm was not packaged."
+          }
+          if (-not (Test-Path "dist/DesktopStudyCompanion/piper-runtime/piper.exe")) {
+            throw "Standalone Piper runtime was not packaged."
+          }
+          if (-not (Test-Path "dist/DesktopStudyCompanion/piper-runtime/espeak-ng-data/phontab")) {
+            throw "Standalone Piper espeak-ng-data was not packaged."
           }
 
       - name: Create portable ZIP
