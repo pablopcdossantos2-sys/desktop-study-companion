@@ -44,11 +44,15 @@ Critério de conclusão:
 ## v0.2 — Voz
 
 - [x] TTS local inicial usando Windows SAPI.
-- [ ] seletor de vozes instaladas no Windows.
-- [ ] STT push-to-talk.
-- [ ] interrupção da fala.
-- [ ] seleção de voz pela interface.
-- [ ] controles de volume pela interface.
+- [x] seletor de vozes instaladas no Windows;
+- [x] STT push-to-talk local com faster-whisper;
+- [x] interrupção da fala;
+- [x] seleção de voz pela interface;
+- [x] controles de velocidade/volume pela interface;
+- [x] seleção de microfone pela interface;
+- [x] revisão opcional da transcrição antes do envio;
+- [ ] wake word/escuta contínua;
+- [ ] streaming parcial de transcrição.
 - [x] fallback textual no balão.
 
 ## v0.3 — Personalidade programável
