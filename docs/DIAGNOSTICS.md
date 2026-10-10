@@ -207,3 +207,20 @@ Se `run-state.json` indicar `"clean_exit": false` depois de o programa ter
 sumido, isso confirma que não foi usado o comando normal **Sair**.
 
 O encerramento normal grava `"clean_exit": true`.
+
+
+## Janelas e diálogos — dev22
+
+A dev22 move seletores, configurações, históricos e caixas de mensagem para
+janelas top-level independentes do QWebEngine do avatar.
+
+Essas janelas:
+
+- recebem botão de fechar;
+- não usam modalidade de aplicação que bloqueie a personagem;
+- são posicionadas automaticamente longe do retângulo ocupado pelo avatar;
+- permanecem dentro da área útil de um monitor;
+- podem usar outro monitor quando isso aumenta a distância da personagem.
+
+Isso evita o estado em que uma popup fica escondida atrás do avatar e impede o
+usuário de alcançar os controles necessários para fechá-la.
