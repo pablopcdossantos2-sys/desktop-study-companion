@@ -79,3 +79,15 @@ Ela **não**:
 de qualquer programa.
 
 Essas ações serão implementadas apenas como recursos explicitamente opt-in.
+
+
+## Cérebro conversacional (dev9)
+
+- O cérebro conversacional é opcional e vem desativado por padrão.
+- A integração atual é apenas texto → LLM → texto/TTS.
+- Ainda não há streaming de tokens.
+- Ainda não há STT/push-to-talk.
+- O LLM não recebe ferramentas nem acesso às permissões de intervenção no desktop; essa separação é deliberada.
+- A compatibilidade esperada é com servidores que implementem `/v1/chat/completions`; extensões específicas de cada provedor não são usadas nesta fase.
+- Quando um endpoint remoto é configurado, mensagens e contexto comportamental enviados no prompt deixam o computador e passam a estar sujeitos à política do provedor.
+- O Ollama local é a rota recomendada para testes sem API paga.
