@@ -128,6 +128,7 @@ class ApplicationController(QObject):
             WindowsSapiTTS(
                 rate=config.voice.rate,
                 volume=config.voice.volume,
+                voice_token_id=config.voice.voice_id,
             )
             if config.voice.enabled
             else None
@@ -955,6 +956,7 @@ class ApplicationController(QObject):
             self.voice = WindowsSapiTTS(
                 rate=new_config.voice.rate,
                 volume=new_config.voice.volume,
+                voice_token_id=new_config.voice.voice_id,
             )
 
         self.timer.setInterval(new_config.monitor.poll_interval_ms)
