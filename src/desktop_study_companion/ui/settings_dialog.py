@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QFormLayout,
     QGroupBox,
+    QComboBox,
     QLineEdit,
     QSpinBox,
     QTabWidget,
@@ -14,6 +15,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from desktop_study_companion.voice.audio_capture import list_input_devices
 
 from desktop_study_companion.config.models import (
     AccountabilityConfig,
@@ -54,6 +57,7 @@ class SettingsDialog(QDialog):
         tabs.addTab(self._accountability_tab(config), "Cobrança")
         tabs.addTab(self._personality_tab(config), "Personalidade")
         tabs.addTab(self._voice_tab(config), "Voz")
+        tabs.addTab(self._speech_input_tab(config), "Microfone")
         tabs.addTab(self._brain_tab(config), "Cérebro")
         tabs.addTab(self._avatar_tab(config), "Avatar")
 
@@ -145,6 +149,62 @@ class SettingsDialog(QDialog):
         return widget
 
 
+
+
+    def _speech_input_tab(self, config: AppConfig) -> QWidget:
+        widget = QWidget()
+        form = QFormLayout(widget)
+        s = config.speech_input
+
+        self.stt_enabled = QCheckBox("Ativar push-to-talk local")
+        self.stt_enabled.setChecked(s.enabled)
+
+        self.stt_model = QLineEdit(s.model)
+        self.stt_model.setPlaceholderText("base")
+
+        self.stt_language = QLineEdit(s.language)
+        self.stt_language.setPlaceholderText("pt")
+
+        self.stt_device = QComboBox()
+        self.stt_device.addItems(["cpu", "auto", "cuda"])
+        idx = self.stt_device.findText(s.device)
+        self.stt_device.setCurrentIndex(max(0, idx))
+
+        self.stt_compute = QLineEdit(s.compute_type)
+        self.stt_compute.setPlaceholderText("int8")
+
+        self.stt_microphone = QComboBox()
+        self.stt_microphone.addItem("Microfone padrão do Windows", -1)
+        try:
+            for device in list_input_devices():
+                self.stt_microphone.addItem(
+                    f"{device.index}: {device.name}",
+                    device.index,
+                )
+        except Exception:
+            pass
+        mic_index = self.stt_microphone.findData(s.microphone_device)
+        self.stt_microphone.setCurrentIndex(max(0, mic_index))
+
+        self.stt_max_seconds = QSpinBox()
+        self.stt_max_seconds.setRange(2, 120)
+        self.stt_max_seconds.setValue(s.max_record_seconds)
+        self.stt_max_seconds.setSuffix(" s")
+
+        self.stt_auto_send = QCheckBox(
+            "Enviar automaticamente após transcrever"
+        )
+        self.stt_auto_send.setChecked(s.auto_send)
+
+        form.addRow("", self.stt_enabled)
+        form.addRow("Modelo Whisper:", self.stt_model)
+        form.addRow("Idioma:", self.stt_language)
+        form.addRow("Dispositivo de inferência:", self.stt_device)
+        form.addRow("Compute type:", self.stt_compute)
+        form.addRow("Microfone:", self.stt_microphone)
+        form.addRow("Máx. gravação:", self.stt_max_seconds)
+        form.addRow("", self.stt_auto_send)
+        return widget
 
     def _brain_tab(self, config: AppConfig) -> QWidget:
         widget = QWidget()
@@ -273,6 +333,20 @@ class SettingsDialog(QDialog):
                 enabled=self.voice_enabled.isChecked(),
                 rate=self.voice_rate.value(),
                 volume=self.voice_volume.value(),
+            ),
+            speech_input=SpeechInputConfig(
+                enabled=self.stt_enabled.isChecked(),
+                model=self.stt_model.text().strip(),
+                language=self.stt_language.text().strip(),
+                device=self.stt_device.currentText(),
+                compute_type=self.stt_compute.text().strip(),
+                microphone_device=int(
+                    self.stt_microphone.currentData()
+                    if self.stt_microphone.currentData() is not None
+                    else -1
+                ),
+                max_record_seconds=self.stt_max_seconds.value(),
+                auto_send=self.stt_auto_send.isChecked(),
             ),
             brain=BrainConfig(
                 enabled=self.brain_enabled.isChecked(),
