@@ -1159,6 +1159,7 @@ class ApplicationController(QObject):
             fallback=None,
         )
         if dialog is not None:
+            dialog.piper_test_button.setEnabled(False)
             dialog.set_piper_test_status(
                 "Testando. No primeiro uso, a voz pode ser baixada antes "
                 "da síntese."
@@ -1198,6 +1199,7 @@ class ApplicationController(QObject):
                 + engine.last_error[:240]
             )
             if dialog is not None:
+                dialog.piper_test_button.setEnabled(True)
                 dialog.set_piper_test_status(message, error=True)
             self.widget.say(
                 "O teste da voz Piper falhou. Abra Diagnóstico e os logs "
@@ -1211,12 +1213,14 @@ class ApplicationController(QObject):
                 "O WAV de diagnóstico foi salvo em data\\temp\\piper-last.wav."
             )
             if dialog is not None:
+                dialog.piper_test_button.setEnabled(True)
                 dialog.set_piper_test_status(message)
             self.widget.say("Teste Piper concluído com sucesso.")
             return
 
         message = "O teste terminou sem produzir um resultado de áudio."
         if dialog is not None:
+            dialog.piper_test_button.setEnabled(True)
             dialog.set_piper_test_status(message, error=True)
         self.widget.say(message)
 
