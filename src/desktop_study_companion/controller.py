@@ -73,6 +73,12 @@ from desktop_study_companion.ui.routine_dialog import RoutineDialog
 from desktop_study_companion.ui.session_dialog import SessionDialog
 from desktop_study_companion.ui.settings_dialog import SettingsDialog
 from desktop_study_companion.ui.standing_rule_dialog import StandingRuleDialog
+from desktop_study_companion.voice.audio_capture import (
+    AudioCaptureError,
+    MicrophoneRecorder,
+)
+from desktop_study_companion.voice.faster_whisper_stt import FasterWhisperSTT
+from desktop_study_companion.voice.stt_worker import SttWorker
 from desktop_study_companion.voice.windows_sapi import WindowsSapiTTS
 from desktop_study_companion import __version__
 
@@ -131,7 +137,16 @@ class ApplicationController(QObject):
         self.brain = BrainService(config, self.memory, self.analytics)
         self.thread_pool = QThreadPool.globalInstance()
         self._brain_workers: set[BrainChatWorker] = set()
+        self._stt_workers: set[SttWorker] = set()
         self.chat_dialog: ChatDialog | None = None
+        self.recorder = MicrophoneRecorder(
+            output_dir=self.data_dir / "temp",
+            device_index=config.speech_input.microphone_device,
+        )
+        self.stt = self._create_stt_provider(config)
+        self._ptt_timer = QTimer(self)
+        self._ptt_timer.setSingleShot(True)
+        self._ptt_timer.timeout.connect(self._stop_push_to_talk)
         self.widget = CompanionWidget(
             config.personality.name,
             config.avatar,
@@ -235,6 +250,12 @@ class ApplicationController(QObject):
             self.chat_dialog.clear_requested.connect(
                 self.clear_chat_history
             )
+            self.chat_dialog.push_to_talk_started.connect(
+                self._start_push_to_talk
+            )
+            self.chat_dialog.push_to_talk_finished.connect(
+                self._stop_push_to_talk
+            )
 
         self.chat_dialog.character_name = self.config.personality.name
         self.chat_dialog.setWindowTitle(
@@ -248,6 +269,110 @@ class ApplicationController(QObject):
         self.chat_dialog.show()
         self.chat_dialog.raise_()
         self.chat_dialog.activateWindow()
+
+    def _create_stt_provider(self, config: AppConfig):
+        speech = config.speech_input
+        if not speech.enabled:
+            return None
+        return FasterWhisperSTT(
+            model_name=speech.model,
+            language=speech.language,
+            device=speech.device,
+            compute_type=speech.compute_type,
+            download_root=self.data_dir / "models" / "faster-whisper",
+        )
+
+    def _start_push_to_talk(self) -> None:
+        if self.chat_dialog is None:
+            return
+        if not self.config.speech_input.enabled or self.stt is None:
+            self.chat_dialog.append_status(
+                "Push-to-talk está desativado. Ative em Configurações > Microfone."
+            )
+            return
+        if self.recorder.recording:
+            return
+
+        try:
+            self.recorder.start()
+        except Exception as exc:
+            self.chat_dialog.append_status(
+                "Não foi possível iniciar o microfone: " + str(exc)
+            )
+            return
+
+        self.chat_dialog.set_recording(True)
+        self.chat_dialog.append_status(
+            "Gravando… solte o botão para transcrever."
+        )
+        self._ptt_timer.start(
+            self.config.speech_input.max_record_seconds * 1000
+        )
+
+    def _stop_push_to_talk(self) -> None:
+        if self.chat_dialog is None or not self.recorder.recording:
+            return
+
+        self._ptt_timer.stop()
+        self.chat_dialog.set_recording(False)
+        self.chat_dialog.set_busy(True)
+
+        try:
+            audio_path = self.recorder.stop_to_wav()
+        except AudioCaptureError as exc:
+            self.chat_dialog.append_status(str(exc))
+            self.chat_dialog.set_busy(False)
+            return
+        except Exception as exc:
+            self.chat_dialog.append_status(
+                "Falha ao finalizar gravação: " + str(exc)
+            )
+            self.chat_dialog.set_busy(False)
+            return
+
+        if self.stt is None:
+            audio_path.unlink(missing_ok=True)
+            self.chat_dialog.append_status(
+                "Reconhecimento de fala não está disponível."
+            )
+            self.chat_dialog.set_busy(False)
+            return
+
+        self.chat_dialog.append_status(
+            "Transcrevendo localmente… na primeira vez o modelo pode ser baixado."
+        )
+        worker = SttWorker(self.stt, audio_path)
+        self._stt_workers.add(worker)
+        worker.signals.succeeded.connect(
+            lambda text, w=worker: self._stt_succeeded(w, text)
+        )
+        worker.signals.failed.connect(
+            lambda error, w=worker: self._stt_failed(w, error)
+        )
+        self.thread_pool.start(worker)
+
+    def _stt_succeeded(self, worker: SttWorker, text: str) -> None:
+        self._stt_workers.discard(worker)
+        if self.chat_dialog is None:
+            return
+
+        if self.config.speech_input.auto_send:
+            self.chat_dialog.append_user(text)
+            self._submit_chat_message(text)
+        else:
+            self.chat_dialog.set_busy(False)
+            self.chat_dialog.set_transcript_draft(text)
+            self.chat_dialog.append_status(
+                "Transcrição pronta. Revise e clique em Enviar."
+            )
+
+    def _stt_failed(self, worker: SttWorker, error: str) -> None:
+        self._stt_workers.discard(worker)
+        if self.chat_dialog is not None:
+            self.chat_dialog.append_status(
+                "Falha no reconhecimento de fala: " + error
+            )
+            self.chat_dialog.set_busy(False)
 
     def _submit_chat_message(self, text: str) -> None:
         worker = BrainChatWorker(
@@ -775,6 +900,12 @@ class ApplicationController(QObject):
     def _apply_runtime_config(self, new_config: AppConfig) -> None:
         self.config = new_config
         self.brain.update_config(new_config)
+        if self.recorder.recording:
+            self.recorder.cancel()
+        self.recorder.update_device(
+            new_config.speech_input.microphone_device
+        )
+        self.stt = self._create_stt_provider(new_config)
 
         self.classifier = ActivityClassifier(
             productive_keywords=set(
@@ -1128,6 +1259,9 @@ class ApplicationController(QObject):
             self.memory.save_session(self.sessions.session)
         self.lockdown.clear()
         self.timer.stop()
+        self._ptt_timer.stop()
+        if self.recorder.recording:
+            self.recorder.cancel()
         if self.voice is not None:
             self.voice.close()
         self.memory.close()
