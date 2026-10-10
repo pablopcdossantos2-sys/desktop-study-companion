@@ -89,6 +89,10 @@ def validate_config(config: AppConfig) -> None:
         raise ValueError("avatar width must be between 220 and 900")
     if not 320 <= config.avatar.height <= 1100:
         raise ValueError("avatar height must be between 320 and 1100")
+    if config.avatar.gesture_min_seconds < 3:
+        raise ValueError("avatar gesture minimum must be at least 3 seconds")
+    if config.avatar.gesture_max_seconds < config.avatar.gesture_min_seconds:
+        raise ValueError("avatar gesture maximum must be >= minimum")
 
 
 def save_config(config: AppConfig, path: str | Path) -> Path:
