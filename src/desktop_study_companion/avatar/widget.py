@@ -68,6 +68,25 @@ class AvatarWidget(QWebEngineView):
         self._health_timer.timeout.connect(self._poll_health)
 
         self.loadFinished.connect(self._on_page_loaded)
+        self.renderProcessTerminated.connect(
+            self._on_render_process_terminated
+        )
+
+    def _on_render_process_terminated(self, status, exit_code: int) -> None:
+        logger.error(
+            "Avatar render process terminated status=%s exit_code=%s",
+            status,
+            exit_code,
+        )
+        # Qt documents reload as the supported recovery path after a WebEngine
+        # renderer process terminates. Delay it slightly so Chromium can finish
+        # releasing the failed child process.
+        QTimer.singleShot(
+            750,
+            lambda: self._restart_renderer(
+                f"render process terminated ({status}, code {exit_code})"
+            ),
+        )
 
     def _on_page_loaded(self, ok: bool) -> None:
         logger.info("Avatar renderer page loadFinished ok=%s", ok)
@@ -166,6 +185,7 @@ class AvatarWidget(QWebEngineView):
         self._ready_checks = 0
         self._health_failures = 0
         self.reload()
+
     def js(self, code: str) -> None:
         self.page().runJavaScript(code)
 
