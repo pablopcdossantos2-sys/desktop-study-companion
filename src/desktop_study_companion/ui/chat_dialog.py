@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import html
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QDialog,
@@ -104,8 +106,4 @@ class ChatDialog(QDialog):
 
     @staticmethod
     def _escape(text: str) -> str:
-        return (
-            text.replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-        )
+        return html.escape(text, quote=True).replace("\n", "<br>")
