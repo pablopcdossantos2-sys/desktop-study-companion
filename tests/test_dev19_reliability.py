@@ -72,7 +72,8 @@ def test_malformed_item_creates_snapshot_before_future_save(tmp_path) -> None:
     assert [item.goal for item in manager.directives] == ["válido"]
     backups = list(tmp_path.glob("directives.json.bak*"))
     assert backups
-    assert "inválido" in backups[0].read_text(encoding="utf-8")
+    preserved = json.loads(backups[0].read_text(encoding="utf-8"))
+    assert preserved[1]["goal"] == "inválido"
 
 
 def test_naive_directive_timestamp_does_not_break_due_check(tmp_path) -> None:
