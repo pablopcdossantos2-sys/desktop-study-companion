@@ -42,6 +42,17 @@ def validate_config(config: AppConfig) -> None:
     if not 0 <= config.voice.volume <= 100:
         raise ValueError("voice volume must be between 0 and 100")
 
+    if not config.speech_input.model.strip():
+        raise ValueError("speech input model cannot be empty")
+    if not config.speech_input.language.strip():
+        raise ValueError("speech input language cannot be empty")
+    if config.speech_input.device not in {"cpu", "cuda", "auto"}:
+        raise ValueError("speech input device must be cpu, cuda or auto")
+    if not 2 <= config.speech_input.max_record_seconds <= 120:
+        raise ValueError(
+            "speech input max_record_seconds must be between 2 and 120"
+        )
+
     if not 0 <= config.brain.temperature <= 2:
         raise ValueError("brain temperature must be between 0 and 2")
     if not 32 <= config.brain.max_tokens <= 8192:
