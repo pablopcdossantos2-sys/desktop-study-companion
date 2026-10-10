@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import types
+from pathlib import Path
 
 from desktop_study_companion.voice.piper_tts import PiperNeuralTTS
 
@@ -32,22 +33,33 @@ def test_piper_synthesizes_valid_wav_bytes(tmp_path, monkeypatch) -> None:
     assert len(audio) > 44
 
 
-def test_piper_uses_native_windows_memory_playback(tmp_path, monkeypatch) -> None:
+def test_piper_uses_native_windows_file_playback(tmp_path, monkeypatch) -> None:
     calls = []
+
+    def play_sound(sound, flags):
+        calls.append((sound, flags, Path(sound).read_bytes()))
+
     fake_winsound = types.SimpleNamespace(
-        SND_MEMORY=4,
-        PlaySound=lambda sound, flags: calls.append((sound, flags)),
+        SND_FILENAME=0x00020000,
+        SND_SYNC=0,
+        PlaySound=play_sound,
     )
     monkeypatch.setitem(sys.modules, "winsound", fake_winsound)
 
     engine = PiperNeuralTTS(
         model_id="fake",
-        model_dir=tmp_path,
+        model_dir=tmp_path / "data" / "models" / "piper",
         fallback=None,
     )
     try:
         engine._play_wav_bytes(b"RIFFfake-wave")
+        expected = (
+            tmp_path / "data" / "temp" / "piper-last.wav"
+        )
+        assert expected.exists()
     finally:
         engine.close()
 
-    assert calls[0] == (b"RIFFfake-wave", 4)
+    assert calls[0][0].endswith("piper-last.wav")
+    assert calls[0][1] == 0x00020000
+    assert calls[0][2] == b"RIFFfake-wave"
