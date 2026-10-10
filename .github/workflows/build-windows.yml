@@ -57,6 +57,8 @@ jobs:
           $extract = "build/piper-runtime-extract"
           $target = "build/piper-runtime"
           Invoke-WebRequest -Uri $url -OutFile $zip
+          $zipHash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Host "PIPER_WINDOWS_AMD64_ZIP_SHA256=$zipHash"
           if (Test-Path $extract) { Remove-Item $extract -Recurse -Force }
           if (Test-Path $target) { Remove-Item $target -Recurse -Force }
           Expand-Archive -Path $zip -DestinationPath $extract -Force
