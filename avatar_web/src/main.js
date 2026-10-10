@@ -129,6 +129,10 @@ function setupIdleRig() {
     'rightLowerArm',
     'leftHand',
     'rightHand',
+    'leftUpperLeg',
+    'rightUpperLeg',
+    'leftLowerLeg',
+    'rightLowerLeg',
   ]) {
     captureBone(name);
   }
@@ -153,7 +157,14 @@ function scheduleNextGesture(now = performance.now()) {
 function startGesture(name = 'auto', now = performance.now()) {
   if (!vrm) return;
 
-  const choices = ['lookAround', 'stretch', 'wave', 'ponder'];
+  const choices = [
+    'hairTouch',
+    'hop',
+    'dance',
+    'wave',
+    'stretch',
+    'ponder',
+  ];
   const selected = name === 'auto'
     ? choices[Math.floor(Math.random() * choices.length)]
     : name;
@@ -163,6 +174,9 @@ function startGesture(name = 'auto', now = performance.now()) {
     stretch: 3.8,
     wave: 3.4,
     ponder: 4.6,
+    hairTouch: 3.8,
+    hop: 2.4,
+    dance: 5.4,
   };
 
   activeGesture = {
@@ -190,6 +204,14 @@ function gesturePose(t) {
     chestZ: 0,
     leftShoulderZ: 0,
     rightShoulderZ: 0,
+    leftUpperLegX: 0,
+    rightUpperLegX: 0,
+    leftLowerLegX: 0,
+    rightLowerLegX: 0,
+    hipsY: 0,
+    hipsZ: 0,
+    rootX: 0,
+    rootY: 0,
   };
 
   if (!activeGesture) return result;
@@ -228,6 +250,44 @@ function gesturePose(t) {
     result.headY = envelope * 0.10;
     result.headZ = -envelope * 0.035;
     result.chestY = -envelope * 0.035;
+  } else if (activeGesture.name === 'hairTouch') {
+    // Raise one hand toward the side of the head, hold briefly, then return.
+    const hold = Math.sin(Math.PI * Math.min(1, clamped * 1.12));
+    result.rightUpperZ = -hold * 0.92;
+    result.rightLowerX = hold * 0.92;
+    result.rightLowerZ = hold * 0.38;
+    result.rightShoulderZ = -hold * 0.10;
+    result.headY = hold * 0.055;
+    result.headZ = -hold * 0.055;
+    result.chestY = -hold * 0.025;
+  } else if (activeGesture.name === 'hop') {
+    // A small whole-body hop with a soft knee bend and arm reaction.
+    const hop = Math.pow(Math.sin(Math.PI * clamped), 2);
+    const crouch = Math.sin(Math.PI * clamped) * (1 - hop);
+    result.rootY = hop * Math.max(0.035, modelSize.y * 0.035);
+    result.leftUpperLegX = -crouch * 0.12;
+    result.rightUpperLegX = -crouch * 0.12;
+    result.leftLowerLegX = crouch * 0.20;
+    result.rightLowerLegX = crouch * 0.20;
+    result.leftUpperZ = envelope * 0.16;
+    result.rightUpperZ = -envelope * 0.16;
+    result.chestX = -envelope * 0.025;
+  } else if (activeGesture.name === 'dance') {
+    // Short two-beat sway: hips, shoulders and arms move together so the
+    // action reads as a tiny dance rather than generic idle noise.
+    const phase = clamped * Math.PI * 4;
+    const sway = Math.sin(phase) * envelope;
+    const beat = Math.sin(phase * 2) * envelope;
+    result.hipsZ = sway * 0.075;
+    result.hipsY = sway * 0.035;
+    result.chestZ = -sway * 0.055;
+    result.headZ = sway * 0.035;
+    result.leftUpperZ = envelope * (0.18 + 0.12 * beat);
+    result.rightUpperZ = -envelope * (0.18 - 0.12 * beat);
+    result.leftLowerZ = -beat * 0.10;
+    result.rightLowerZ = beat * 0.10;
+    result.rootX = sway * Math.max(0.01, modelSize.x * 0.025);
+    result.rootY = Math.abs(beat) * Math.max(0.004, modelSize.y * 0.006);
   }
 
   return result;
@@ -289,7 +349,16 @@ function applyIdlePose(t) {
     0.035 - slow * 0.012,
   );
 
-  rotateBone('hips', 0, slow * 0.008, slow2 * 0.014);
+  rotateBone(
+    'hips',
+    0,
+    slow * 0.008 + gesture.hipsY,
+    slow2 * 0.014 + gesture.hipsZ,
+  );
+  rotateBone('leftUpperLeg', gesture.leftUpperLegX, 0, 0);
+  rotateBone('rightUpperLeg', gesture.rightUpperLegX, 0, 0);
+  rotateBone('leftLowerLeg', gesture.leftLowerLegX, 0, 0);
+  rotateBone('rightLowerLeg', gesture.rightLowerLegX, 0, 0);
   rotateBone('spine', breath * 0.006, 0, -slow2 * 0.006);
   rotateBone('leftShoulder', 0, 0, gesture.leftShoulderZ);
   rotateBone('rightShoulder', 0, 0, gesture.rightShoulderZ);
@@ -320,9 +389,13 @@ function applyIdlePose(t) {
 
   const bodyScale = Math.max(1, modelSize.y);
   vrm.scene.position.x =
-    avatarBaseX + slow * Math.max(0.003, modelSize.x * 0.008);
+    avatarBaseX
+    + slow * Math.max(0.003, modelSize.x * 0.008)
+    + gesture.rootX;
   vrm.scene.position.y =
-    avatarBaseY + breath * bodyScale * 0.0035;
+    avatarBaseY
+    + breath * bodyScale * 0.0035
+    + gesture.rootY;
 }
 
 function fitCamera() {
