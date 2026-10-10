@@ -50,7 +50,7 @@ def _wav_samples(audio: bytes) -> list[int]:
 
 
 def test_coach_late_return_announces_only_latest_milestone() -> None:
-    controller = object.__new__(ApplicationController)
+    controller = ApplicationController.__new__(ApplicationController)
     controller.config = AppConfig()
     controller.sessions = SimpleNamespace(
         active=True,
@@ -144,7 +144,7 @@ def test_piper_preview_keeps_polling_explicit_running_state(monkeypatch) -> None
         last_error=None,
         last_success=False,
     )
-    controller = object.__new__(ApplicationController)
+    controller = ApplicationController.__new__(ApplicationController)
     controller._voice_preview = engine
     controller.widget = SimpleNamespace(say=lambda text: None)
 
