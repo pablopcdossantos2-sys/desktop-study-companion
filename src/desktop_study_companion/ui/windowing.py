@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QFileDialog,
     QInputDialog,
+    QMessageBox,
     QWidget,
 )
 
@@ -240,3 +241,26 @@ def get_save_file_name_top_level(
         return "", ""
     selected = dialog.selectedFiles()
     return (selected[0] if selected else ""), dialog.selectedNameFilter()
+
+
+def show_message_top_level(
+    icon: QMessageBox.Icon,
+    title: str,
+    text: str,
+    *,
+    informative_text: str = "",
+    avoid_widget: QWidget | None = None,
+) -> int:
+    box = QMessageBox()
+    box.setIcon(icon)
+    box.setWindowTitle(title)
+    box.setText(text)
+    if informative_text:
+        box.setInformativeText(informative_text)
+    box.setStandardButtons(QMessageBox.StandardButton.Ok)
+    return int(
+        exec_top_level_dialog(
+            box,
+            avoid_widget=avoid_widget,
+        )
+    )

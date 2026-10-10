@@ -87,6 +87,7 @@ from desktop_study_companion.ui.windowing import (
     get_item_top_level,
     get_save_file_name_top_level,
     prepare_top_level_window,
+    show_message_top_level,
 )
 from desktop_study_companion.voice.audio_capture import (
     AudioCaptureError,
@@ -231,20 +232,22 @@ class ApplicationController(QObject):
         try:
             os.startfile(str(log_directory()))
         except Exception as exc:
-            QMessageBox.warning(
-                self.widget,
+            show_message_top_level(
+                QMessageBox.Icon.Warning,
                 "Não foi possível abrir os logs",
                 f"A pasta de logs não pôde ser aberta:\n\n{exc}",
+                avoid_widget=self.widget,
             )
 
     def copy_diagnostic_summary(self) -> None:
         summary = diagnostic_summary()
         self.app.clipboard().setText(summary)
-        QMessageBox.information(
-            self.widget,
+        show_message_top_level(
+            QMessageBox.Icon.Information,
             "Diagnóstico copiado",
             "Um resumo técnico sem histórico de janelas foi copiado "
             "para a área de transferência.",
+            avoid_widget=self.widget,
         )
 
     def show_tutorial(self, key: str) -> None:
@@ -685,10 +688,11 @@ class ApplicationController(QObject):
 
         goal = dialog.goal.text().strip()
         if not goal:
-            QMessageBox.warning(
-                self.widget,
+            show_message_top_level(
+                QMessageBox.Icon.Warning,
                 "Compromisso sem descrição",
                 "Escreva o compromisso que deverá ser acompanhado.",
+                avoid_widget=self.widget,
             )
             return
 
@@ -709,10 +713,11 @@ class ApplicationController(QObject):
     def manage_directives(self) -> None:
         active = self.directives.active
         if not active:
-            QMessageBox.information(
-                self.widget,
+            show_message_top_level(
+                QMessageBox.Icon.Information,
                 "Compromissos",
                 "Nenhum compromisso ativo.",
+                avoid_widget=self.widget,
             )
             return
 
@@ -812,10 +817,11 @@ class ApplicationController(QObject):
             if p.strip()
         ]
         if not description or not patterns:
-            QMessageBox.warning(
-                self.widget,
+            show_message_top_level(
+                QMessageBox.Icon.Warning,
                 "Regra incompleta",
                 "Informe uma descrição e pelo menos um padrão de detecção.",
+                avoid_widget=self.widget,
             )
             return
 
@@ -838,10 +844,11 @@ class ApplicationController(QObject):
 
     def manage_standing_rules(self) -> None:
         if not self.standing_rules.rules:
-            QMessageBox.information(
-                self.widget,
+            show_message_top_level(
+                QMessageBox.Icon.Information,
                 "Regras permanentes",
                 "Nenhuma regra permanente cadastrada.",
+                avoid_widget=self.widget,
             )
             return
 
@@ -1119,21 +1126,23 @@ class ApplicationController(QObject):
         try:
             save_config(new_config, external_config_path())
         except Exception as exc:
-            QMessageBox.critical(
-                self.widget,
+            show_message_top_level(
+                QMessageBox.Icon.Critical,
                 "Configuração inválida",
                 f"Não foi possível salvar as configurações:\n\n{exc}",
+                avoid_widget=self.widget,
             )
             return
 
         security_issue = brain_transport_security_issue(new_config)
         if security_issue:
             new_config.brain.enabled = False
-            QMessageBox.warning(
-                self.widget,
+            show_message_top_level(
+                QMessageBox.Icon.Warning,
                 "Cérebro desativado por segurança",
                 security_issue
                 + "\n\nAs demais configurações foram preservadas e aplicadas.",
+                avoid_widget=self.widget,
             )
 
         self._apply_runtime_config(new_config)
@@ -1313,10 +1322,11 @@ class ApplicationController(QObject):
                 destination,
             )
         except Exception as exc:
-            QMessageBox.critical(
-                self.widget,
+            show_message_top_level(
+                QMessageBox.Icon.Critical,
                 "Falha na exportação",
                 f"Não foi possível exportar os dados:\n\n{exc}",
+                avoid_widget=self.widget,
             )
             return
 
@@ -1351,10 +1361,11 @@ class ApplicationController(QObject):
                 app_version=__version__,
             )
         except Exception as exc:
-            QMessageBox.critical(
-                self.widget,
+            show_message_top_level(
+                QMessageBox.Icon.Critical,
                 "Falha no backup",
                 f"Não foi possível criar o backup:\n\n{exc}",
+                avoid_widget=self.widget,
             )
             return
 
@@ -1377,10 +1388,11 @@ class ApplicationController(QObject):
 
         goal = dialog.goal.text().strip()
         if not goal:
-            QMessageBox.warning(
-                self.widget,
+            show_message_top_level(
+                QMessageBox.Icon.Warning,
                 "Rotina sem descrição",
                 "Escreva o que a personagem deve lembrar.",
+                avoid_widget=self.widget,
             )
             return
 
@@ -1418,10 +1430,11 @@ class ApplicationController(QObject):
 
     def manage_routines(self) -> None:
         if not self.routines.routines:
-            QMessageBox.information(
-                self.widget,
+            show_message_top_level(
+                QMessageBox.Icon.Information,
                 "Rotinas",
                 "Nenhuma rotina foi cadastrada.",
+                avoid_widget=self.widget,
             )
             return
 
