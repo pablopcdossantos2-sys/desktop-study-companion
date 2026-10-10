@@ -42,7 +42,10 @@ from desktop_study_companion.activity.windows_monitor import (
 from desktop_study_companion.brain.service import BrainService
 from desktop_study_companion.brain.worker import BrainChatWorker
 from desktop_study_companion.config.models import AppConfig
-from desktop_study_companion.config.writer import save_config
+from desktop_study_companion.config.writer import (
+    brain_transport_security_issue,
+    save_config,
+)
 from desktop_study_companion.diagnostics import (
     diagnostic_summary,
     log_directory,
@@ -101,7 +104,7 @@ logger = logging.getLogger("desktop_study_companion.controller")
 
 class ApplicationController(QObject):
     SESSION_SAVE_INTERVAL_SECONDS = 10.0
-    WAKE_GAP_SECONDS = 60.0
+    WAKE_GAP_SECONDS = RoutineManager.WAKE_GAP_MINUTES * 60.0
 
     def __init__(self, app: QApplication, config: AppConfig) -> None:
         super().__init__()
@@ -1077,6 +1080,16 @@ class ApplicationController(QObject):
                 f"Não foi possível salvar as configurações:\n\n{exc}",
             )
             return
+
+        security_issue = brain_transport_security_issue(new_config)
+        if security_issue:
+            new_config.brain.enabled = False
+            QMessageBox.warning(
+                self.widget,
+                "Cérebro desativado por segurança",
+                security_issue
+                + "\n\nAs demais configurações foram preservadas e aplicadas.",
+            )
 
         self._apply_runtime_config(new_config)
         self._say("Configurações salvas e aplicadas.")
