@@ -10,6 +10,29 @@ from desktop_study_companion.safe_json import atomic_write_json
 from .models import AppConfig
 
 
+def brain_transport_security_issue(config: AppConfig) -> str | None:
+    """Return a runtime security warning without declaring the config corrupt."""
+    brain = config.brain
+    if not brain.enabled:
+        return None
+
+    parsed = urlparse(brain.base_url)
+    host = (parsed.hostname or "").casefold()
+    key_env = brain.api_key_env.strip()
+    api_key = os.environ.get(key_env, "").strip() if key_env else ""
+    if (
+        api_key
+        and parsed.scheme == "http"
+        and host not in {"127.0.0.1", "localhost", "::1"}
+    ):
+        return (
+            "O cérebro conversacional foi desativado porque uma chave de API "
+            "está configurada e a URL remota usa HTTP sem criptografia. "
+            "Use HTTPS ou remova a chave para essa conexão local/LAN."
+        )
+    return None
+
+
 def validate_config(config: AppConfig) -> None:
     p = config.accountability
     thresholds = [
@@ -89,19 +112,6 @@ def validate_config(config: AppConfig) -> None:
             raise ValueError("brain model is required when enabled")
         if not config.brain.base_url.startswith(("http://", "https://")):
             raise ValueError("brain base_url must start with http:// or https://")
-        parsed = urlparse(config.brain.base_url)
-        host = (parsed.hostname or "").casefold()
-        key_env = config.brain.api_key_env.strip()
-        api_key = os.environ.get(key_env, "").strip() if key_env else ""
-        if (
-            api_key
-            and parsed.scheme == "http"
-            and host not in {"127.0.0.1", "localhost", "::1"}
-        ):
-            raise ValueError(
-                "refusing to send a configured API key over remote HTTP; use HTTPS"
-            )
-
     if not 220 <= config.avatar.width <= 900:
         raise ValueError("avatar width must be between 220 and 900")
     if not 320 <= config.avatar.height <= 1100:
