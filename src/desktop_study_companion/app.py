@@ -45,6 +45,7 @@ from desktop_study_companion.diagnostics import (
 )
 from desktop_study_companion.controller import ApplicationController
 from desktop_study_companion.runtime_paths import data_directory
+from desktop_study_companion.ui.windowing import show_message_top_level
 
 
 def main() -> int:
@@ -93,10 +94,11 @@ def main() -> int:
         app._desktop_study_controller = controller  # type: ignore[attr-defined]
         controller.start()
         if recovery_notice:
-            QMessageBox.warning(
-                controller.widget,
+            show_message_top_level(
+                QMessageBox.Icon.Warning,
                 "Configuração recuperada",
                 recovery_notice,
+                avoid_widget=controller.widget,
             )
         if previous_unclean:
             logger.warning(
