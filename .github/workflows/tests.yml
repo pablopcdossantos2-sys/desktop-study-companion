@@ -31,6 +31,31 @@ jobs:
       - name: Run tests
         run: python -m pytest -q
 
+      - name: Build wheel
+        run: python -m pip wheel . --no-deps --wheel-dir wheelhouse
+
+      - name: Verify wheel resources
+        shell: pwsh
+        run: |
+          @'
+          import glob
+          import zipfile
+
+          wheel = glob.glob("wheelhouse/*.whl")[0]
+          with zipfile.ZipFile(wheel) as archive:
+              names = set(archive.namelist())
+
+          required = {
+              "desktop_study_companion/_resources/config/default.json",
+              "desktop_study_companion/_resources/docs/TUTORIAL-INSTALACAO-WINDOWS.md",
+              "desktop_study_companion/_resources/assets/avatar/avatar-manifest.json",
+          }
+          missing = sorted(required - names)
+          if missing:
+              raise SystemExit("Wheel is missing runtime resources: " + ", ".join(missing))
+          print("Wheel runtime resources verified.")
+          '@ | python -
+
 
   avatar-web:
     runs-on: windows-latest
