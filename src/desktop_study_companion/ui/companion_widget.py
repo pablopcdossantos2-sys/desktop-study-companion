@@ -13,6 +13,7 @@ from desktop_study_companion.runtime_paths import (
 
 
 class CompanionWidget(QWidget):
+    chat_requested = Signal()
     start_session_requested = Signal()
     finish_session_requested = Signal()
     add_directive_requested = Signal()
@@ -146,6 +147,10 @@ class CompanionWidget(QWidget):
 
     def contextMenuEvent(self, event) -> None:  # noqa: N802
         menu = QMenu(self)
+
+        chat = QAction("Conversar", self)
+        chat.triggered.connect(self.chat_requested.emit)
+        menu.addAction(chat)
 
         session_menu = menu.addMenu("Sessão de estudo")
         start = QAction("Iniciar sessão", self)
