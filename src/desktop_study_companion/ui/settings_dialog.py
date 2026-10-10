@@ -283,7 +283,7 @@ class SettingsDialog(QDialog):
         self.stt_model.setPlaceholderText("base")
 
         self.stt_language = QLineEdit(s.language)
-        self.stt_language.setPlaceholderText("pt")
+        self.stt_language.setPlaceholderText("pt, auto ou vazio")
 
         self.stt_device = QComboBox()
         self.stt_device.addItems(["cpu", "auto", "cuda"])
@@ -318,7 +318,7 @@ class SettingsDialog(QDialog):
 
         form.addRow("", self.stt_enabled)
         form.addRow("Modelo Whisper:", self.stt_model)
-        form.addRow("Idioma:", self.stt_language)
+        form.addRow("Idioma (auto/vazio = detectar):", self.stt_language)
         form.addRow("Dispositivo de inferência:", self.stt_device)
         form.addRow("Compute type:", self.stt_compute)
         form.addRow("Microfone:", self.stt_microphone)
