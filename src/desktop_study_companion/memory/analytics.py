@@ -142,6 +142,8 @@ class StudyAnalytics:
         result: list[SessionRecord] = []
 
         for session in all_sessions:
+            if session.state not in {"completed", "abandoned"}:
+                continue
             if not session.started_at:
                 continue
             try:
