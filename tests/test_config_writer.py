@@ -12,6 +12,7 @@ def test_config_round_trip(tmp_path) -> None:
     config.personality.name = "Lumi"
     config.activity.distraction_keywords = ["youtube", "reddit"]
     config.voice.volume = 75
+    config.voice.voice_id = "voice-token-test"
     config.avatar.width = 420
     config.avatar.height = 620
     config.avatar.look_at_cursor = False
@@ -30,6 +31,7 @@ def test_config_round_trip(tmp_path) -> None:
     assert loaded.personality.name == "Lumi"
     assert loaded.activity.distraction_keywords == ["youtube", "reddit"]
     assert loaded.voice.volume == 75
+    assert loaded.voice.voice_id == "voice-token-test"
     assert loaded.avatar.width == 420
     assert loaded.avatar.height == 620
     assert loaded.avatar.look_at_cursor is False
