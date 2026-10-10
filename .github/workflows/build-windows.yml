@@ -107,6 +107,8 @@ jobs:
           Copy-Item "docs/AVATAR-VRM.md" "dist/DesktopStudyCompanion/docs/AVATAR-VRM.md"
           Copy-Item "docs/CONVERSATIONAL-BRAIN.md" "dist/DesktopStudyCompanion/docs/CONVERSATIONAL-BRAIN.md"
           Copy-Item "docs/TUTORIAL-CEREBRO-LOCAL-OLLAMA.md" "dist/DesktopStudyCompanion/docs/TUTORIAL-CEREBRO-LOCAL-OLLAMA.md"
+          Copy-Item "docs/VOICE-CONVERSATION.md" "dist/DesktopStudyCompanion/docs/VOICE-CONVERSATION.md"
+          Copy-Item "docs/THIRD_PARTY_LICENSES-VOICE.md" "dist/DesktopStudyCompanion/THIRD_PARTY_LICENSES-VOICE.md"
 
       - name: Smoke test packaged executable presence
         shell: pwsh
