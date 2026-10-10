@@ -1172,18 +1172,16 @@ class ApplicationController(QObject):
 
         security_issue = brain_transport_security_issue(new_config)
         if security_issue:
-            new_config.brain.enabled = False
             self._config_recovery_state = ConfigRecoveryState(
-                preserve_before_write=config_path,
                 reason="brain_transport",
             )
             show_message_top_level(
                 QMessageBox.Icon.Warning,
-                "Cérebro desativado por segurança",
+                "Cérebro bloqueado por segurança",
                 security_issue
-                + "\n\nAs demais configurações foram preservadas e aplicadas. "
-                "Antes de uma futura gravação, o arquivo atual será "
-                "preservado em .bak.",
+                + "\n\nA preferência foi salva sem alteração. "
+                "O cérebro ficará indisponível somente enquanto essa "
+                "combinação insegura de URL e chave existir.",
                 avoid_widget=self.widget,
             )
         else:
