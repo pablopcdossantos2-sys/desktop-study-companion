@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from dataclasses import fields
 from pathlib import Path
 
@@ -24,7 +25,7 @@ from .models import (
     SpeechInputConfig,
     VoiceConfig,
 )
-from .writer import validate_config
+from .writer import brain_transport_security_issue, validate_config
 
 logger = logging.getLogger("desktop_study_companion.config.loader")
 
@@ -60,8 +61,28 @@ def _clean_activity(config: ActivityConfig) -> ActivityConfig:
     return config
 
 
+def _read_text_with_retry(
+    path: Path,
+    *,
+    attempts: int = 3,
+    delay_seconds: float = 0.05,
+) -> str:
+    last_error: OSError | None = None
+    for attempt in range(max(1, attempts)):
+        try:
+            return path.read_text(encoding="utf-8")
+        except OSError as exc:
+            last_error = exc
+            if attempt + 1 >= attempts:
+                raise
+            time.sleep(delay_seconds * (attempt + 1))
+    if last_error is not None:
+        raise last_error
+    raise OSError(f"could not read {path}")
+
+
 def _read_config(config_path: Path) -> AppConfig:
-    data = json.loads(config_path.read_text(encoding="utf-8"))
+    data = json.loads(_read_text_with_retry(config_path))
     if not isinstance(data, dict):
         raise ValueError("application configuration must be a JSON object")
 
@@ -114,31 +135,50 @@ def load_config_with_recovery(
 ) -> tuple[AppConfig, str | None]:
     candidates, recoverable = _candidate_paths(path)
     failures: list[str] = []
-    recovered_from: Path | None = None
-    backup: Path | None = None
+    notices: list[str] = []
 
     for candidate in candidates:
         if not candidate.exists():
             continue
         try:
             config = _read_config(candidate)
-        except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
+        except OSError as exc:
+            failures.append(f"{candidate}: {exc}")
+            logger.exception(
+                "Configuration could not be read after retries path=%s",
+                candidate,
+            )
+            if candidate in recoverable:
+                notices.append(
+                    f"Não foi possível ler temporariamente {candidate}. "
+                    "O arquivo foi mantido intacto e uma configuração de "
+                    "fallback foi carregada."
+                )
+            continue
+        except (json.JSONDecodeError, TypeError, ValueError) as exc:
             failures.append(f"{candidate}: {exc}")
             logger.exception("Invalid configuration path=%s", candidate)
             if candidate in recoverable:
-                recovered_from = candidate
                 backup = quarantine_invalid_json(candidate)
+                backup_text = (
+                    f" Cópia preservada em {backup}."
+                    if backup is not None
+                    else ""
+                )
+                notices.append(
+                    f"A configuração em {candidate} estava inválida e foi "
+                    "ignorada. O aplicativo carregou uma configuração de "
+                    "fallback." + backup_text
+                )
             continue
 
-        notice = None
-        if recovered_from is not None:
-            backup_text = f" Cópia preservada em {backup}." if backup else ""
-            notice = (
-                f"A configuração em {recovered_from} estava inválida e foi "
-                f"ignorada. O aplicativo carregou a configuração padrão."
-                + backup_text
-            )
-            logger.warning(notice)
+        security_issue = brain_transport_security_issue(config)
+        if security_issue:
+            config.brain.enabled = False
+            notices.append(security_issue)
+            logger.warning(security_issue)
+
+        notice = " ".join(notices).strip() or None
         return config, notice
 
     detail = "; ".join(failures) if failures else "nenhum arquivo encontrado"
