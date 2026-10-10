@@ -242,7 +242,19 @@ class OpenAICompatibleProvider:
             except BrainError:
                 raise
             except urllib.error.HTTPError as exc:
-                if 400 <= int(getattr(exc, "code", 0)) < 500:
+                code = int(getattr(exc, "code", 0))
+                if code in {408, 429}:
+                    last_error = exc
+                    if attempt < self.retries:
+                        retry_after = exc.headers.get("Retry-After", "")
+                        try:
+                            delay = min(5.0, max(0.5, float(retry_after)))
+                        except (TypeError, ValueError):
+                            delay = 0.5 * (attempt + 1)
+                        time.sleep(delay)
+                        continue
+                    break
+                if 400 <= code < 500:
                     try:
                         detail = exc.read().decode("utf-8", errors="replace").strip()
                     except Exception:
@@ -484,7 +496,19 @@ class OllamaNativeProvider:
             except BrainError:
                 raise
             except urllib.error.HTTPError as exc:
-                if 400 <= int(getattr(exc, "code", 0)) < 500:
+                code = int(getattr(exc, "code", 0))
+                if code in {408, 429}:
+                    last_error = exc
+                    if attempt < self.retries:
+                        retry_after = exc.headers.get("Retry-After", "")
+                        try:
+                            delay = min(5.0, max(0.5, float(retry_after)))
+                        except (TypeError, ValueError):
+                            delay = 0.5 * (attempt + 1)
+                        time.sleep(delay)
+                        continue
+                    break
+                if 400 <= code < 500:
                     try:
                         detail = exc.read().decode("utf-8", errors="replace").strip()
                     except Exception:
