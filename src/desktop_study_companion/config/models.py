@@ -43,6 +43,18 @@ class VoiceConfig:
 
 
 @dataclass(slots=True)
+class SpeechInputConfig:
+    enabled: bool = False
+    model: str = "base"
+    language: str = "pt"
+    device: str = "cpu"
+    compute_type: str = "int8"
+    microphone_device: int = -1
+    max_record_seconds: int = 30
+    auto_send: bool = True
+
+
+@dataclass(slots=True)
 class BrainConfig:
     enabled: bool = False
     base_url: str = "http://127.0.0.1:11434/v1"
@@ -70,5 +82,6 @@ class AppConfig:
     accountability: AccountabilityConfig = field(default_factory=AccountabilityConfig)
     personality: PersonalityConfig = field(default_factory=PersonalityConfig)
     voice: VoiceConfig = field(default_factory=VoiceConfig)
+    speech_input: SpeechInputConfig = field(default_factory=SpeechInputConfig)
     brain: BrainConfig = field(default_factory=BrainConfig)
     avatar: AvatarConfig = field(default_factory=AvatarConfig)
