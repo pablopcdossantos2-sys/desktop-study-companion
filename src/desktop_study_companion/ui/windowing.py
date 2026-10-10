@@ -122,11 +122,10 @@ def prepare_top_level_window(
     dialog.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
     dialog.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, True)
     dialog.setWindowFlag(Qt.WindowType.WindowSystemMenuHint, True)
-    dialog.setWindowModality(
-        Qt.WindowModality.WindowModal
-        if modal and dialog.parentWidget() is not None
-        else Qt.WindowModality.NonModal
-    )
+    # Keep every application dialog non-modal with respect to the avatar.
+    # The local event loop used by exec_top_level_dialog preserves synchronous
+    # controller code without disabling the companion window.
+    dialog.setWindowModality(Qt.WindowModality.NonModal)
 
     QTimer.singleShot(
         0,
