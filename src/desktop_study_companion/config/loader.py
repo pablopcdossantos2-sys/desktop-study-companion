@@ -13,6 +13,7 @@ from .models import (
     ActivityConfig,
     AppConfig,
     AvatarConfig,
+    BrainConfig,
     MonitorConfig,
     PersonalityConfig,
     VoiceConfig,
@@ -44,5 +45,6 @@ def load_config(path: str | Path | None = None) -> AppConfig:
         accountability=AccountabilityConfig(**data.get("accountability", {})),
         personality=PersonalityConfig(**data.get("personality", {})),
         voice=VoiceConfig(**data.get("voice", {})),
+        brain=BrainConfig(**data.get("brain", {})),
         avatar=AvatarConfig(**data.get("avatar", {})),
     )
