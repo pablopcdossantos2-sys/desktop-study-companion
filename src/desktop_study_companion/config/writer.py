@@ -42,6 +42,22 @@ def validate_config(config: AppConfig) -> None:
     if not 0 <= config.voice.volume <= 100:
         raise ValueError("voice volume must be between 0 and 100")
 
+    if not 0 <= config.brain.temperature <= 2:
+        raise ValueError("brain temperature must be between 0 and 2")
+    if not 32 <= config.brain.max_tokens <= 8192:
+        raise ValueError("brain max_tokens must be between 32 and 8192")
+    if not 3 <= config.brain.timeout_seconds <= 300:
+        raise ValueError("brain timeout must be between 3 and 300 seconds")
+    if not 2 <= config.brain.history_messages <= 100:
+        raise ValueError("brain history_messages must be between 2 and 100")
+    if config.brain.enabled:
+        if not config.brain.base_url.strip():
+            raise ValueError("brain base_url is required when enabled")
+        if not config.brain.model.strip():
+            raise ValueError("brain model is required when enabled")
+        if not config.brain.base_url.startswith(("http://", "https://")):
+            raise ValueError("brain base_url must start with http:// or https://")
+
     if not 220 <= config.avatar.width <= 900:
         raise ValueError("avatar width must be between 220 and 900")
     if not 320 <= config.avatar.height <= 1100:
