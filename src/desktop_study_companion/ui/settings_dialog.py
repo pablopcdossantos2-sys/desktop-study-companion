@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
     QDialogButtonBox,
+    QDoubleSpinBox,
     QFormLayout,
     QGroupBox,
     QLineEdit,
@@ -19,6 +20,7 @@ from desktop_study_companion.config.models import (
     ActivityConfig,
     AppConfig,
     AvatarConfig,
+    BrainConfig,
     MonitorConfig,
     PersonalityConfig,
     VoiceConfig,
@@ -52,6 +54,7 @@ class SettingsDialog(QDialog):
         tabs.addTab(self._accountability_tab(config), "Cobrança")
         tabs.addTab(self._personality_tab(config), "Personalidade")
         tabs.addTab(self._voice_tab(config), "Voz")
+        tabs.addTab(self._brain_tab(config), "Cérebro")
         tabs.addTab(self._avatar_tab(config), "Avatar")
 
         buttons = QDialogButtonBox(
@@ -142,6 +145,57 @@ class SettingsDialog(QDialog):
         return widget
 
 
+
+    def _brain_tab(self, config: AppConfig) -> QWidget:
+        widget = QWidget()
+        form = QFormLayout(widget)
+        b = config.brain
+
+        self.brain_enabled = QCheckBox("Ativar conversa com LLM")
+        self.brain_enabled.setChecked(b.enabled)
+
+        self.brain_base_url = QLineEdit(b.base_url)
+        self.brain_base_url.setPlaceholderText(
+            "http://127.0.0.1:11434/v1"
+        )
+
+        self.brain_model = QLineEdit(b.model)
+        self.brain_model.setPlaceholderText("Nome do modelo local/remoto")
+
+        self.brain_api_key_env = QLineEdit(b.api_key_env)
+        self.brain_api_key_env.setPlaceholderText(
+            "DESKTOP_STUDY_COMPANION_LLM_API_KEY"
+        )
+
+        self.brain_temperature = QDoubleSpinBox()
+        self.brain_temperature.setRange(0.0, 2.0)
+        self.brain_temperature.setSingleStep(0.1)
+        self.brain_temperature.setValue(b.temperature)
+
+        self.brain_max_tokens = QSpinBox()
+        self.brain_max_tokens.setRange(32, 8192)
+        self.brain_max_tokens.setValue(b.max_tokens)
+
+        self.brain_timeout = QSpinBox()
+        self.brain_timeout.setRange(3, 300)
+        self.brain_timeout.setValue(b.timeout_seconds)
+        self.brain_timeout.setSuffix(" s")
+
+        self.brain_history = QSpinBox()
+        self.brain_history.setRange(2, 100)
+        self.brain_history.setValue(b.history_messages)
+        self.brain_history.setSuffix(" mensagens")
+
+        form.addRow("", self.brain_enabled)
+        form.addRow("URL base:", self.brain_base_url)
+        form.addRow("Modelo:", self.brain_model)
+        form.addRow("Variável da chave:", self.brain_api_key_env)
+        form.addRow("Temperatura:", self.brain_temperature)
+        form.addRow("Máx. tokens:", self.brain_max_tokens)
+        form.addRow("Timeout:", self.brain_timeout)
+        form.addRow("Histórico enviado:", self.brain_history)
+        return widget
+
     def _avatar_tab(self, config: AppConfig) -> QWidget:
         widget = QWidget()
         form = QFormLayout(widget)
@@ -219,6 +273,16 @@ class SettingsDialog(QDialog):
                 enabled=self.voice_enabled.isChecked(),
                 rate=self.voice_rate.value(),
                 volume=self.voice_volume.value(),
+            ),
+            brain=BrainConfig(
+                enabled=self.brain_enabled.isChecked(),
+                base_url=self.brain_base_url.text().strip(),
+                model=self.brain_model.text().strip(),
+                api_key_env=self.brain_api_key_env.text().strip(),
+                temperature=self.brain_temperature.value(),
+                max_tokens=self.brain_max_tokens.value(),
+                timeout_seconds=self.brain_timeout.value(),
+                history_messages=self.brain_history.value(),
             ),
             avatar=AvatarConfig(
                 enabled=self.avatar_enabled.isChecked(),
