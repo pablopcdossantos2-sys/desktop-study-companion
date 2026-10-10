@@ -1,20 +1,51 @@
-"""Resolve stable paths in source and frozen/portable builds."""
+"""Resolve stable paths in source, wheel and frozen/portable builds."""
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
 
+def _source_checkout_root() -> Path | None:
+    candidate = Path(__file__).resolve().parents[2]
+    if (
+        (candidate / "pyproject.toml").is_file()
+        and (candidate / "src" / "desktop_study_companion").is_dir()
+    ):
+        return candidate
+    return None
+
+
+def _installed_resource_root() -> Path:
+    return Path(__file__).resolve().parent / "_resources"
+
+
 def application_root() -> Path:
-    """Directory that owns bundled resources for this running copy."""
+    """Directory that owns resources for this running copy."""
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve().parent
-    return Path(__file__).resolve().parents[2]
+    source_root = _source_checkout_root()
+    if source_root is not None:
+        return source_root
+    return _installed_resource_root()
 
 
 def data_directory() -> Path:
-    path = application_root() / "data"
+    if getattr(sys, "frozen", False):
+        path = application_root() / "data"
+    else:
+        source_root = _source_checkout_root()
+        if source_root is not None:
+            path = source_root / "data"
+        else:
+            local_app_data = os.environ.get("LOCALAPPDATA", "").strip()
+            if local_app_data:
+                path = Path(local_app_data) / "DesktopStudyCompanion"
+            else:
+                xdg_data = os.environ.get("XDG_DATA_HOME", "").strip()
+                base = Path(xdg_data) if xdg_data else Path.home() / ".local" / "share"
+                path = base / "desktop-study-companion"
     path.mkdir(parents=True, exist_ok=True)
     return path
 
