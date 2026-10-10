@@ -34,7 +34,7 @@ os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = (
 from PySide6.QtCore import QLockFile
 from PySide6.QtWidgets import QApplication, QMessageBox
 
-from desktop_study_companion.config.loader import load_config
+from desktop_study_companion.config.loader import load_config_with_recovery
 from desktop_study_companion.diagnostics import (
     configure_logging,
     install_exception_hooks,
@@ -81,11 +81,17 @@ def main() -> int:
 
     try:
         logger.info("Loading configuration")
-        config = load_config()
+        config, recovery_notice = load_config_with_recovery()
         controller = ApplicationController(app, config)
         # Keep a strong reference for the whole Qt event loop.
         app._desktop_study_controller = controller  # type: ignore[attr-defined]
         controller.start()
+        if recovery_notice:
+            QMessageBox.warning(
+                controller.widget,
+                "Configuração recuperada",
+                recovery_notice,
+            )
         if previous_unclean:
             logger.warning(
                 "The previous execution ended without a clean shutdown marker. "
