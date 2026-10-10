@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import fields
 from pathlib import Path
 
@@ -9,6 +10,7 @@ from desktop_study_companion.runtime_paths import (
     external_config_path,
     source_default_config_path,
 )
+from desktop_study_companion.safe_json import quarantine_invalid_json
 
 from .models import (
     AccountabilityConfig,
@@ -24,17 +26,7 @@ from .models import (
 )
 from .writer import validate_config
 
-
-def _default_config_path() -> Path:
-    candidates = [
-        external_config_path(),
-        bundled_config_path(),
-        source_default_config_path(),
-    ]
-    for candidate in candidates:
-        if candidate is not None and candidate.exists():
-            return candidate
-    raise FileNotFoundError("config/default.json was not found.")
+logger = logging.getLogger("desktop_study_companion.config.loader")
 
 
 def _section(cls, raw):
@@ -68,8 +60,7 @@ def _clean_activity(config: ActivityConfig) -> ActivityConfig:
     return config
 
 
-def load_config(path: str | Path | None = None) -> AppConfig:
-    config_path = Path(path) if path else _default_config_path()
+def _read_config(config_path: Path) -> AppConfig:
     data = json.loads(config_path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
         raise ValueError("application configuration must be a JSON object")
@@ -86,4 +77,74 @@ def load_config(path: str | Path | None = None) -> AppConfig:
         avatar=_section(AvatarConfig, data.get("avatar")),
     )
     validate_config(config)
+    return config
+
+
+def _candidate_paths(path: str | Path | None) -> tuple[list[Path], set[Path]]:
+    recoverable: set[Path] = set()
+    if path is not None:
+        explicit = Path(path)
+        candidates: list[Path | None] = [
+            explicit,
+            bundled_config_path(),
+            source_default_config_path(),
+        ]
+        recoverable.add(explicit)
+    else:
+        external = external_config_path()
+        candidates = [
+            external,
+            bundled_config_path(),
+            source_default_config_path(),
+        ]
+        recoverable.add(external)
+
+    unique: list[Path] = []
+    for candidate in candidates:
+        if candidate is None:
+            continue
+        resolved = Path(candidate)
+        if resolved not in unique:
+            unique.append(resolved)
+    return unique, recoverable
+
+
+def load_config_with_recovery(
+    path: str | Path | None = None,
+) -> tuple[AppConfig, str | None]:
+    candidates, recoverable = _candidate_paths(path)
+    failures: list[str] = []
+    recovered_from: Path | None = None
+    backup: Path | None = None
+
+    for candidate in candidates:
+        if not candidate.exists():
+            continue
+        try:
+            config = _read_config(candidate)
+        except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
+            failures.append(f"{candidate}: {exc}")
+            logger.exception("Invalid configuration path=%s", candidate)
+            if candidate in recoverable:
+                recovered_from = candidate
+                backup = quarantine_invalid_json(candidate)
+            continue
+
+        notice = None
+        if recovered_from is not None:
+            backup_text = f" Cópia preservada em {backup}." if backup else ""
+            notice = (
+                f"A configuração em {recovered_from} estava inválida e foi "
+                f"ignorada. O aplicativo carregou a configuração padrão."
+                + backup_text
+            )
+            logger.warning(notice)
+        return config, notice
+
+    detail = "; ".join(failures) if failures else "nenhum arquivo encontrado"
+    raise RuntimeError(f"no valid application configuration was found: {detail}")
+
+
+def load_config(path: str | Path | None = None) -> AppConfig:
+    config, _notice = load_config_with_recovery(path)
     return config

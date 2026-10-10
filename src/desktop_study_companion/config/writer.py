@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import asdict
 from pathlib import Path
 from urllib.parse import urlparse
@@ -66,8 +67,6 @@ def validate_config(config: AppConfig) -> None:
 
     if config.speech_input.enabled and not config.speech_input.model.strip():
         raise ValueError("speech input model cannot be empty when enabled")
-    if config.speech_input.enabled and not config.speech_input.language.strip():
-        raise ValueError("speech input language cannot be empty when enabled")
     if config.speech_input.device not in {"cpu", "cuda", "auto"}:
         raise ValueError("speech input device must be cpu, cuda or auto")
     if not 2 <= config.speech_input.max_record_seconds <= 120:
@@ -92,14 +91,15 @@ def validate_config(config: AppConfig) -> None:
             raise ValueError("brain base_url must start with http:// or https://")
         parsed = urlparse(config.brain.base_url)
         host = (parsed.hostname or "").casefold()
-        if parsed.scheme == "http" and host not in {
-            "127.0.0.1",
-            "localhost",
-            "::1",
-        }:
+        key_env = config.brain.api_key_env.strip()
+        api_key = os.environ.get(key_env, "").strip() if key_env else ""
+        if (
+            api_key
+            and parsed.scheme == "http"
+            and host not in {"127.0.0.1", "localhost", "::1"}
+        ):
             raise ValueError(
-                "remote brain connections must use HTTPS; HTTP is allowed "
-                "only for the local machine"
+                "refusing to send a configured API key over remote HTTP; use HTTPS"
             )
 
     if not 220 <= config.avatar.width <= 900:
