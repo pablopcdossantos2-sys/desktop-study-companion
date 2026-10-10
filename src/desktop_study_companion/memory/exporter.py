@@ -21,7 +21,7 @@ _TABLES = (
 
 
 def _csv_safe(value):
-    if isinstance(value, str) and value.startswith(("=", "+", "-", "@")):
+    if isinstance(value, str) and value.startswith(("=", "+", "-", "@", "\t", "\r")):
         return "'" + value
     return value
 
@@ -98,7 +98,7 @@ def create_backup_zip(
             if config_path is not None:
                 config = Path(config_path)
                 if config.exists():
-                    archive.write(config, "config/default.json")
+                    archive.write(config, "data/config.json")
 
             archive.writestr(
                 "backup-metadata.json",
