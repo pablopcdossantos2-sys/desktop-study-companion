@@ -17,13 +17,15 @@ def test_csv_export_and_backup_zip(tmp_path) -> None:
     session.start()
     session.complete()
     store.save_session(session)
+    store.save_conversation_message("user", "Olá")
+    store.save_conversation_message("assistant", "Vamos estudar.")
     store.close()
 
     (data / "directives.json").write_text("[]", encoding="utf-8")
 
     export_dir = tmp_path / "csv"
     created = export_csv_directory(db, export_dir)
-    assert len(created) == 3
+    assert len(created) == 4
 
     with (export_dir / "study_sessions.csv").open(
         encoding="utf-8-sig"
@@ -31,6 +33,13 @@ def test_csv_export_and_backup_zip(tmp_path) -> None:
         rows = list(csv.reader(handle))
     assert rows[0][0] == "id"
     assert any("Teste" in row for row in rows[1:])
+
+    with (export_dir / "conversation_messages.csv").open(
+        encoding="utf-8-sig"
+    ) as handle:
+        conversation_rows = list(csv.reader(handle))
+    assert any("Olá" in row for row in conversation_rows[1:])
+    assert any("Vamos estudar." in row for row in conversation_rows[1:])
 
     backup = create_backup_zip(
         db,
