@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "desktop-study-companion"
-version = "0.1.0-dev18"
+version = "0.1.0-dev19"
 description = "Desktop companion for study accountability and focus."
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
@@ -32,6 +32,11 @@ desktop-study-companion = "desktop_study_companion.app:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/desktop_study_companion"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"config" = "desktop_study_companion/_resources/config"
+"docs" = "desktop_study_companion/_resources/docs"
+"assets/avatar" = "desktop_study_companion/_resources/assets/avatar"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
