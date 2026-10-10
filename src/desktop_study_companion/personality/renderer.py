@@ -64,6 +64,26 @@ class PersonalityRenderer:
             rendered = rendered.replace(token, value)
         return rendered.strip()
 
+    def proactive_interval_minutes(
+        self,
+        minimum: int,
+        maximum: int,
+    ) -> int:
+        low = max(1, int(minimum))
+        high = max(low, int(maximum))
+        if low == high:
+            return low
+
+        initiative = max(
+            0.0,
+            min(1.0, self.personality.initiative / 100.0),
+        )
+        # High initiative biases spontaneous contact toward the shorter end,
+        # while still respecting the exact interval chosen by the user.
+        mode = high - ((high - low) * initiative)
+        chosen = int(round(random.triangular(low, high, mode)))
+        return max(low, min(high, chosen))
+
     def intervention_message(self, kind: InterventionKind) -> str:
         strict = self.personality.strictness >= 70
         sarcastic = self.personality.sarcasm >= 60
