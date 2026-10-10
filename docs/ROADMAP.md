@@ -166,8 +166,10 @@ Sempre opt-in.
 - [x] expressões básicas ligadas ao estado;
 - [x] lip-sync aproximado com visemes VRM;
 - [ ] lip-sync baseado no áudio real;
+- [x] idle corporal procedural básico;
 - [ ] animações corporais/VRMA;
-- [ ] gestos;
+- [x] pose de descanso para substituir T-pose;
+- [ ] gestos específicos;
 - [ ] estados de humor persistentes;
 - [ ] importação de outros avatares VRM pela interface.
 
@@ -176,8 +178,10 @@ Sempre opt-in.
 - [x] build portátil Windows via GitHub Actions;\n- [ ] instalador Windows;
 - [ ] atualização automática;
 - [x] backup/exportação básica;
-- [ ] onboarding;
+- [x] tutoriais contextuais básicos dentro do aplicativo;
+- [ ] onboarding completo;
 - [x] permissões de intervenção configuráveis pela interface;
 - [ ] documentação de privacidade;
 - [ ] testes automatizados abrangentes;
-- [ ] recuperação de falhas.
+- [x] health check básico e reinício do renderer VRM;
+- [ ] recuperação avançada de falhas.

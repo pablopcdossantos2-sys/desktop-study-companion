@@ -1,8 +1,22 @@
 from __future__ import annotations
 
 import logging
+import os
 import platform
 import sys
+
+# Transparent always-on-top QWebEngine windows can be considered occluded by
+# Chromium and have their renderer/timers backgrounded. Keep this tiny avatar
+# surface active even when another window overlaps it.
+_existing_chromium_flags = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "").strip()
+_required_chromium_flags = (
+    "--disable-background-timer-throttling "
+    "--disable-backgrounding-occluded-windows "
+    "--disable-renderer-backgrounding"
+)
+os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = (
+    f"{_existing_chromium_flags} {_required_chromium_flags}".strip()
+)
 
 from PySide6.QtWidgets import QApplication, QMessageBox
 

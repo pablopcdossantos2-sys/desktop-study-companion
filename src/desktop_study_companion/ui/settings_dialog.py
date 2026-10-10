@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
@@ -51,6 +52,7 @@ class SettingsDialog(QDialog):
     def __init__(self, config: AppConfig, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Configurações")
+        self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
         self.resize(650, 560)
         self._monitor = config.monitor
 

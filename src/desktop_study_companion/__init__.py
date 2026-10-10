@@ -1,3 +1,3 @@
 """Desktop Study Companion."""
 
-__version__ = "0.1.0-dev11"
+__version__ = "0.1.0-dev12"

@@ -46,6 +46,12 @@ class AvatarWidget(QWebEngineView):
         self._ready_timer.setInterval(250)
         self._ready_timeout_checks = 160  # 40 s; first WebEngine/VRM load can be slow.
         self._ready_timer.timeout.connect(self._poll_ready)
+
+        self._health_failures = 0
+        self._health_timer = QTimer(self)
+        self._health_timer.setInterval(5000)
+        self._health_timer.timeout.connect(self._poll_health)
+
         self.loadFinished.connect(self._on_page_loaded)
 
     def _on_page_loaded(self, ok: bool) -> None:
@@ -73,6 +79,8 @@ class AvatarWidget(QWebEngineView):
             self._ready = True
             self._ready_timer.stop()
             logger.info("Avatar renderer reported ready")
+            self._health_failures = 0
+            self._health_timer.start()
             self.page().runJavaScript(
                 "window.companionAvatar?.diagnostics?.() ?? {}",
                 self._log_renderer_diagnostics,
@@ -97,6 +105,46 @@ class AvatarWidget(QWebEngineView):
 
     def _log_renderer_diagnostics(self, diagnostics) -> None:
         logger.info("Avatar renderer diagnostics: %r", diagnostics)
+
+    def _poll_health(self) -> None:
+        if not self._ready:
+            return
+        self.page().runJavaScript(
+            "window.companionAvatar?.diagnostics?.() ?? {}",
+            self._handle_health_state,
+        )
+
+    def _handle_health_state(self, diagnostics) -> None:
+        diagnostics = diagnostics or {}
+        ready = bool(diagnostics.get("ready"))
+        webgl_lost = str(diagnostics.get("webglLost") or "").lower() == "true"
+
+        if ready and not webgl_lost:
+            if self._health_failures:
+                logger.info(
+                    "Avatar renderer recovered after %s unhealthy checks",
+                    self._health_failures,
+                )
+            self._health_failures = 0
+            return
+
+        self._health_failures += 1
+        logger.warning(
+            "Avatar renderer unhealthy check=%s diagnostics=%r",
+            self._health_failures,
+            diagnostics,
+        )
+        if self._health_failures >= 3:
+            self._restart_renderer("renderer health check failed repeatedly")
+
+    def _restart_renderer(self, reason: str) -> None:
+        logger.warning("Restarting avatar renderer: %s", reason)
+        self._health_timer.stop()
+        self._ready_timer.stop()
+        self._ready = False
+        self._ready_checks = 0
+        self._health_failures = 0
+        self.reload()
     def js(self, code: str) -> None:
         self.page().runJavaScript(code)
 
@@ -132,4 +180,6 @@ class AvatarWidget(QWebEngineView):
 
     def close_avatar(self) -> None:
         logger.info("Closing avatar renderer")
+        self._health_timer.stop()
+        self._ready_timer.stop()
         self.server.close()

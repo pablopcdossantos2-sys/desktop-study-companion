@@ -34,6 +34,7 @@ class CompanionWidget(QWidget):
     export_csv_requested = Signal()
     backup_requested = Signal()
     settings_requested = Signal()
+    tutorial_requested = Signal(str)
     open_logs_requested = Signal()
     copy_diagnostics_requested = Signal()
     pause_monitoring_requested = Signal(bool)
@@ -159,7 +160,12 @@ class CompanionWidget(QWidget):
         super().paintEvent(event)
 
     def contextMenuEvent(self, event) -> None:  # noqa: N802
-        menu = QMenu(self)
+        # QWebEngineView uses its own accelerated surface. A plain child QMenu
+        # can end up visually behind that surface on Windows. Use an independent
+        # always-on-top popup so the menu remains selectable above the avatar.
+        menu = QMenu()
+        menu.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
+        menu.setWindowFlag(Qt.WindowType.Tool, True)
 
         chat = QAction("Conversar", self)
         chat.triggered.connect(self.chat_requested.emit)
@@ -236,6 +242,32 @@ class CompanionWidget(QWidget):
         )
         diagnostics_menu.addAction(copy_diagnostics)
 
+        help_menu = menu.addMenu("Ajuda e tutoriais")
+
+        getting_started = QAction("Primeiros passos", self)
+        getting_started.triggered.connect(
+            lambda: self.tutorial_requested.emit("getting_started")
+        )
+        help_menu.addAction(getting_started)
+
+        brain_tutorial = QAction("Configurar Cérebro / Ollama", self)
+        brain_tutorial.triggered.connect(
+            lambda: self.tutorial_requested.emit("brain")
+        )
+        help_menu.addAction(brain_tutorial)
+
+        voice_tutorial = QAction("Configurar voz e microfone", self)
+        voice_tutorial.triggered.connect(
+            lambda: self.tutorial_requested.emit("voice")
+        )
+        help_menu.addAction(voice_tutorial)
+
+        avatar_tutorial = QAction("Diagnóstico do avatar", self)
+        avatar_tutorial.triggered.connect(
+            lambda: self.tutorial_requested.emit("avatar")
+        )
+        help_menu.addAction(avatar_tutorial)
+
         menu.addSeparator()
 
         pause_text = (
@@ -252,6 +284,7 @@ class CompanionWidget(QWidget):
         quit_action.triggered.connect(self.quit_requested.emit)
         menu.addAction(quit_action)
 
+        menu.raise_()
         menu.exec(event.globalPos())
 
     def _toggle_pause(self) -> None:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QDialog,
     QHBoxLayout,
@@ -21,6 +21,7 @@ class ChatDialog(QDialog):
         super().__init__(parent)
         self.character_name = character_name
         self.setWindowTitle(f"Conversar com {character_name}")
+        self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
         self.resize(620, 520)
 
         self.transcript = QTextEdit()

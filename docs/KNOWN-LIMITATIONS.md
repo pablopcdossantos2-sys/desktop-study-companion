@@ -1,6 +1,6 @@
-# Limitações conhecidas da v0.1.0-dev11
+# Limitações conhecidas da v0.1.0-dev12
 
-A dev10 é um protótipo funcional para validar o ciclo completo de accountability, avatar e conversa por voz no Windows. Ela ainda não representa a experiência final de produto.
+A dev12 é um protótipo funcional para validar o ciclo completo de accountability, avatar e conversa por voz no Windows. Ela ainda não representa a experiência final de produto.
 
 ## Personagem VRM
 
@@ -146,3 +146,11 @@ O CI valida código, dependências e empacotamento, mas não substitui testes re
 - Logs rotativos já existem e capturam Python, Qt e console JavaScript do avatar.
 - Eles ajudam a identificar falhas de WebGL e carregamento, mas ainda não coletam automaticamente informações detalhadas de driver/GPU.
 - O novo full-body fit reduz recortes de mãos/pés, mas precisa ser validado em diferentes escalas de DPI e GPUs reais.
+
+
+## Interface e animação (dev12)
+
+- Menu de contexto, Configurações, Chat e Tutoriais agora usam janela/top-level com prioridade acima do avatar.
+- O idle procedural substitui a T-pose e cria movimento natural básico.
+- Ainda não há biblioteca completa de gestos nem VRMA.
+- O renderer possui health check e auto-reload básico, mas falhas de driver/GPU ainda podem exigir análise dos logs.

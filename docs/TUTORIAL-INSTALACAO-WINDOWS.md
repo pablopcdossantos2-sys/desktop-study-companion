@@ -1375,3 +1375,45 @@ data\logs\desktop-study-companion.log
 ```
 
 A dev11 também amplia o tempo de carregamento inicial do avatar para aproximadamente 40 segundos e usa um novo enquadramento que considera largura + altura + margem para evitar mãos ou pés cortados.
+
+
+## 55. Ajuda e tutoriais dentro do aplicativo
+
+A partir da dev12, clique com o botão direito na personagem e abra:
+
+```text
+Ajuda e tutoriais
+```
+
+Existem atalhos para:
+
+- Primeiros passos;
+- Configurar Cérebro / Ollama;
+- Configurar voz e microfone;
+- Diagnóstico do avatar.
+
+Quando você tenta usar uma função ainda não configurada, o aplicativo também pode oferecer diretamente os botões **Abrir Configurações** e **Abrir tutorial**.
+
+## 56. Testar a animação natural
+
+Ao iniciar a dev12, observe a personagem por alguns segundos.
+
+O esperado é:
+
+- braços em postura relaxada, não na pose em cruz/T-pose;
+- respiração visível;
+- pequeno balanço do corpo;
+- movimento discreto de cabeça, ombros e mãos;
+- piscadas;
+- olhar seguindo o cursor;
+- movimento um pouco mais expressivo durante a fala.
+
+## 57. Se a personagem sumir e voltar
+
+A dev12 mantém o renderer ativo mesmo quando a janela perde foco e verifica sua saúde periodicamente.
+
+Se ainda ocorrer desaparecimento:
+
+1. abra **Diagnóstico > Abrir pasta de logs**;
+2. procure por `renderer unhealthy`, `WebGL`, `context lost` ou `Restarting avatar renderer`;
+3. envie essas linhas junto com o resumo do diagnóstico.

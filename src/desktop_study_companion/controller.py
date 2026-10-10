@@ -62,6 +62,7 @@ from desktop_study_companion.personality.renderer import PersonalityRenderer
 from desktop_study_companion.runtime_paths import (
     application_root,
     data_directory,
+    docs_directory,
     external_config_path,
 )
 from desktop_study_companion.routines.manager import RoutineManager
@@ -78,6 +79,7 @@ from desktop_study_companion.ui.routine_dialog import RoutineDialog
 from desktop_study_companion.ui.session_dialog import SessionDialog
 from desktop_study_companion.ui.settings_dialog import SettingsDialog
 from desktop_study_companion.ui.standing_rule_dialog import StandingRuleDialog
+from desktop_study_companion.ui.tutorial_dialog import TutorialDialog
 from desktop_study_companion.voice.audio_capture import (
     AudioCaptureError,
     MicrophoneRecorder,
@@ -196,6 +198,7 @@ class ApplicationController(QObject):
         self.widget.export_csv_requested.connect(self.export_csv)
         self.widget.backup_requested.connect(self.create_backup)
         self.widget.settings_requested.connect(self.open_settings)
+        self.widget.tutorial_requested.connect(self.show_tutorial)
         self.widget.open_logs_requested.connect(self.open_logs_directory)
         self.widget.copy_diagnostics_requested.connect(
             self.copy_diagnostic_summary
@@ -226,6 +229,36 @@ class ApplicationController(QObject):
             "Um resumo técnico sem histórico de janelas foi copiado "
             "para a área de transferência.",
         )
+
+    def show_tutorial(self, key: str) -> None:
+        tutorials = {
+            "getting_started": (
+                "Primeiros passos",
+                "TUTORIAL-INSTALACAO-WINDOWS.md",
+            ),
+            "brain": (
+                "Configurar Cérebro local com Ollama",
+                "TUTORIAL-CEREBRO-LOCAL-OLLAMA.md",
+            ),
+            "voice": (
+                "Voz e conversa por push-to-talk",
+                "VOICE-CONVERSATION.md",
+            ),
+            "avatar": (
+                "Diagnóstico do avatar",
+                "DIAGNOSTICS.md",
+            ),
+        }
+        title, filename = tutorials.get(
+            key,
+            tutorials["getting_started"],
+        )
+        dialog = TutorialDialog(
+            title,
+            docs_directory() / filename,
+            self.widget,
+        )
+        dialog.exec()
 
     def _say(
         self,
@@ -260,13 +293,32 @@ class ApplicationController(QObject):
 
     def open_chat(self) -> None:
         if not self.brain.ready:
-            QMessageBox.information(
-                self.widget,
-                "Cérebro conversacional desativado",
-                "Configure e habilite o backend em Configurações > Cérebro. "
-                "O padrão local está preparado para endpoints compatíveis "
-                "com /v1/chat/completions.",
+            box = QMessageBox(self.widget)
+            box.setWindowTitle("Cérebro conversacional ainda não configurado")
+            box.setIcon(QMessageBox.Icon.Information)
+            box.setText(
+                "Para conversar, primeiro configure o Cérebro. "
+                "O caminho recomendado para começar é usar Ollama local, "
+                "sem API paga."
             )
+            box.setInformativeText(
+                "Você pode abrir diretamente as Configurações ou seguir "
+                "o tutorial didático passo a passo."
+            )
+            open_settings = box.addButton(
+                "Abrir Configurações",
+                QMessageBox.ButtonRole.ActionRole,
+            )
+            open_tutorial = box.addButton(
+                "Abrir tutorial",
+                QMessageBox.ButtonRole.HelpRole,
+            )
+            box.addButton(QMessageBox.StandardButton.Cancel)
+            box.exec()
+            if box.clickedButton() is open_settings:
+                self.open_settings()
+            elif box.clickedButton() is open_tutorial:
+                self.show_tutorial("brain")
             return
 
         if self.chat_dialog is None:
@@ -317,8 +369,29 @@ class ApplicationController(QObject):
             return
         if not self.config.speech_input.enabled or self.stt is None:
             self.chat_dialog.append_status(
-                "Push-to-talk está desativado. Ative em Configurações > Microfone."
+                "Push-to-talk está desativado. "
+                "Use Configurações > Microfone."
             )
+            box = QMessageBox(self.chat_dialog)
+            box.setWindowTitle("Microfone ainda não configurado")
+            box.setText(
+                "O push-to-talk precisa ser ativado em "
+                "Configurações > Microfone."
+            )
+            tutorial = box.addButton(
+                "Abrir tutorial",
+                QMessageBox.ButtonRole.HelpRole,
+            )
+            settings = box.addButton(
+                "Abrir Configurações",
+                QMessageBox.ButtonRole.ActionRole,
+            )
+            box.addButton(QMessageBox.StandardButton.Cancel)
+            box.exec()
+            if box.clickedButton() is tutorial:
+                self.show_tutorial("voice")
+            elif box.clickedButton() is settings:
+                self.open_settings()
             return
         if self.recorder.recording:
             return

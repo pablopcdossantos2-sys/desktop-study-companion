@@ -37,3 +37,7 @@ def avatar_model_path() -> Path:
 
 def avatar_renderer_directory() -> Path:
     return application_root() / "avatar" / "renderer"
+
+
+def docs_directory() -> Path:
+    return application_root() / "docs"

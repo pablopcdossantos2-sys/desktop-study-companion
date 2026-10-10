@@ -127,3 +127,36 @@ O renderer registra:
 - erros JavaScript/WebGL.
 
 O timeout inicial foi ampliado para cerca de 40 segundos para reduzir fallbacks falsos durante a primeira inicialização do Qt WebEngine.
+
+
+## Idle procedural da dev12
+
+A dev12 deixa de apresentar o modelo como uma estátua em pose de referência.
+
+Ao carregar o VRM, o renderer cria uma pose de descanso a partir dos ossos humanoides normalizados e baixa os braços para uma postura natural. Em seguida aplica continuamente movimentos pequenos de:
+
+- respiração;
+- transferência de peso;
+- quadril;
+- coluna e tórax;
+- pescoço e cabeça;
+- ombros;
+- braços;
+- antebraços;
+- mãos.
+
+Durante fala e algumas expressões, a amplitude aumenta discretamente.
+
+Essa animação é procedural e não depende de arquivos VRMA externos. VRMA continua planejado para gestos complexos.
+
+## Estabilidade do renderer
+
+A dev12 também:
+
+- desabilita throttling/backgrounding do Chromium para a janela transparente;
+- monitora a saúde do renderer a cada 5 segundos;
+- detecta perda persistente do contexto WebGL;
+- tenta recarregar o renderer após três verificações consecutivas com falha;
+- registra todo o processo nos logs.
+
+Isso reduz casos em que a personagem some e volta sem explicação.
