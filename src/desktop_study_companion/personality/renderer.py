@@ -276,6 +276,25 @@ class PersonalityRenderer:
             distracted_minutes=distracted_minutes,
         )
 
+    def milestone_message(self, goal: str, percent: int) -> str:
+        percent = max(1, min(99, int(percent)))
+        if percent <= 25:
+            defaults = [
+                "Primeiro quarto do bloco feito. Continua em {goal}; não muda o plano agora.",
+                "25% cumprido. O mais difícil era entrar no bloco. Agora mantém {goal}.",
+            ]
+        elif percent <= 50:
+            defaults = [
+                "Metade do bloco. Você não precisa acelerar; só continuar em {goal}.",
+                "50% cumprido. Protege a segunda metade do mesmo jeito que protegeu a primeira.",
+            ]
+        else:
+            defaults = [
+                "75% cumprido. Reta final: fica com {goal} até fechar o combinado.",
+                "Três quartos feitos. Não entrega os últimos minutos para a distração agora.",
+            ]
+        return self._render(self._pick(defaults), goal=goal)
+
     def recovery_message(
         self,
         goal: str | None,
