@@ -239,3 +239,18 @@ fechamento do diálogo, como proteção adicional contra mudanças de estado.
 
 Avisos de recuperação de configuração exibidos na inicialização também usam a
 mesma infraestrutura de posicionamento longe do avatar.
+
+
+## Configuração protegida — dev23
+
+Se `data/config.json` ficar temporariamente ilegível, a aplicação pode iniciar
+com um fallback, mas antes da primeira gravação posterior tenta preservar o
+arquivo original em um snapshot `.bak`. Se esse backup não puder ser criado,
+a nova configuração não é gravada por cima do arquivo existente.
+
+Quando o cérebro está marcado como habilitado, mas uma chave de API seria
+enviada por HTTP remoto sem criptografia, a dev23 **não altera**
+`brain.enabled` no arquivo. A preferência permanece salva como o usuário a
+definiu, enquanto `BrainService` bloqueia somente o uso inseguro em runtime.
+Ao corrigir a URL para HTTPS ou remover a chave, o cérebro pode voltar a ficar
+disponível sem precisar reconstruir a configuração anterior.
