@@ -25,7 +25,7 @@ Em **Configurações > Coach** é possível:
 - definir intervalo mínimo e máximo;
 - escrever frases próprias por contexto.
 
-O intervalo padrão da dev21 é sorteado entre **6 e 12 minutos**.
+O intervalo padrão da dev21 fica entre **6 e 12 minutos**. O slider **Iniciativa** influencia o sorteio: iniciativa alta tende ao limite menor, sem ultrapassar os limites escolhidos pelo usuário.
 
 Os contextos programáveis são:
 

@@ -90,7 +90,7 @@ Os sliders em **Configurações > Personalidade** continuam influenciando o tom:
 - **Calor humano** aumenta acolhimento e reforço positivo;
 - **Paciência** influencia quão tolerante é a linguagem;
 - **Humor** modula leveza;
-- **Iniciativa** representa o quanto a personagem deve parecer ativa.
+- **Iniciativa** também influencia a cadência: valores altos tendem a escolher intervalos mais próximos do limite mínimo configurado.
 
 A política de tempo e severidade continua separada da personalidade. A
 personagem não ganha permissão para fechar janelas ou alterar regras apenas
