@@ -5,6 +5,19 @@ import os
 import platform
 import sys
 
+
+def _maybe_run_piper_worker() -> None:
+    """Dispatch the frozen executable into a Piper-only helper process."""
+    if "--piper-worker" not in sys.argv:
+        return
+    index = sys.argv.index("--piper-worker")
+    from desktop_study_companion.voice.piper_worker import main as piper_worker_main
+
+    raise SystemExit(piper_worker_main(sys.argv[index + 1 :]))
+
+
+_maybe_run_piper_worker()
+
 # Transparent always-on-top QWebEngine windows can be considered occluded by
 # Chromium and have their renderer/timers backgrounded. Keep this tiny avatar
 # surface active even when another window overlaps it.
