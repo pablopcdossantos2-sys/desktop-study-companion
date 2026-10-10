@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import filecmp
 import json
 import logging
 import os
@@ -54,17 +55,46 @@ def quarantine_invalid_json(path: str | Path) -> Path | None:
 
 
 def backup_json_snapshot(path: str | Path) -> Path | None:
-    """Preserve the original file before dropping malformed list items."""
+    """Preserve malformed source once per distinct file content."""
     source = Path(path)
     if not source.exists():
         return None
+
+    for existing in sorted(source.parent.glob(source.name + ".bak*")):
+        try:
+            if existing.is_file() and filecmp.cmp(
+                source,
+                existing,
+                shallow=False,
+            ):
+                logger.info(
+                    "Malformed JSON snapshot already preserved path=%s backup=%s",
+                    source,
+                    existing,
+                )
+                return existing
+        except OSError:
+            logger.debug(
+                "Could not compare JSON snapshot path=%s backup=%s",
+                source,
+                existing,
+                exc_info=True,
+            )
+
     backup = _backup_path(source)
     try:
         shutil.copy2(source, backup)
     except OSError:
-        logger.exception("Could not preserve malformed JSON snapshot path=%s", source)
+        logger.exception(
+            "Could not preserve malformed JSON snapshot path=%s",
+            source,
+        )
         return None
-    logger.warning("Malformed JSON items preserved path=%s backup=%s", source, backup)
+    logger.warning(
+        "Malformed JSON items preserved path=%s backup=%s",
+        source,
+        backup,
+    )
     return backup
 
 
