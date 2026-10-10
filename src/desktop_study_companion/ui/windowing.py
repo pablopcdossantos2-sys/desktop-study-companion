@@ -166,7 +166,14 @@ def exec_top_level_dialog(
         dialog.activateWindow()
 
     QTimer.singleShot(0, bring_to_front)
-    loop.exec()
+    try:
+        loop.exec()
+    finally:
+        if app is not None:
+            try:
+                app.aboutToQuit.disconnect(dialog.reject)
+            except (RuntimeError, TypeError):
+                pass
     return result[0]
 
 
