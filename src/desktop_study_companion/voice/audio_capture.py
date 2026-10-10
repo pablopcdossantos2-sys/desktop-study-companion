@@ -56,6 +56,7 @@ class MicrophoneRecorder:
         self._frames = []
         self._stream = None
         self._started_at = 0.0
+        self._active_samplerate = self.samplerate
 
     @property
     def recording(self) -> bool:
@@ -84,14 +85,39 @@ class MicrophoneRecorder:
             with self._lock:
                 self._frames.append(indata.copy())
 
+        device = self.device_index if self.device_index >= 0 else None
+        active_samplerate = self.samplerate
+        try:
+            sd.check_input_settings(
+                device=device,
+                channels=1,
+                dtype="float32",
+                samplerate=active_samplerate,
+            )
+        except Exception:
+            try:
+                info = sd.query_devices(device, "input")
+                fallback = int(round(float(info["default_samplerate"])))
+                sd.check_input_settings(
+                    device=device,
+                    channels=1,
+                    dtype="float32",
+                    samplerate=fallback,
+                )
+                active_samplerate = fallback
+            except Exception as exc:
+                raise AudioCaptureError(
+                    f"não foi possível encontrar uma taxa compatível para o microfone: {exc}"
+                ) from exc
+
         kwargs = {
-            "samplerate": self.samplerate,
+            "samplerate": active_samplerate,
             "channels": 1,
             "dtype": "float32",
             "callback": callback,
         }
-        if self.device_index >= 0:
-            kwargs["device"] = self.device_index
+        if device is not None:
+            kwargs["device"] = device
 
         try:
             stream = sd.InputStream(**kwargs)
@@ -102,6 +128,7 @@ class MicrophoneRecorder:
             ) from exc
 
         self._stream = stream
+        self._active_samplerate = active_samplerate
         self._started_at = time.monotonic()
 
     def stop_to_wav(self) -> Path:
@@ -148,7 +175,7 @@ class MicrophoneRecorder:
             with wave.open(str(path), "wb") as wav:
                 wav.setnchannels(1)
                 wav.setsampwidth(2)
-                wav.setframerate(self.samplerate)
+                wav.setframerate(self._active_samplerate)
                 wav.writeframes(pcm.tobytes())
         except Exception:
             path.unlink(missing_ok=True)
