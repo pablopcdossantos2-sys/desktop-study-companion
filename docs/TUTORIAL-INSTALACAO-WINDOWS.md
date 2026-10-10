@@ -335,7 +335,7 @@ Se você quiser testar sem som:
 
 `volume` aceita valores entre 0 e 100.
 
-Nesta versão, a voz utilizada é uma das vozes SAPI configuradas no Windows. A seleção de voz pela própria interface será adicionada depois.
+A voz é fornecida pelo SAPI do Windows. Agora você também pode escolher a voz instalada em **Configurações > Voz**, além de ajustar velocidade e volume.
 
 ## 17. Informações úteis ao relatar um problema
 
@@ -1080,3 +1080,229 @@ O GitHub Actions verifica:
 - presença dos visemes usados para fala.
 
 Assim, uma alteração inesperada do arquivo deve fazer a build falhar em vez de produzir silenciosamente um executável incompatível.
+
+
+## 43. Ativar push-to-talk
+
+A versão dev10 permite conversar falando ao microfone.
+
+O reconhecimento é local e vem **desativado por padrão**.
+
+1. Clique com o botão direito na personagem.
+2. Abra **Configurações**.
+3. Abra a aba **Microfone**.
+4. Marque **Ativar push-to-talk local**.
+
+Para o primeiro teste, mantenha:
+
+```text
+Modelo Whisper: base
+Idioma: pt
+Dispositivo de inferência: cpu
+Compute type: int8
+Microfone: Microfone padrão do Windows
+Máx. gravação: 30 s
+Enviar automaticamente: marcado
+```
+
+Clique em **Salvar**.
+
+## 44. Primeiro uso do Whisper
+
+A build portátil já contém o mecanismo `faster-whisper`, mas não inclui os pesos do modelo.
+
+Na primeira transcrição, o aplicativo poderá baixar o modelo selecionado.
+
+O modelo fica armazenado em:
+
+```text
+data\models\faster-whisper\
+```
+
+Esse download acontece apenas quando necessário.
+
+O modelo `base` é recomendado para o primeiro teste.
+
+Se o computador for mais lento, experimente:
+
+```text
+tiny
+```
+
+Se desejar mais precisão e tiver memória/CPU suficientes, posteriormente experimente:
+
+```text
+small
+```
+
+## 45. Conversar por voz
+
+O cérebro conversacional deve estar habilitado conforme o tutorial do Ollama.
+
+Depois:
+
+1. clique com o botão direito na personagem;
+2. escolha **Conversar**;
+3. localize **Segure para falar**;
+4. pressione e mantenha o botão;
+5. diga uma frase;
+6. solte o botão.
+
+Fluxo esperado:
+
+```text
+pressionar
+→ TTS atual é interrompido
+→ microfone começa a gravar
+→ soltar
+→ áudio é transcrito localmente
+→ texto aparece na conversa
+→ texto é enviado ao cérebro
+→ personagem responde
+→ resposta é falada
+```
+
+Na primeira tentativa, a etapa de transcrição pode demorar mais devido ao download/carregamento do modelo.
+
+## 46. Revisar a transcrição antes de enviar
+
+Se preferir não enviar automaticamente o que foi reconhecido:
+
+1. abra **Configurações > Microfone**;
+2. desmarque **Enviar automaticamente após transcrever**;
+3. salve.
+
+Agora:
+
+```text
+fala
+→ transcrição
+→ texto aparece na caixa de entrada
+→ você pode corrigir
+→ clique em Enviar
+```
+
+Esse modo é recomendado durante os primeiros testes de precisão.
+
+## 47. Escolher outro microfone
+
+Abra:
+
+```text
+Configurações
+→ Microfone
+→ Microfone
+```
+
+A lista mostra dispositivos de entrada encontrados pelo Windows/PortAudio.
+
+Para evitar problemas no primeiro teste, use:
+
+```text
+Microfone padrão do Windows
+```
+
+Se o programa estiver usando o dispositivo errado, selecione explicitamente o microfone desejado.
+
+## 48. Selecionar a voz da personagem
+
+Abra:
+
+```text
+Configurações
+→ Voz
+```
+
+Agora existem:
+
+- Ativar voz do Windows;
+- Voz;
+- Velocidade;
+- Volume.
+
+Em **Voz**, você pode escolher uma das vozes SAPI instaladas.
+
+Se escolher **Voz padrão do Windows**, o sistema usa a voz padrão disponível.
+
+## 49. Testar interrupção da fala
+
+1. Faça a personagem produzir uma resposta relativamente longa.
+2. Enquanto ela estiver falando, pressione **Segure para falar**.
+
+O comportamento esperado é:
+
+```text
+fala da personagem é interrompida
+→ microfone começa a gravar
+```
+
+Isso reduz a chance de o microfone transcrever a própria personagem.
+
+## 50. Onde o áudio é armazenado
+
+O aplicativo não mantém gravações de voz como histórico.
+
+Durante a transcrição é criado temporariamente:
+
+```text
+data\temp\ptt-....wav
+```
+
+Depois que a transcrição termina — inclusive em caso de erro — o worker tenta apagar o WAV.
+
+O histórico permanente armazena somente o texto da conversa.
+
+## 51. Se o microfone não funcionar
+
+No Windows, confira:
+
+```text
+Configurações
+→ Privacidade e segurança
+→ Microfone
+```
+
+Confirme que o acesso ao microfone para aplicativos de desktop está permitido.
+
+Depois:
+
+1. volte a **Configurações > Microfone**;
+2. tente **Microfone padrão do Windows**;
+3. salve;
+4. abra **Conversar**;
+5. faça um teste curto.
+
+Se ainda falhar, envie a mensagem exibida na própria janela de conversa.
+
+## 52. Se a transcrição estiver ruim
+
+Tente, nesta ordem:
+
+1. falar mais perto do microfone;
+2. reduzir ruído de fundo;
+3. confirmar `Idioma = pt`;
+4. mudar de `tiny` para `base`;
+5. posteriormente testar `small`.
+
+Não é necessário usar GPU para o teste inicial.
+
+## 53. Privacidade do push-to-talk
+
+O áudio é processado pelo faster-whisper localmente.
+
+O arquivo de áudio não é enviado ao LLM.
+
+Depois da transcrição, somente o **texto** segue para o cérebro conversacional.
+
+Se estiver usando Ollama local, o fluxo completo pode permanecer no computador:
+
+```text
+microfone
+→ Whisper local
+→ texto
+→ Ollama local
+→ resposta
+→ SAPI local
+```
+
+Se você configurar um cérebro remoto, apenas a parte textual passa a seguir as regras de privacidade daquele provedor.
