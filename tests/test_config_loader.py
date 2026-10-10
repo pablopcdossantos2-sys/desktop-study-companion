@@ -69,3 +69,32 @@ def test_load_config_including_voice(tmp_path) -> None:
     assert config.avatar.height == 700
     assert config.avatar.look_at_cursor is False
     assert config.avatar.lip_sync is False
+
+
+def test_load_old_config_gets_coach_defaults_and_cleans_phrase_banks(
+    tmp_path,
+) -> None:
+    path = tmp_path / "config.json"
+    path.write_text(
+        json.dumps(
+            {
+                "voice": {"enabled": False},
+                "proactivity": {
+                    "enabled": True,
+                    "activation_phrases": [
+                        " Começa agora. ",
+                        "",
+                        123,
+                        "começa agora.",
+                    ],
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    config = load_config(path)
+
+    assert config.proactivity.coach_mode is True
+    assert config.proactivity.activation_phrases == ["Começa agora."]
+    assert isinstance(config.proactivity.focus_phrases, list)
