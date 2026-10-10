@@ -23,6 +23,7 @@ _WEEKDAYS = {
 
 class RoutineManager:
     SCHEDULE_GRACE_MINUTES = 15
+    WAKE_GAP_MINUTES = 10
 
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path)
@@ -164,5 +165,5 @@ class RoutineManager:
         if routine.schedule == "interval":
             return f"A cada {routine.interval_hours:g} h"
         if routine.schedule == "on_wake":
-            return "Ao voltar após um longo período ausente"
+            return f"Ao voltar após pelo menos {self.WAKE_GAP_MINUTES} minutos ausente"
         return routine.schedule
