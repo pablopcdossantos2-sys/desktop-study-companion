@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from PySide6.QtCore import QTimer, QUrl, Qt, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
+from .page import DiagnosticWebPage
 from .server import AvatarAssetServer
+
+logger = logging.getLogger("desktop_study_companion.avatar")
 
 
 class AvatarWidget(QWebEngineView):
@@ -16,9 +20,18 @@ class AvatarWidget(QWebEngineView):
         super().__init__(parent)
         self.server = AvatarAssetServer(renderer_dir, model_path)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self.setPage(DiagnosticWebPage(self))
         self.page().setBackgroundColor(QColor(0, 0, 0, 0))
         self.setStyleSheet("background: transparent;")
-        self.load(QUrl(self.server.start()))
+        self._url = self.server.start()
+        logger.info(
+            "Starting avatar renderer url=%s renderer=%s model=%s model_bytes=%s",
+            self._url,
+            renderer_dir,
+            model_path,
+            model_path.stat().st_size if model_path.exists() else "missing",
+        )
+        self.load(QUrl(self._url))
         self._talk_timer = QTimer(self)
         self._talk_timer.setSingleShot(True)
         self._talk_timer.timeout.connect(lambda: self.set_speaking(False))
@@ -31,12 +44,16 @@ class AvatarWidget(QWebEngineView):
         self._ready_checks = 0
         self._ready_timer = QTimer(self)
         self._ready_timer.setInterval(250)
+        self._ready_timeout_checks = 160  # 40 s; first WebEngine/VRM load can be slow.
         self._ready_timer.timeout.connect(self._poll_ready)
         self.loadFinished.connect(self._on_page_loaded)
 
     def _on_page_loaded(self, ok: bool) -> None:
+        logger.info("Avatar renderer page loadFinished ok=%s", ok)
         if not ok:
-            self.avatar_failed.emit("renderer page failed to load")
+            reason = "renderer page failed to load"
+            logger.error(reason)
+            self.avatar_failed.emit(reason)
             return
         self._ready_checks = 0
         self._ready_timer.start()
@@ -55,16 +72,31 @@ class AvatarWidget(QWebEngineView):
         if state.get("ready") == "true":
             self._ready = True
             self._ready_timer.stop()
+            logger.info("Avatar renderer reported ready")
+            self.page().runJavaScript(
+                "window.companionAvatar?.diagnostics?.() ?? {}",
+                self._log_renderer_diagnostics,
+            )
             self.avatar_ready.emit()
             return
         error = str(state.get("error") or "")
         if error:
             self._ready_timer.stop()
+            logger.error("Avatar renderer error: %s", error)
             self.avatar_failed.emit(error)
             return
-        if self._ready_checks >= 40:
+        if self._ready_checks >= self._ready_timeout_checks:
             self._ready_timer.stop()
-            self.avatar_failed.emit("avatar load timed out")
+            reason = "avatar load timed out"
+            logger.error(reason)
+            self.page().runJavaScript(
+                "window.companionAvatar?.diagnostics?.() ?? {}",
+                self._log_renderer_diagnostics,
+            )
+            self.avatar_failed.emit(reason)
+
+    def _log_renderer_diagnostics(self, diagnostics) -> None:
+        logger.info("Avatar renderer diagnostics: %r", diagnostics)
     def js(self, code: str) -> None:
         self.page().runJavaScript(code)
 
@@ -99,4 +131,5 @@ class AvatarWidget(QWebEngineView):
         self._talk_timer.start(duration_ms)
 
     def close_avatar(self) -> None:
+        logger.info("Closing avatar renderer")
         self.server.close()

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import time
 from pathlib import Path
 
@@ -41,6 +42,10 @@ from desktop_study_companion.brain.service import BrainService
 from desktop_study_companion.brain.worker import BrainChatWorker
 from desktop_study_companion.config.models import AppConfig
 from desktop_study_companion.config.writer import save_config
+from desktop_study_companion.diagnostics import (
+    diagnostic_summary,
+    log_directory,
+)
 from desktop_study_companion.desktop.interventions import (
     DesktopInterventionController,
     InterventionPermissionStore,
@@ -191,12 +196,36 @@ class ApplicationController(QObject):
         self.widget.export_csv_requested.connect(self.export_csv)
         self.widget.backup_requested.connect(self.create_backup)
         self.widget.settings_requested.connect(self.open_settings)
+        self.widget.open_logs_requested.connect(self.open_logs_directory)
+        self.widget.copy_diagnostics_requested.connect(
+            self.copy_diagnostic_summary
+        )
         self.widget.pause_monitoring_requested.connect(self.set_paused)
         self.widget.quit_requested.connect(self.shutdown)
 
     def start(self) -> None:
         self.widget.show()
         self.timer.start()
+
+    def open_logs_directory(self) -> None:
+        try:
+            os.startfile(str(log_directory()))
+        except Exception as exc:
+            QMessageBox.warning(
+                self.widget,
+                "Não foi possível abrir os logs",
+                f"A pasta de logs não pôde ser aberta:\n\n{exc}",
+            )
+
+    def copy_diagnostic_summary(self) -> None:
+        summary = diagnostic_summary()
+        self.app.clipboard().setText(summary)
+        QMessageBox.information(
+            self.widget,
+            "Diagnóstico copiado",
+            "Um resumo técnico sem histórico de janelas foi copiado "
+            "para a área de transferência.",
+        )
 
     def _say(
         self,

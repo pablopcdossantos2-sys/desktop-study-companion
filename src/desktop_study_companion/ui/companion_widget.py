@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from PySide6.QtCore import QPoint, QTimer, Qt, Signal
 from PySide6.QtGui import QAction, QCursor, QMouseEvent, QPainter
 from PySide6.QtWidgets import QLabel, QMenu, QVBoxLayout, QWidget
@@ -10,6 +12,9 @@ from desktop_study_companion.runtime_paths import (
     avatar_model_path,
     avatar_renderer_directory,
 )
+
+
+logger = logging.getLogger("desktop_study_companion.ui.companion")
 
 
 class CompanionWidget(QWidget):
@@ -29,6 +34,8 @@ class CompanionWidget(QWidget):
     export_csv_requested = Signal()
     backup_requested = Signal()
     settings_requested = Signal()
+    open_logs_requested = Signal()
+    copy_diagnostics_requested = Signal()
     pause_monitoring_requested = Signal(bool)
     quit_requested = Signal()
 
@@ -84,8 +91,13 @@ class CompanionWidget(QWidget):
                 avatar.avatar_failed.connect(self._avatar_failed)
                 return avatar
             except Exception:
-                pass
+                logger.exception("Failed to create AvatarWidget")
 
+        logger.warning(
+            "Avatar fallback selected before renderer startup. renderer=%s model=%s",
+            renderer,
+            model,
+        )
         return self._fallback_avatar()
 
     def _fallback_avatar(self) -> QLabel:
@@ -97,10 +109,11 @@ class CompanionWidget(QWidget):
     def _avatar_failed(self, reason: str) -> None:
         if not isinstance(self.avatar, AvatarWidget):
             return
+        logger.error("Avatar failed; switching to fallback. reason=%s", reason)
         self._replace_avatar_widget(self._fallback_avatar())
         self.say(
             "Avatar 3D indisponível; usando fallback. "
-            "Consulte o tutorial de diagnóstico."
+            "Abra Diagnóstico > Abrir pasta de logs."
         )
 
     def set_avatar_expression(self, name: str, weight: float = 1.0) -> None:
@@ -212,6 +225,16 @@ class CompanionWidget(QWidget):
         settings_action = QAction("Configurações", self)
         settings_action.triggered.connect(self.settings_requested.emit)
         menu.addAction(settings_action)
+
+        diagnostics_menu = menu.addMenu("Diagnóstico")
+        open_logs = QAction("Abrir pasta de logs", self)
+        open_logs.triggered.connect(self.open_logs_requested.emit)
+        diagnostics_menu.addAction(open_logs)
+        copy_diagnostics = QAction("Copiar resumo do diagnóstico", self)
+        copy_diagnostics.triggered.connect(
+            self.copy_diagnostics_requested.emit
+        )
+        diagnostics_menu.addAction(copy_diagnostics)
 
         menu.addSeparator()
 

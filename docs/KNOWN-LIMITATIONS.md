@@ -1,4 +1,4 @@
-# Limitações conhecidas da v0.1.0-dev10
+# Limitações conhecidas da v0.1.0-dev11
 
 A dev10 é um protótipo funcional para validar o ciclo completo de accountability, avatar e conversa por voz no Windows. Ela ainda não representa a experiência final de produto.
 
@@ -139,3 +139,10 @@ O CI valida código, dependências e empacotamento, mas não substitui testes re
 - download e desempenho do Whisper;
 - Ollama;
 - intervenções reais de janela.
+
+
+## Diagnóstico (dev11)
+
+- Logs rotativos já existem e capturam Python, Qt e console JavaScript do avatar.
+- Eles ajudam a identificar falhas de WebGL e carregamento, mas ainda não coletam automaticamente informações detalhadas de driver/GPU.
+- O novo full-body fit reduz recortes de mãos/pés, mas precisa ser validado em diferentes escalas de DPI e GPUs reais.

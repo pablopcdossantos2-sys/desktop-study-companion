@@ -93,3 +93,37 @@ A aba **Configurações > Avatar** permite alterar:
 Essas opções são persistidas em `config/default.json` e aplicadas sem reiniciar o aplicativo.
 
 Desativar o avatar não desativa o Study Accountability Engine, TTS, histórico ou monitoramento. Apenas substitui a renderização 3D pelo fallback visual.
+
+
+## Enquadramento full-body
+
+A dev11 passou a enquadrar a câmera pela bounding box completa do VRM.
+
+O cálculo considera:
+
+- altura do modelo;
+- largura do modelo;
+- aspect ratio atual do canvas;
+- profundidade aproximada;
+- margem adicional de 16%.
+
+A distância final usa a maior exigência entre o encaixe vertical e horizontal. Isso evita que uma janela estreita preserve cabeça/pés, mas corte as mãos lateralmente.
+
+O enquadramento é recalculado quando o renderer muda de tamanho.
+
+## Diagnóstico do renderer
+
+O console JavaScript do avatar é espelhado em:
+
+`data/logs/desktop-study-companion.log`
+
+O renderer registra:
+
+- progresso do VRM;
+- dimensões da bounding box;
+- posição/FOV/distância da câmera;
+- disponibilidade de WebGL;
+- conclusão do carregamento;
+- erros JavaScript/WebGL.
+
+O timeout inicial foi ampliado para cerca de 40 segundos para reduzir fallbacks falsos durante a primeira inicialização do Qt WebEngine.

@@ -63,7 +63,7 @@ A primeira versão deverá validar a essência do produto:
 
 O roadmap completo está em [docs/ROADMAP.md](docs/ROADMAP.md).
 
-Para testar a versão atual no Windows, siga [docs/TUTORIAL-INSTALACAO-WINDOWS.md](docs/TUTORIAL-INSTALACAO-WINDOWS.md). As limitações atuais estão documentadas em [docs/KNOWN-LIMITATIONS.md](docs/KNOWN-LIMITATIONS.md).
+Para testar a versão atual no Windows, siga [docs/TUTORIAL-INSTALACAO-WINDOWS.md](docs/TUTORIAL-INSTALACAO-WINDOWS.md). As limitações atuais estão documentadas em [docs/KNOWN-LIMITATIONS.md](docs/KNOWN-LIMITATIONS.md). Para diagnosticar falhas de avatar, WebEngine, voz ou inicialização, consulte [docs/DIAGNOSTICS.md](docs/DIAGNOSTICS.md).
 
 ## Princípios
 
@@ -93,8 +93,8 @@ desktop-study-companion
 
 ## Estado
 
-**v0.1.0-dev10 — MVP com conversa por voz local via push-to-talk em validação no Windows.**
+**v0.1.0-dev11 — diagnóstico persistente e enquadramento VRM corrigido em validação no Windows.**
 
-Já estão implementados monitor de janela ativa, sessões de estudo, compromissos persistentes, regras permanentes, rotinas proativas, escalada fala → minimizar → fechar, lockdown limitado e reversível, memória comportamental local, histórico/insights, configuração pela interface, exportação CSV, backup ZIP, build portátil do Windows, TTS com seleção de voz SAPI, avatar VRM 1.0 Sendagaya Shino, cérebro conversacional opcional e STT local por push-to-talk usando faster-whisper. O LLM continua sem ferramentas nem permissões de desktop; intervenções permanecem numa camada determinística separada e opt-in.
+Já estão implementados monitor de janela ativa, sessões de estudo, compromissos persistentes, regras permanentes, rotinas proativas, escalada fala → minimizar → fechar, lockdown limitado e reversível, memória comportamental local, histórico/insights, configuração pela interface, exportação CSV, backup ZIP, build portátil do Windows, TTS com seleção de voz SAPI, avatar VRM 1.0 Sendagaya Shino, cérebro conversacional opcional e STT local por push-to-talk usando faster-whisper. A dev11 acrescenta logs rotativos de diagnóstico, captura de erros Qt/JavaScript do renderer, resumo técnico copiável e enquadramento full-body do avatar com margem. O LLM continua sem ferramentas nem permissões de desktop; intervenções permanecem numa camada determinística separada e opt-in.
 
 A reutilização direta de componentes do bonziPONY está autorizada pelo criador do projeto, com obrigação de atribuição. A integração será feita seletivamente para preservar a arquitetura modular deste repositório.

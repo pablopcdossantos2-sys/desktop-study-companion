@@ -1330,3 +1330,48 @@ microfone
 ```
 
 Se você configurar um cérebro remoto, apenas a parte textual passa a seguir as regras de privacidade daquele provedor.
+
+
+## 54. Se o avatar cair no fallback
+
+A partir da dev11, não é mais necessário tentar adivinhar o erro.
+
+Clique com o botão direito na personagem/fallback:
+
+```text
+Diagnóstico
+→ Abrir pasta de logs
+```
+
+Abra:
+
+```text
+desktop-study-companion.log
+```
+
+Procure nas últimas linhas por:
+
+```text
+avatar-ready
+avatar-fit
+avatar-fatal
+Avatar renderer error
+WebGL
+```
+
+Você também pode usar:
+
+```text
+Diagnóstico
+→ Copiar resumo do diagnóstico
+```
+
+Cole esse resumo junto com as últimas linhas do log ao relatar o problema.
+
+O log fica em:
+
+```text
+data\logs\desktop-study-companion.log
+```
+
+A dev11 também amplia o tempo de carregamento inicial do avatar para aproximadamente 40 segundos e usa um novo enquadramento que considera largura + altura + margem para evitar mãos ou pés cortados.

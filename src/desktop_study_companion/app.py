@@ -1,15 +1,26 @@
 from __future__ import annotations
 
+import logging
 import platform
 import sys
 
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from desktop_study_companion.config.loader import load_config
+from desktop_study_companion.diagnostics import (
+    configure_logging,
+    install_exception_hooks,
+    install_qt_message_logging,
+)
 from desktop_study_companion.controller import ApplicationController
 
 
 def main() -> int:
+    configure_logging()
+    install_exception_hooks()
+    install_qt_message_logging()
+    logger = logging.getLogger("desktop_study_companion.app")
+
     app = QApplication(sys.argv)
     app.setApplicationName("Desktop Study Companion")
     app.setQuitOnLastWindowClosed(False)
@@ -24,6 +35,7 @@ def main() -> int:
         return 2
 
     try:
+        logger.info("Loading configuration")
         config = load_config()
         controller = ApplicationController(app, config)
         # Keep a strong reference for the whole Qt event loop.
@@ -31,6 +43,7 @@ def main() -> int:
         controller.start()
         return app.exec()
     except Exception as exc:
+        logger.exception("Fatal application startup/runtime error")
         QMessageBox.critical(
             None,
             "Falha ao iniciar",

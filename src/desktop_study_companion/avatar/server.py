@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 import mimetypes
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+
+logger = logging.getLogger("desktop_study_companion.avatar.server")
 
 
 class AvatarAssetServer:
@@ -28,6 +31,11 @@ class AvatarAssetServer:
                         self.send_error(403)
                         return
                 if not target.exists() or not target.is_file():
+                    logger.error(
+                        "Avatar asset not found request=%s target=%s",
+                        self.path,
+                        target,
+                    )
                     self.send_error(404)
                     return
                 data = target.read_bytes()
@@ -46,10 +54,13 @@ class AvatarAssetServer:
         self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
         self.thread.start()
         host, port = self.httpd.server_address
-        return f"http://{host}:{port}/"
+        url = f"http://{host}:{port}/"
+        logger.info("Avatar asset server started at %s", url)
+        return url
 
     def close(self) -> None:
         if self.httpd is not None:
             self.httpd.shutdown()
             self.httpd.server_close()
             self.httpd = None
+            logger.info("Avatar asset server stopped")
