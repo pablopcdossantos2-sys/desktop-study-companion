@@ -52,6 +52,8 @@ class WindowsSapiTTS:
         self.voice_token_id = voice_token_id.strip()
         self._queue: queue.Queue[_SpeechItem | None] = queue.Queue()
         self._closed = False
+        self._interrupt = threading.Event()
+        self._speaking = threading.Event()
         self._thread = threading.Thread(
             target=self._worker,
             name="desktop-study-companion-tts",
@@ -88,14 +90,39 @@ class WindowsSapiTTS:
                 if item is None:
                     return
                 try:
-                    speaker.Speak(item.text)
+                    self._speaking.set()
+                    self._interrupt.clear()
+                    speaker.Speak(item.text, 1)
+                    while not speaker.WaitUntilDone(50):
+                        if self._interrupt.is_set():
+                            speaker.Speak("", 3)
+                            break
                 finally:
+                    self._speaking.clear()
+                    self._interrupt.clear()
                     self._queue.task_done()
         finally:
             pythoncom.CoUninitialize()
 
+    @property
+    def is_speaking(self) -> bool:
+        return self._speaking.is_set()
+
+    def stop(self) -> None:
+        if self._closed:
+            return
+        self._interrupt.set()
+        while True:
+            try:
+                item = self._queue.get_nowait()
+            except queue.Empty:
+                break
+            if item is not None:
+                self._queue.task_done()
+
     def close(self) -> None:
         if self._closed:
             return
+        self.stop()
         self._closed = True
         self._queue.put(None)
