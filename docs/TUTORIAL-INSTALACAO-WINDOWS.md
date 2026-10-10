@@ -804,7 +804,7 @@ Isso facilita copiar a instalação inteira para outro local e também torna cla
 
 ## 31. Configurar pela própria interface
 
-Não é mais necessário editar `config/default.json` para as configurações principais.
+Não é necessário editar `config/default.json` para as configurações principais. A interface salva as preferências do usuário em `data/config.json`, que tem prioridade sobre o padrão de fábrica.
 
 1. Clique com o botão direito no personagem.
 2. Escolha **Configurações**.
@@ -883,7 +883,7 @@ Permite:
 - ligar/desligar o olhar que acompanha o cursor;
 - ligar/desligar a animação da boca durante a fala.
 
-As alterações são salvas em `config/default.json` e aplicadas à sessão em execução sem precisar reiniciar a aplicação.
+As alterações são salvas em `data/config.json` e aplicadas à sessão em execução sem precisar reiniciar a aplicação. O arquivo `config/default.json` permanece como padrão de fábrica/fallback.
 
 ## 32. Consultar histórico e insights
 
