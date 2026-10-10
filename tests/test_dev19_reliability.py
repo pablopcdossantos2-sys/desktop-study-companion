@@ -44,15 +44,16 @@ def test_lan_brain_http_without_api_key_is_allowed(monkeypatch) -> None:
     validate_config(config)
 
 
-def test_lan_brain_http_with_api_key_is_rejected(monkeypatch) -> None:
+def test_lan_brain_http_with_api_key_is_structurally_valid(monkeypatch) -> None:
     config = AppConfig()
     config.brain.enabled = True
     config.brain.model = "qwen"
     config.brain.base_url = "http://192.168.1.10:11434/v1"
     monkeypatch.setenv(config.brain.api_key_env, "secret")
 
-    with pytest.raises(ValueError, match="API key"):
-        validate_config(config)
+    # Transport security is handled at runtime without declaring the whole
+    # configuration file corrupt.
+    validate_config(config)
 
 
 def test_malformed_item_creates_snapshot_before_future_save(tmp_path) -> None:
@@ -78,17 +79,20 @@ def test_malformed_item_creates_snapshot_before_future_save(tmp_path) -> None:
 
 def test_naive_directive_timestamp_does_not_break_due_check(tmp_path) -> None:
     manager = DirectiveManager(tmp_path / "directives.json")
+    now = datetime(2026, 10, 10, 10, 0, tzinfo=timezone.utc)
     directive = manager.add(
         "teste",
         5,
         delay_seconds=0,
-        now=datetime(2026, 10, 10, 9, 0, tzinfo=timezone.utc),
+        now=now,
     )
-    directive.next_nag_at = "2026-10-10T09:00:00"
+    # Legacy timestamps without timezone are interpreted as local time.
+    # Derive the naive value from the machine's own local timezone so this
+    # test is portable outside UTC, including Brazil.
+    local_due = (now.astimezone() - timedelta(minutes=5)).replace(tzinfo=None)
+    directive.next_nag_at = local_due.isoformat()
 
-    due = manager.due(
-        datetime(2026, 10, 10, 10, 0, tzinfo=timezone.utc)
-    )
+    due = manager.due(now)
 
     assert directive in due
 
