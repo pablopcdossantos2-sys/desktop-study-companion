@@ -70,3 +70,19 @@ O renderer do avatar usa Three.js e `@pixiv/three-vrm` para carregar e animar mo
 The full MIT notices for Three.js and @pixiv/three-vrm are included in
 `avatar_web/THIRD_PARTY_LICENSES.md` and copied into the portable build as
 `THIRD_PARTY_LICENSES-AVATAR.md`.
+
+
+## Local speech recognition
+
+O pipeline de push-to-talk local usa:
+
+- **faster-whisper** — MIT;
+- **python-sounddevice** — MIT;
+- **CTranslate2** — MIT;
+- **PyAV** — BSD-style license.
+
+Os textos de licença usados para redistribuição estão em:
+
+`docs/THIRD_PARTY_LICENSES-VOICE.md`
+
+e são copiados para a build portátil.
