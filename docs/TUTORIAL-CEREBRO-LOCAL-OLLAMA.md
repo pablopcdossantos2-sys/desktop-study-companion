@@ -247,7 +247,7 @@ O cérebro não depende especificamente do Ollama.
 
 Qualquer servidor que implemente o endpoint OpenAI-compatible `/v1/chat/completions` pode ser configurado.
 
-Se for um serviço remoto que exige chave, não grave a chave em `config/default.json`.
+Se for um serviço remoto que exige chave, não grave a chave em `data/config.json` nem em `config/default.json`. Configure a chave somente pela variável de ambiente indicada nas Configurações.
 
 Em uma sessão do PowerShell, use:
 
