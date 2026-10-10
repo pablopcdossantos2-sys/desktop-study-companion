@@ -12,7 +12,12 @@ from datetime import datetime
 from pathlib import Path
 
 
-_TABLES = ("study_sessions", "activity_events", "interventions")
+_TABLES = (
+    "study_sessions",
+    "activity_events",
+    "interventions",
+    "conversation_messages",
+)
 
 
 def export_csv_directory(
