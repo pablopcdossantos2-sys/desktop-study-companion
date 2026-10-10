@@ -250,7 +250,7 @@ class OpenAICompatibleProvider:
 
 
 class OllamaNativeProvider:
-    """Ollama /api/chat client with reasoning disabled."""
+    """Ollama /api/chat client with reasoning disabled and safe retry."""
 
     def __init__(
         self,
@@ -276,25 +276,69 @@ class OllamaNativeProvider:
     def endpoint(self) -> str:
         return ollama_native_endpoint(self.base_url)
 
-    def chat(
+    def _outgoing_messages(
+        self,
+        system_prompt: str,
+        messages: Sequence[ChatMessage],
+        *,
+        strict_retry: bool = False,
+    ) -> list[dict[str, str]]:
+        system_suffix = (
+            "\n\nMODO DE RESPOSTA: não use raciocínio visível. "
+            "Produza somente a resposta final em português do Brasil.\n/no_think"
+        )
+        outgoing = [
+            {
+                "role": "system",
+                "content": system_prompt.rstrip() + system_suffix,
+            }
+        ]
+
+        last_user_index = -1
+        for index, message in enumerate(messages):
+            if message.role == "user":
+                last_user_index = index
+
+        for index, message in enumerate(messages):
+            content = message.content
+            if index == last_user_index and message.role == "user":
+                suffix = (
+                    "\n\n/no_think\n"
+                    "Responda diretamente, em português do Brasil, "
+                    "somente com a mensagem final."
+                )
+                if strict_retry:
+                    suffix += (
+                        " Não descreva análise, regras, planejamento, "
+                        "raciocínio ou o que você pretende responder."
+                    )
+                content = content.rstrip() + suffix
+            outgoing.append({"role": message.role, "content": content})
+
+        return outgoing
+
+    def _request_once(
         self,
         *,
         system_prompt: str,
         messages: Sequence[ChatMessage],
-    ) -> str:
+        strict_retry: bool = False,
+    ) -> tuple[str, dict]:
         payload = {
             "model": self.model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                *[
-                    {"role": message.role, "content": message.content}
-                    for message in messages
-                ],
-            ],
+            "messages": self._outgoing_messages(
+                system_prompt,
+                messages,
+                strict_retry=strict_retry,
+            ),
             "stream": False,
             "think": False,
             "options": {
-                "temperature": self.temperature,
+                "temperature": (
+                    min(self.temperature, 0.3)
+                    if strict_retry
+                    else self.temperature
+                ),
                 "num_predict": self.max_tokens,
             },
         }
@@ -305,52 +349,105 @@ class OllamaNativeProvider:
             method="POST",
         )
 
+        logger.info(
+            "Brain request provider=ollama-native model=%s endpoint=%s "
+            "strict_retry=%s",
+            self.model,
+            self.endpoint,
+            strict_retry,
+        )
+        with urllib.request.urlopen(
+            request,
+            timeout=self.timeout_seconds,
+        ) as response:
+            raw = response.read()
+
+        data = json.loads(raw.decode("utf-8"))
+        message = data["message"]
+        text = _message_content_text(message.get("content"))
+        cleaned = sanitize_assistant_text(text)
+
+        # A compliant recent Ollama/Qwen3 combination puts chain-of-thought in
+        # message.thinking when thinking is enabled and keeps content final-only.
+        # We never surface or log that field's contents.
+        if message.get("thinking"):
+            logger.warning(
+                "Ollama returned a thinking field despite think=false "
+                "model=%s chars=%s",
+                self.model,
+                len(str(message.get("thinking") or "")),
+            )
+
+        return cleaned, data
+
+    def chat(
+        self,
+        *,
+        system_prompt: str,
+        messages: Sequence[ChatMessage],
+    ) -> str:
         last_error: Exception | None = None
+
         for attempt in range(self.retries + 1):
             try:
-                logger.info(
-                    "Brain request provider=ollama-native model=%s endpoint=%s",
-                    self.model,
-                    self.endpoint,
+                cleaned, data = self._request_once(
+                    system_prompt=system_prompt,
+                    messages=messages,
+                    strict_retry=False,
                 )
-                with urllib.request.urlopen(
-                    request,
-                    timeout=self.timeout_seconds,
-                ) as response:
-                    raw = response.read()
-                data = json.loads(raw.decode("utf-8"))
-                message = data["message"]
-                text = _message_content_text(message.get("content"))
-                cleaned = sanitize_assistant_text(text)
-                if looks_like_reasoning_leak(cleaned):
-                    logger.error(
-                        "Blocked reasoning-like Ollama output model=%s",
+
+                if cleaned and not looks_like_reasoning_leak(cleaned):
+                    logger.info(
+                        "Brain response succeeded provider=ollama-native "
+                        "model=%s chars=%s",
                         self.model,
+                        len(cleaned),
                     )
-                    raise BrainError(
-                        "o modelo local devolveu raciocínio interno; a resposta "
-                        "foi bloqueada. Atualize o Ollama ou tente novamente."
-                    )
-                if not cleaned:
-                    logger.warning(
-                        "Ollama returned no final content model=%s "
-                        "done_reason=%r thinking_present=%s",
-                        self.model,
-                        data.get("done_reason"),
-                        bool(message.get("thinking")),
-                    )
-                    raise BrainError(
-                        "Ollama não retornou uma resposta final. "
-                        "Atualize o Ollama e confirme se o modelo configurado "
-                        f"({self.model}) responde no comando 'ollama run'."
-                    )
-                logger.info(
-                    "Brain response succeeded provider=ollama-native "
-                    "model=%s chars=%s",
-                    self.model,
-                    len(cleaned),
+                    return cleaned
+
+                reason = (
+                    "reasoning-like content"
+                    if looks_like_reasoning_leak(cleaned)
+                    else "empty final content"
                 )
-                return cleaned
+                logger.warning(
+                    "Ollama response unusable model=%s reason=%s "
+                    "done_reason=%r",
+                    self.model,
+                    reason,
+                    data.get("done_reason"),
+                )
+
+                # Retry the original user request, not the leaked text. This
+                # avoids feeding hidden/reasoning content back into the model.
+                retry_cleaned, retry_data = self._request_once(
+                    system_prompt=system_prompt,
+                    messages=messages,
+                    strict_retry=True,
+                )
+                if (
+                    retry_cleaned
+                    and not looks_like_reasoning_leak(retry_cleaned)
+                ):
+                    logger.info(
+                        "Brain response recovered on strict no-think retry "
+                        "model=%s chars=%s",
+                        self.model,
+                        len(retry_cleaned),
+                    )
+                    return retry_cleaned
+
+                logger.error(
+                    "Ollama still returned unusable output after no-think "
+                    "retry model=%s done_reason=%r",
+                    self.model,
+                    retry_data.get("done_reason"),
+                )
+                raise BrainError(
+                    "o modelo local continuou retornando raciocínio em vez "
+                    "da resposta final. Para uma conversa mais estável, use "
+                    "o modelo não-thinking 'qwen3:4b-instruct'."
+                )
             except BrainError:
                 raise
             except (

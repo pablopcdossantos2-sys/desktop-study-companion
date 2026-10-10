@@ -180,8 +180,19 @@ class SettingsDialog(QDialog):
         engine_index = self.voice_engine.findData(v.engine)
         self.voice_engine.setCurrentIndex(max(0, engine_index))
 
-        self.piper_voice_id = QLineEdit(v.piper_voice_id)
-        self.piper_voice_id.setPlaceholderText("pt_BR-faber-medium")
+        self.piper_voice_id = QComboBox()
+        self.piper_voice_id.setEditable(True)
+        for voice_id in (
+            "pt_BR-faber-medium",
+            "pt_BR-jeff-medium",
+            "pt_BR-edresson-low",
+        ):
+            self.piper_voice_id.addItem(voice_id)
+        voice_index = self.piper_voice_id.findText(v.piper_voice_id)
+        if voice_index >= 0:
+            self.piper_voice_id.setCurrentIndex(voice_index)
+        else:
+            self.piper_voice_id.setEditText(v.piper_voice_id)
 
         self.piper_speed = QDoubleSpinBox()
         self.piper_speed.setRange(0.5, 2.0)
@@ -293,7 +304,9 @@ class SettingsDialog(QDialog):
         )
 
         self.brain_model = QLineEdit(b.model)
-        self.brain_model.setPlaceholderText("Nome do modelo local/remoto")
+        self.brain_model.setPlaceholderText(
+            "qwen3:4b-instruct (recomendado para Ollama local)"
+        )
 
         self.brain_api_key_env = QLineEdit(b.api_key_env)
         self.brain_api_key_env.setPlaceholderText(
@@ -432,7 +445,7 @@ class SettingsDialog(QDialog):
                 rate=self.voice_rate.value(),
                 volume=self.voice_volume.value(),
                 voice_id=str(self.voice_choice.currentData() or ""),
-                piper_voice_id=self.piper_voice_id.text().strip()
+                piper_voice_id=self.piper_voice_id.currentText().strip()
                 or "pt_BR-faber-medium",
                 piper_length_scale=self.piper_speed.value(),
                 piper_noise_scale=self._piper_noise_scale,

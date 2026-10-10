@@ -1,6 +1,6 @@
-# Limitações conhecidas da v0.1.0-dev15
+# Limitações conhecidas da v0.1.0-dev16
 
-A dev14 é um protótipo funcional para validar o ciclo completo de accountability, avatar e conversa por voz no Windows. Ela ainda não representa a experiência final de produto.
+A dev16 é um protótipo funcional para validar o ciclo completo de accountability, avatar e conversa por voz no Windows. Ela ainda não representa a experiência final de produto.
 
 ## Personagem VRM
 
@@ -207,3 +207,22 @@ A seleção da API nativa é automática.
 - Os gestos espontâneos são procedurais; ainda não são animações VRMA completas.
 - Mensagens motivacionais usam frases locais e intervalos configuráveis.
 - O bloqueio de raciocínio reduz vazamentos conhecidos, mas backends de terceiros podem ter formatos de resposta inesperados.
+
+
+## Correções de voz e cérebro — dev16
+
+### Piper
+
+O caminho de reprodução via `sounddevice.RawOutputStream` foi removido do TTS Piper.
+
+A dev16 sintetiza um WAV em memória pela API oficial do Piper e entrega esse WAV ao mecanismo nativo `PlaySound` do Windows. Isso usa o dispositivo padrão do sistema e reduz a dependência de uma segunda camada PortAudio para a saída.
+
+Ainda é necessária validação em máquinas com diferentes drivers/dispositivos de áudio.
+
+### Ollama / Qwen3
+
+A dev16 envia `/no_think` também na última mensagem do usuário, além de `think: false`.
+
+Se a primeira saída parecer metarraciocínio, há uma única nova tentativa usando a pergunta original e instruções mais rígidas. O conteúdo bloqueado não é reaproveitado.
+
+Para maior previsibilidade, o modelo recomendado passa a ser `qwen3:4b-instruct`.

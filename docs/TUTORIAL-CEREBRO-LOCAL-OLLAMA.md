@@ -49,7 +49,7 @@ Se aparecer uma versão, a instalação foi reconhecida.
 Para o primeiro teste, recomendamos:
 
 ```powershell
-ollama pull qwen3:4b
+ollama pull qwen3:4b-instruct
 ```
 
 Esse modelo ocupa alguns gigabytes.
@@ -71,7 +71,7 @@ ollama list
 Digite:
 
 ```powershell
-ollama run qwen3:4b
+ollama run qwen3:4b-instruct
 ```
 
 Quando aparecer o campo de conversa, escreva algo como:
@@ -119,7 +119,7 @@ URL base:
 http://127.0.0.1:11434/v1
 
 Modelo:
-qwen3:4b
+qwen3:4b-instruct
 
 Variável da chave:
 DESKTOP_STUDY_COMPANION_LLM_API_KEY
@@ -217,14 +217,14 @@ Depois confira se o modelo existe exatamente com o mesmo nome configurado.
 Você também pode testar:
 
 ```powershell
-ollama run qwen3:4b
+ollama run qwen3:4b-instruct
 ```
 
 Se o modelo abrir normalmente, confirme no aplicativo:
 
 ```text
 URL base = http://127.0.0.1:11434/v1
-Modelo   = qwen3:4b
+Modelo   = qwen3:4b-instruct
 ```
 
 ## 14. Se o computador ficar lento
@@ -284,13 +284,13 @@ Confirme que o nome configurado no aplicativo aparece exatamente em `ollama list
 Exemplo:
 
 ```text
-qwen3:4b
+qwen3:4b-instruct
 ```
 
 Depois teste diretamente:
 
 ```powershell
-ollama run qwen3:4b
+ollama run qwen3:4b-instruct
 ```
 
 Digite:
@@ -310,7 +310,7 @@ Se houver resposta, digite:
 ```text
 Ativar cérebro: marcado
 URL base: http://127.0.0.1:11434/v1
-Modelo: qwen3:4b
+Modelo: qwen3:4b-instruct
 Chave/API: não necessária para Ollama local
 ```
 
@@ -355,7 +355,7 @@ Ollama returned no final content
 Depois que o Ollama e o modelo estiverem instalados, você **não precisa** executar:
 
 ```powershell
-ollama run qwen3:4b
+ollama run qwen3:4b-instruct
 ```
 
 toda vez que abrir o Desktop Study Companion.
@@ -369,7 +369,7 @@ Desktop Study Companion
         ↓
 API local do Ollama
         ↓
-qwen3:4b instalado no computador
+qwen3:4b-instruct instalado no computador
 ```
 
 O Companion envia as mensagens diretamente para o Ollama em segundo plano.
@@ -382,10 +382,12 @@ ollama list
 
 ## Raciocínio interno / thinking
 
-A dev15 usa duas proteções para Qwen3:
+A dev16 usa proteção em camadas para Qwen3:
 
 1. envia `think: false` pela API nativa do Ollama;
-2. inclui `/no_think` no prompt.
+2. inclui `/no_think` no prompt de sistema;
+3. inclui `/no_think` também na última mensagem do usuário;
+4. repete a pergunta original uma vez em modo estrito se detectar metarraciocínio.
 
 O objetivo é receber apenas a resposta final da personagem.
 
@@ -400,3 +402,35 @@ The rules say...
 o Companion bloqueia esse conteúdo antes de mostrá-lo ou enviá-lo para a voz.
 
 Isso evita que raciocínio interno seja confundido com a fala da personagem.
+
+
+## Por que agora recomendamos qwen3:4b-instruct
+
+Em testes reais com `qwen3:4b`, algumas combinações de versão do Ollama/modelo continuaram colocando metarraciocínio em `message.content` mesmo quando o aplicativo enviava `think: false`.
+
+A tag oficial:
+
+```text
+qwen3:4b-instruct
+```
+
+é uma variante voltada a respostas diretas e é a recomendação atual para o Companion.
+
+A dev16 ainda aceita `qwen3:4b` e tenta duas proteções:
+
+1. `think: false` na API nativa do Ollama;
+2. `/no_think` na última mensagem do usuário.
+
+Se a primeira resposta ainda parecer raciocínio interno, o Companion repete a pergunta original uma vez em modo estrito. O texto de raciocínio bloqueado **não é reutilizado** como entrada.
+
+Se mesmo assim não houver resposta final segura, o aplicativo orienta trocar para:
+
+```powershell
+ollama pull qwen3:4b-instruct
+```
+
+e configurar:
+
+```text
+Modelo = qwen3:4b-instruct
+```

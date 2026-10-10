@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "desktop-study-companion"
-version = "0.1.0-dev15"
+version = "0.1.0-dev16"
 description = "Desktop companion for study accountability and focus."
 readme = "README.md"
 requires-python = ">=3.11,<3.14"

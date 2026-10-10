@@ -259,7 +259,11 @@ O SAPI permanece útil como fallback, mas sua prosódia pode soar robótica.
 
 A dev15 adiciona Piper TTS, um motor neural local. O runtime suporta Windows e vozes em português do Brasil. O modelo padrão é baixado somente no primeiro uso.
 
-O Piper é executado em thread separada para não bloquear a interface. O áudio é enviado diretamente ao dispositivo de saída via sounddevice.
+O Piper é executado em thread separada para não bloquear a interface.
+
+Na dev16, a síntese usa `PiperVoice.synthesize_wav` e o WAV resultante é reproduzido pela API nativa de áudio do Windows (`winsound`). Essa mudança foi feita porque, em teste real, o modelo Piper carregava corretamente, mas o caminho anterior via `sounddevice.RawOutputStream` não produzia áudio audível.
+
+Se síntese ou playback falharem, o fallback SAPI continua disponível.
 
 ## Raciocínio interno nunca deve ser falado
 
@@ -275,3 +279,50 @@ A dev15 reforça:
   - `the rules say...`.
 
 Se um backend insistir em retornar esse conteúdo como resposta, ele é bloqueado e não chega ao TTS.
+
+
+## Playback Piper corrigido na dev16
+
+O log real da dev15 mostrou:
+
+```text
+Piper voice download completed
+Piper voice loaded
+```
+
+sem erro de síntese, mas também sem fala audível.
+
+A dev16 muda o caminho para:
+
+```text
+texto
+  ↓
+Piper neural
+  ↓
+WAV em memória
+  ↓
+winsound / PlaySound do Windows
+  ↓
+dispositivo padrão do sistema
+```
+
+O log agora registra:
+
+```text
+Queued Piper utterance
+Piper synthesis completed
+Starting native Windows Piper playback
+Native Windows Piper playback completed
+```
+
+Se qualquer etapa lançar erro, o traceback é salvo e, quando habilitado, o SAPI é usado como fallback.
+
+### Vozes Piper brasileiras expostas na interface
+
+A caixa de seleção oferece:
+
+- `pt_BR-faber-medium`;
+- `pt_BR-jeff-medium`;
+- `pt_BR-edresson-low`.
+
+O campo continua editável para permitir outros IDs suportados pelo Piper.

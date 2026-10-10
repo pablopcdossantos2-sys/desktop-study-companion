@@ -124,6 +124,7 @@ def test_ollama_native_provider_disables_thinking() -> None:
 
     assert captured["path"] == "/api/chat"
     assert captured["json"]["think"] is False
+    assert "/no_think" in captured["json"]["messages"][-1]["content"]
     assert "tools" not in captured["json"]
     assert answer == "Vamos estudar."
 
@@ -138,3 +139,66 @@ def test_reasoning_leak_detector_blocks_meta_reasoning() -> None:
     assert not looks_like_reasoning_leak(
         "Sim, estou te ouvindo. Vamos organizar seu estudo."
     )
+
+
+
+def test_ollama_provider_recovers_from_reasoning_like_first_response() -> None:
+    captured = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self):  # noqa: N802
+            length = int(self.headers["Content-Length"])
+            payload = json.loads(self.rfile.read(length))
+            captured.append(payload)
+            if len(captured) == 1:
+                content = (
+                    "Okay, the user asked a question. I need to respond. "
+                    "The rules say I should answer in Portuguese."
+                )
+            else:
+                content = "Sim, estou te ouvindo. Como posso ajudar?"
+            body = json.dumps(
+                {
+                    "message": {
+                        "role": "assistant",
+                        "content": content,
+                        "thinking": "",
+                    },
+                    "done": True,
+                    "done_reason": "stop",
+                }
+            ).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *_args):
+            return
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
+    try:
+        host, port = server.server_address
+        provider = OllamaNativeProvider(
+            base_url=f"http://{host}:{port}/v1",
+            model="qwen3:4b",
+            retries=0,
+        )
+        answer = provider.chat(
+            system_prompt="system",
+            messages=[ChatMessage("user", "Você consegue me ouvir?")],
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+
+    assert len(captured) == 2
+    assert captured[0]["think"] is False
+    assert captured[1]["think"] is False
+    assert "/no_think" in captured[0]["messages"][-1]["content"]
+    assert "Não descreva análise" in captured[1]["messages"][-1]["content"]
+    assert answer == "Sim, estou te ouvindo. Como posso ajudar?"

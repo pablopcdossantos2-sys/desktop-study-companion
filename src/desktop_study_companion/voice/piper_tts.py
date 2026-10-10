@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import io
 import logging
 import queue
 import threading
+import wave
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -15,10 +17,12 @@ class _SpeechItem:
 
 
 class PiperNeuralTTS:
-    """Non-blocking local neural TTS using Piper and sounddevice.
+    """Non-blocking local neural TTS using Piper with Windows WAV playback.
 
-    The selected voice model is downloaded lazily on the first utterance and
-    cached inside the portable app's data directory.
+    Piper performs synthesis locally. Playback uses the native Windows
+    winsound API instead of PortAudio/sounddevice because real-world testing
+    showed that a valid Piper model could synthesize without producing audible
+    output through the previous RawOutputStream path.
     """
 
     def __init__(
@@ -56,6 +60,11 @@ class PiperNeuralTTS:
         text = text.strip()
         if not text or self._closed:
             return
+        logger.info(
+            "Queued Piper utterance model=%s chars=%s",
+            self.model_id,
+            len(text),
+        )
         self._queue.put(_SpeechItem(text))
 
     def _ensure_voice(self):
@@ -83,8 +92,7 @@ class PiperNeuralTTS:
         logger.info("Piper voice loaded model=%s", self.model_id)
         return self._voice
 
-    def _speak_item(self, text: str) -> None:
-        import sounddevice as sd
+    def _synthesize_wav_bytes(self, text: str) -> bytes:
         from piper import SynthesisConfig
 
         voice = self._ensure_voice()
@@ -95,25 +103,56 @@ class PiperNeuralTTS:
             noise_w_scale=self.noise_w_scale,
         )
 
-        stream = None
+        wav_buffer = io.BytesIO()
+        with wave.open(wav_buffer, "wb") as wav_file:
+            voice.synthesize_wav(
+                text,
+                wav_file,
+                syn_config=syn_config,
+            )
+
+        audio = wav_buffer.getvalue()
+        if len(audio) <= 44:
+            raise RuntimeError("Piper generated an empty WAV stream")
+
+        logger.info(
+            "Piper synthesis completed model=%s wav_bytes=%s",
+            self.model_id,
+            len(audio),
+        )
+        return audio
+
+    def _play_wav_bytes(self, audio: bytes) -> None:
+        import winsound
+
+        if self._interrupt.is_set():
+            return
+
+        logger.info(
+            "Starting native Windows Piper playback model=%s wav_bytes=%s",
+            self.model_id,
+            len(audio),
+        )
+        # PlaySound blocks here, but this class already owns a dedicated worker
+        # thread. SND_MEMORY lets Windows handle the WAV using the user's normal
+        # system output device without a separate PortAudio output stream.
+        winsound.PlaySound(audio, winsound.SND_MEMORY)
+        logger.info("Native Windows Piper playback completed model=%s", self.model_id)
+
+    def _stop_native_playback(self) -> None:
         try:
-            for chunk in voice.synthesize(text, syn_config=syn_config):
-                if self._interrupt.is_set():
-                    break
-                if stream is None:
-                    stream = sd.RawOutputStream(
-                        samplerate=chunk.sample_rate,
-                        channels=chunk.sample_channels,
-                        dtype="int16",
-                    )
-                    stream.start()
-                stream.write(chunk.audio_int16_bytes)
-        finally:
-            if stream is not None:
-                try:
-                    stream.stop()
-                finally:
-                    stream.close()
+            import winsound
+
+            # Passing None stops the currently playing waveform sound.
+            winsound.PlaySound(None, 0)
+        except Exception:
+            logger.debug("Unable to stop winsound playback", exc_info=True)
+
+    def _speak_item(self, text: str) -> None:
+        audio = self._synthesize_wav_bytes(text)
+        if self._interrupt.is_set():
+            return
+        self._play_wav_bytes(audio)
 
     def _worker(self) -> None:
         while True:
@@ -127,7 +166,7 @@ class PiperNeuralTTS:
                     self._speak_item(item.text)
                 except Exception:
                     logger.exception(
-                        "Piper synthesis failed model=%s; using fallback=%s",
+                        "Piper synthesis/playback failed model=%s; using fallback=%s",
                         self.model_id,
                         self.fallback is not None,
                     )
@@ -150,6 +189,7 @@ class PiperNeuralTTS:
         if self._closed:
             return
         self._interrupt.set()
+        self._stop_native_playback()
         if self.fallback is not None:
             self.fallback.stop()
         while True:
