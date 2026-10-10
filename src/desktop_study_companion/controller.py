@@ -324,11 +324,27 @@ class ApplicationController(QObject):
             ):
                 return
 
-            goal = None
-            if self.sessions.active and self.sessions.session is not None:
-                goal = self.sessions.session.goal
+            session = (
+                self.sessions.session
+                if self.sessions.active and self.sessions.session is not None
+                else None
+            )
+            goal = session.goal if session is not None else None
             self._say(
-                self.personality.motivation_message(goal),
+                self.personality.motivation_message(
+                    goal,
+                    state=session.state.value if session is not None else None,
+                    focused_seconds=(
+                        session.focused_seconds if session is not None else 0.0
+                    ),
+                    distracted_seconds=(
+                        session.distracted_seconds if session is not None else 0.0
+                    ),
+                    custom_activation=(
+                        self.config.proactivity.activation_phrases
+                    ),
+                    custom_focus=self.config.proactivity.focus_phrases,
+                ),
                 avatar_state="happy",
             )
         finally:
@@ -607,11 +623,17 @@ class ApplicationController(QObject):
         self._last_session_save_at = time.monotonic()
         self._last_activity_key = None
         self._last_intervention_kind = InterventionKind.NONE
-        self._say(
-            f"Combinado: {session.planned_minutes} minutos para {session.goal}. "
-            "Eu vou acompanhar.",
-            avatar_state="happy",
-        )
+        if self.config.proactivity.coach_mode:
+            start_message = self.personality.session_start_message(
+                session.goal,
+                session.planned_minutes,
+            )
+        else:
+            start_message = (
+                f"Combinado: {session.planned_minutes} minutos para "
+                f"{session.goal}. Eu vou acompanhar."
+            )
+        self._say(start_message, avatar_state="happy")
 
     def finish_session(self) -> None:
         if not self.sessions.active:
@@ -624,15 +646,29 @@ class ApplicationController(QObject):
         focused = round(session.focused_seconds / 60, 1)
         distracted = round(session.distracted_seconds / 60, 1)
         completed = session.state.value == "completed"
-        prefix = (
-            "Sessão concluída."
-            if completed
-            else "Sessão interrompida e registrada como abandonada."
-        )
+        if self.config.proactivity.coach_mode:
+            message = self.personality.session_result_message(
+                session.goal,
+                completed=completed,
+                focused_minutes=focused,
+                distracted_minutes=distracted,
+                custom_celebration=(
+                    self.config.proactivity.celebration_phrases
+                ),
+                custom_reset=self.config.proactivity.reset_phrases,
+            )
+        else:
+            prefix = (
+                "Sessão concluída."
+                if completed
+                else "Sessão interrompida e registrada como abandonada."
+            )
+            message = (
+                f"{prefix} Foco classificado: {focused} minutos; "
+                f"distração: {distracted} minutos."
+            )
         self._say(
-            f"{prefix} Foco classificado: {focused} minutos; "
-            f"distração: {distracted} minutos."
-            + self._behavioral_insight_suffix(),
+            message + self._behavioral_insight_suffix(),
             avatar_state="happy" if completed else "neutral",
         )
 
@@ -720,7 +756,14 @@ class ApplicationController(QObject):
 
         if box.clickedButton() is complete:
             self.directives.complete(directive.id)
-            self._say(f"Compromisso concluído: {directive.goal}. Boa.")
+            if self.config.proactivity.coach_mode:
+                message = self.personality.commitment_completed_message(
+                    directive.goal,
+                    custom=self.config.proactivity.celebration_phrases,
+                )
+            else:
+                message = f"Compromisso concluído: {directive.goal}. Boa."
+            self._say(message, avatar_state="happy")
         elif snooze is not None and box.clickedButton() is snooze:
             if self.directives.snooze(directive.id, minutes=5):
                 self._say(
@@ -1490,16 +1533,43 @@ class ApplicationController(QObject):
             if session:
                 self.lockdown.clear()
                 self.memory.save_session(session)
+                focused = round(session.focused_seconds / 60, 1)
+                distracted = round(session.distracted_seconds / 60, 1)
+                if self.config.proactivity.coach_mode:
+                    message = self.personality.session_result_message(
+                        session.goal,
+                        completed=True,
+                        focused_minutes=focused,
+                        distracted_minutes=distracted,
+                        custom_celebration=(
+                            self.config.proactivity.celebration_phrases
+                        ),
+                        custom_reset=self.config.proactivity.reset_phrases,
+                    )
+                else:
+                    message = (
+                        f"Tempo cumprido para {session.goal}. "
+                        "Sessão registrada. Bom trabalho."
+                    )
                 self._say(
-                    f"Tempo cumprido para {session.goal}. "
-                    "Sessão registrada. Bom trabalho."
-                    + self._behavioral_insight_suffix()
+                    message + self._behavioral_insight_suffix(),
+                    avatar_state="happy",
                 )
             return
 
         if classified.kind != ActivityKind.DISTRACTION:
             if self._last_intervention_kind != InterventionKind.NONE:
-                self._say("Você voltou. Ótimo. Continue.")
+                if (
+                    self.config.proactivity.coach_mode
+                    and self.sessions.session is not None
+                ):
+                    message = self.personality.recovery_message(
+                        self.sessions.session.goal,
+                        custom=self.config.proactivity.recovery_phrases,
+                    )
+                else:
+                    message = "Você voltou. Ótimo. Continue."
+                self._say(message, avatar_state="happy")
             self._last_intervention_kind = InterventionKind.NONE
             return
 
