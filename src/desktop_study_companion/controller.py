@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import random
 import time
@@ -92,7 +93,11 @@ from desktop_study_companion.voice.audio_capture import (
 from desktop_study_companion.voice.faster_whisper_stt import FasterWhisperSTT
 from desktop_study_companion.voice.stt_worker import SttWorker
 from desktop_study_companion.voice.factory import create_tts_engine
+from desktop_study_companion.voice.piper_tts import PiperNeuralTTS
 from desktop_study_companion import __version__
+
+
+logger = logging.getLogger("desktop_study_companion.controller")
 
 
 class ApplicationController(QObject):
@@ -154,7 +159,9 @@ class ApplicationController(QObject):
         self._ptt_timer.timeout.connect(self._stop_push_to_talk)
         self._motivation_timer = QTimer(self)
         self._motivation_timer.setSingleShot(True)
-        self._motivation_timer.timeout.connect(self._proactive_motivation)
+        self._motivation_timer.timeout.connect(
+            self._safe_proactive_motivation
+        )
         self.widget = CompanionWidget(
             config.personality.name,
             config.avatar,
@@ -173,10 +180,12 @@ class ApplicationController(QObject):
         self._last_intervention_at = 0.0
         self._last_session_save_at = 0.0
         self._last_activity_key: tuple[str, str, str] | None = None
+        self._shutting_down = False
+        self._voice_preview: PiperNeuralTTS | None = None
 
         self.timer = QTimer(self)
         self.timer.setInterval(config.monitor.poll_interval_ms)
-        self.timer.timeout.connect(self._poll)
+        self.timer.timeout.connect(self._safe_poll)
 
         self.widget.chat_requested.connect(self.open_chat)
         self.widget.start_session_requested.connect(self.start_session)
@@ -285,6 +294,15 @@ class ApplicationController(QObject):
             max(p.min_interval_minutes, p.max_interval_minutes),
         )
         self._motivation_timer.start(minutes * 60 * 1000)
+
+    def _safe_proactive_motivation(self) -> None:
+        try:
+            self._proactive_motivation()
+        except Exception:
+            logger.exception(
+                "Proactive motivation cycle failed; keeping app alive"
+            )
+            self._schedule_next_motivation()
 
     def _proactive_motivation(self) -> None:
         try:
@@ -1020,6 +1038,7 @@ class ApplicationController(QObject):
 
     def open_settings(self) -> None:
         dialog = SettingsDialog(self.config, None)
+        dialog.piper_test_requested.connect(self._preview_piper_voice)
         if exec_top_level_dialog(dialog) != QDialog.DialogCode.Accepted:
             return
 
@@ -1036,6 +1055,29 @@ class ApplicationController(QObject):
 
         self._apply_runtime_config(new_config)
         self._say("Configurações salvas e aplicadas.")
+
+    def _preview_piper_voice(
+        self,
+        model_id: str,
+        length_scale: float,
+        volume: int,
+    ) -> None:
+        if self._voice_preview is not None:
+            self._voice_preview.close()
+        self._voice_preview = PiperNeuralTTS(
+            model_id=model_id,
+            model_dir=self.data_dir / "models" / "piper",
+            volume=volume,
+            length_scale=length_scale,
+            fallback=None,
+        )
+        self.widget.say(
+            "Testando a voz Piper selecionada. "
+            "No primeiro teste, o modelo pode precisar ser baixado."
+        )
+        self._voice_preview.speak(
+            "Olá! Este é um teste da minha voz neural Piper."
+        )
 
     def _apply_runtime_config(self, new_config: AppConfig) -> None:
         self.config = new_config
@@ -1088,6 +1130,9 @@ class ApplicationController(QObject):
         self.widget.name = new_config.personality.name
         self.widget.apply_avatar_config(new_config.avatar)
 
+        if self._voice_preview is not None:
+            self._voice_preview.close()
+            self._voice_preview = None
         if self.voice is not None:
             self.voice.close()
             self.voice = None
@@ -1298,6 +1343,14 @@ class ApplicationController(QObject):
             self.memory.save_session(self.sessions.session)
             self._last_session_save_at = now
 
+    def _safe_poll(self) -> None:
+        try:
+            self._poll()
+        except Exception:
+            logger.exception(
+                "Monitoring cycle failed; keeping application alive"
+            )
+
     def _poll(self) -> None:
         now = time.monotonic()
         elapsed = max(0.0, now - self._last_poll)
@@ -1392,18 +1445,31 @@ class ApplicationController(QObject):
         self._last_intervention_at = now
 
     def shutdown(self) -> None:
-        if self.sessions.session is not None:
-            self.memory.save_session(self.sessions.session)
-        self.lockdown.clear()
-        self.timer.stop()
-        self._ptt_timer.stop()
-        if self.recorder.recording:
-            self.recorder.cancel()
-        if self.voice is not None:
-            self.voice.close()
-        if self.chat_dialog is not None:
-            self.chat_dialog.close()
-            self.chat_dialog = None
-        self.memory.close()
-        self.widget.shutdown_avatar()
-        self.app.quit()
+        if self._shutting_down:
+            return
+        self._shutting_down = True
+        logger.info("Clean shutdown requested by user")
+        try:
+            if self.sessions.session is not None:
+                self.memory.save_session(self.sessions.session)
+            self.lockdown.clear()
+            self.timer.stop()
+            self._ptt_timer.stop()
+            self._motivation_timer.stop()
+            if self.recorder.recording:
+                self.recorder.cancel()
+            if self._voice_preview is not None:
+                self._voice_preview.close()
+                self._voice_preview = None
+            if self.voice is not None:
+                self.voice.close()
+                self.voice = None
+            if self.chat_dialog is not None:
+                self.chat_dialog.close()
+                self.chat_dialog = None
+            self.memory.close()
+            self.widget.shutdown_avatar()
+        except Exception:
+            logger.exception("Error while shutting down cleanly")
+        finally:
+            self.app.quit()
