@@ -328,9 +328,11 @@ class OllamaNativeProvider:
         *,
         strict_retry: bool = False,
     ) -> list[dict[str, str]]:
+        no_think_command = "/no_think" if "qwen3" in self.model.casefold() else ""
         system_suffix = (
             "\n\nMODO DE RESPOSTA: não use raciocínio visível. "
-            "Produza somente a resposta final em português do Brasil.\n/no_think"
+            "Produza somente a resposta final em português do Brasil."
+            + (f"\n{no_think_command}" if no_think_command else "")
         )
         outgoing = [
             {
@@ -347,8 +349,10 @@ class OllamaNativeProvider:
         for index, message in enumerate(messages):
             content = message.content
             if index == last_user_index and message.role == "user":
-                suffix = (
-                    "\n\n/no_think\n"
+                suffix = "\n\n"
+                if no_think_command:
+                    suffix += no_think_command + "\n"
+                suffix += (
                     "Responda diretamente, em português do Brasil, "
                     "somente com a mensagem final."
                 )
@@ -465,11 +469,26 @@ class OllamaNativeProvider:
 
                 # Retry the original user request, not the leaked text. This
                 # avoids feeding hidden/reasoning content back into the model.
-                retry_cleaned, retry_data = self._request_once(
-                    system_prompt=system_prompt,
-                    messages=messages,
-                    strict_retry=True,
-                )
+                try:
+                    retry_cleaned, retry_data = self._request_once(
+                        system_prompt=system_prompt,
+                        messages=messages,
+                        strict_retry=True,
+                    )
+                except (
+                    urllib.error.HTTPError,
+                    urllib.error.URLError,
+                    TimeoutError,
+                    OSError,
+                    KeyError,
+                    TypeError,
+                    ValueError,
+                    json.JSONDecodeError,
+                ) as exc:
+                    raise BrainError(
+                        "a tentativa estrita do Ollama falhou; "
+                        f"não repetirei novamente esta mesma resposta: {exc}"
+                    ) from exc
                 if (
                     retry_cleaned
                     and not looks_like_reasoning_leak(retry_cleaned)
